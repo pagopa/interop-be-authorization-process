@@ -3,8 +3,8 @@ package it.pagopa.pdnd.interop.uservice.partymanagement.api.impl
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
-import it.pagopa.pdnd.interop.uservice.securityprocess.api.AuthApiMarshaller
-import it.pagopa.pdnd.interop.uservice.securityprocess.model.{
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiMarshaller
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
   ClientCredentialsRequest,
   ClientCredentialsResponse,
   Problem

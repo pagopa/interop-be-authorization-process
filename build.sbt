@@ -30,6 +30,7 @@ generateCode := {
              |                               -p invokerPackage=it.pagopa.${packagePrefix}.server
              |                               -p modelPackage=it.pagopa.${packagePrefix}.model
              |                               -p apiPackage=it.pagopa.${packagePrefix}.api
+             |                               -p modelPropertyNaming=original
              |                               -p dateLibrary=java8
              |                               -o generated""".stripMargin).!!
 
@@ -40,6 +41,7 @@ generateCode := {
              |                               -p invokerPackage=it.pagopa.${packagePrefix}.client.invoker
              |                               -p modelPackage=it.pagopa.${packagePrefix}.client.model
              |                               -p apiPackage=it.pagopa.${packagePrefix}.client.api
+             |                               -p modelPropertyNaming=original
              |                               -p dateLibrary=java8
              |                               -o client""".stripMargin).!!
 

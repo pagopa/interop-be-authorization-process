@@ -5,7 +5,7 @@ import spray.json.{JsString, JsValue, JsonFormat, deserializationError}
 import java.net.URI
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import java.util.{Base64, UUID}
 import scala.util.{Failure, Success, Try}
 
 package object utils {
@@ -14,6 +14,11 @@ package object utils {
   final val expireIn: Int = 600000
 
   final val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+
+  def decodeBase64(encoded: String): String = {
+    val decoded: Array[Byte] = Base64.getDecoder.decode(encoded)
+    new String(decoded)
+  }
 
   def toOffsetDateTime(str: String): OffsetDateTime = OffsetDateTime.parse(str, formatter)
 

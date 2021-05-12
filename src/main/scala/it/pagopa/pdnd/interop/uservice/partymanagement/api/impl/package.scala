@@ -1,12 +1,12 @@
 package it.pagopa.pdnd.interop.uservice.partymanagement.api
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import it.pagopa.pdnd.interop.uservice.partymanagement.common.utils.uuidFormat
-import it.pagopa.pdnd.interop.uservice.securityprocess.model.{
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
   ClientCredentialsRequest,
   ClientCredentialsResponse,
   Problem
 }
+import it.pagopa.pdnd.interop.uservice.partymanagement.common.utils.uuidFormat
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 package object impl extends SprayJsonSupport with DefaultJsonProtocol {

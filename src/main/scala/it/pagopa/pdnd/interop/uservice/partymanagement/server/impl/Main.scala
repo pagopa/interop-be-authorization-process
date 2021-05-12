@@ -4,11 +4,11 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
 import com.bettercloud.vault.Vault
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApi
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.server.Controller
 import it.pagopa.pdnd.interop.uservice.partymanagement.api.impl.{AuthApiMarshallerImpl, AuthApiServiceImpl}
 import it.pagopa.pdnd.interop.uservice.partymanagement.common.system.{Authenticator, classicActorSystem}
 import it.pagopa.pdnd.interop.uservice.partymanagement.service.impl.{JWTGeneratorImpl, JWTValidatorImpl}
-import it.pagopa.pdnd.interop.uservice.securityprocess.api.AuthApi
-import it.pagopa.pdnd.interop.uservice.securityprocess.server.Controller
 import kamon.Kamon
 
 import scala.concurrent.Future
