@@ -1,7 +1,7 @@
 package it.pagopa.pdnd.interop.uservice.partymanagement.service
 
 import com.auth0.jwt.algorithms.Algorithm
-import it.pagopa.pdnd.interop.uservice.partymanagement.common.utils.{ErrorOr, PemUtils}
+import it.pagopa.pdnd.interop.uservice.partymanagement.common.utils.PemUtils
 
 import java.security.interfaces.{ECPrivateKey, ECPublicKey, RSAPrivateKey, RSAPublicKey}
 import scala.util.Try
@@ -9,18 +9,18 @@ package object impl {
   @SuppressWarnings(Array("org.wartremover.warts.Null"))
   private final val NULL: Null = null
 
-  def generateAlgorithm(algorithm: String, key: String): ErrorOr[Algorithm] = {
+  def generateAlgorithm(algorithm: String, key: String): Try[Algorithm] = {
 
-    val rsaPublicKey: ErrorOr[RSAPublicKey] =
+    val rsaPublicKey: Try[RSAPublicKey] =
       PemUtils.readPublicKeyFromString(key, "RSA").map(_.asInstanceOf[RSAPublicKey])
 
-    val rsaPrivateKey: ErrorOr[RSAPrivateKey] =
+    val rsaPrivateKey: Try[RSAPrivateKey] =
       PemUtils.readPrivateKeyFromString(key, "RSA").map(_.asInstanceOf[RSAPrivateKey])
 
-    val ecPublicKey: ErrorOr[ECPublicKey] =
+    val ecPublicKey: Try[ECPublicKey] =
       PemUtils.readPublicKeyFromString(key, "EC").map(_.asInstanceOf[ECPublicKey])
 
-    val ecPrivateKey: ErrorOr[ECPrivateKey] =
+    val ecPrivateKey: Try[ECPrivateKey] =
       PemUtils.readPrivateKeyFromString(key, "EC").map(_.asInstanceOf[ECPrivateKey])
 
     algorithm match {
@@ -38,21 +38,21 @@ package object impl {
     }
   }
 
-  private def getHSAlgorithm(secret: String, hsAlgorithmFunc: String => Algorithm): ErrorOr[Algorithm] =
-    Try(hsAlgorithmFunc(secret)).toEither
+  private def getHSAlgorithm(secret: String, hsAlgorithmFunc: String => Algorithm): Try[Algorithm] =
+    Try(hsAlgorithmFunc(secret))
 
   private def getRSAAlgorithm(
-    rsaPublicKey: ErrorOr[RSAPublicKey],
-    rsaPrivateKey: ErrorOr[RSAPrivateKey],
+    rsaPublicKey: Try[RSAPublicKey],
+    rsaPrivateKey: Try[RSAPrivateKey],
     rsaAlgorithmFunc: (RSAPublicKey, RSAPrivateKey) => Algorithm
-  ): ErrorOr[Algorithm] =
-    Try(rsaAlgorithmFunc(rsaPublicKey.getOrElse(NULL), rsaPrivateKey.getOrElse(NULL))).toEither
+  ): Try[Algorithm] =
+    Try(rsaAlgorithmFunc(rsaPublicKey.getOrElse(NULL), rsaPrivateKey.getOrElse(NULL)))
 
   private def getESAlgorithm(
-    ecPublicKey: ErrorOr[ECPublicKey],
-    ecPrivateKey: ErrorOr[ECPrivateKey],
+    ecPublicKey: Try[ECPublicKey],
+    ecPrivateKey: Try[ECPrivateKey],
     esAlgorithmFunc: (ECPublicKey, ECPrivateKey) => Algorithm
-  ): ErrorOr[Algorithm] =
-    Try(esAlgorithmFunc(ecPublicKey.getOrElse(NULL), ecPrivateKey.getOrElse(NULL))).toEither
+  ): Try[Algorithm] =
+    Try(esAlgorithmFunc(ecPublicKey.getOrElse(NULL), ecPrivateKey.getOrElse(NULL)))
 
 }
