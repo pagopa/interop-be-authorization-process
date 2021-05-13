@@ -8,7 +8,7 @@ ThisBuild / libraryDependencies := Dependencies.Jars.`server`.map(m =>
     m
 )
 
-PB.targets in Compile := Seq(scalapb.gen() -> (sourceManaged in Compile).value)
+//PB.targets in Compile := Seq(scalapb.gen() -> (sourceManaged in Compile).value)
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
 

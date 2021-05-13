@@ -2,30 +2,26 @@ package it.pagopa.pdnd.interop.uservice.partymanagement.service
 
 import com.auth0.jwt.algorithms.Algorithm
 import it.pagopa.pdnd.interop.uservice.partymanagement.common.utils.{ErrorOr, PemUtils}
-import org.slf4j.{Logger, LoggerFactory}
 
 import java.security.interfaces.{ECPrivateKey, ECPublicKey, RSAPrivateKey, RSAPublicKey}
 import scala.util.Try
-
 package object impl {
   @SuppressWarnings(Array("org.wartremover.warts.Null"))
   private final val NULL: Null = null
-  private val logger: Logger   = LoggerFactory.getLogger(this.getClass)
 
   def generateAlgorithm(algorithm: String, key: String): ErrorOr[Algorithm] = {
-    logger.info(key)
 
     val rsaPublicKey: ErrorOr[RSAPublicKey] =
-      PemUtils.readPublicKeyFromString(key, algorithm).map(_.asInstanceOf[RSAPublicKey])
-    logger.error(rsaPublicKey.toString)
+      PemUtils.readPublicKeyFromString(key, "RSA").map(_.asInstanceOf[RSAPublicKey])
+
     val rsaPrivateKey: ErrorOr[RSAPrivateKey] =
-      PemUtils.readPrivateKeyFromString(key, algorithm).map(_.asInstanceOf[RSAPrivateKey])
+      PemUtils.readPrivateKeyFromString(key, "RSA").map(_.asInstanceOf[RSAPrivateKey])
 
     val ecPublicKey: ErrorOr[ECPublicKey] =
-      PemUtils.readPublicKeyFromString(key, algorithm).map(_.asInstanceOf[ECPublicKey])
+      PemUtils.readPublicKeyFromString(key, "EC").map(_.asInstanceOf[ECPublicKey])
 
     val ecPrivateKey: ErrorOr[ECPrivateKey] =
-      PemUtils.readPrivateKeyFromString(key, algorithm).map(_.asInstanceOf[ECPrivateKey])
+      PemUtils.readPrivateKeyFromString(key, "EC").map(_.asInstanceOf[ECPrivateKey])
 
     algorithm match {
       case "HS256"  => getHSAlgorithm(key, Algorithm.HMAC256)

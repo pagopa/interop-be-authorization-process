@@ -14,17 +14,17 @@ class JWTValidatorImpl(vault: Vault) extends JWTValidator {
   private val logger: Logger = LoggerFactory.getLogger(this.getClass)
   override def validate(token: String): ErrorOr[DecodedJWT] =
     for {
-      jwt <- Try(JWT.decode(token)).toEither
-      _ = logger.info(jwt.toString)
+      jwt      <- Try(JWT.decode(token)).toEither
       clientId <- Try(jwt.getClaim("iss").asString).toEither
       _ = logger.info(clientId)
       kid <- Try(jwt.getKeyId).toEither
       _ = logger.info(kid)
       publicKey <- getPublicKey(clientId, kid)
-      _ = logger.info(publicKey)
       algorithm <- generateAlgorithm(jwt.getAlgorithm, publicKey)
       verifier = JWT.require(algorithm).build()
+      _        = logger.info("Verify signature")
       verified <- Try(verifier.verify(token)).toEither
+      _ = logger.info("Signature verified")
     } yield verified
 
   def getPublicKey(clientId: String, kid: String): Either[RuntimeException, String] = {
