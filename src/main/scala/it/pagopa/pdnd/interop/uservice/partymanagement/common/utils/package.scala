@@ -11,7 +11,7 @@ import scala.util.{Failure, Success, Try}
 package object utils {
   type ErrorOr[A] = Either[Throwable, A]
 
-  final val expireIn: Int = 600000
+  final val expireIn: Long = 600000L
 
   final val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
 

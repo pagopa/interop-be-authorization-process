@@ -1,1 +1,1 @@
-# PDND Interoperability - Party Management Micro Service
+# PDND Interoperability - Authorization process service

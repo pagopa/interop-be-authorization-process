@@ -5,14 +5,15 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiMarshaller
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
-  ClientCredentialsRequest,
+  AccessTokenRequest,
   ClientCredentialsResponse,
   Problem
 }
 
 class AuthApiMarshallerImpl extends AuthApiMarshaller with SprayJsonSupport {
-  override implicit def fromEntityUnmarshallerClientCredentialsRequest
-    : FromEntityUnmarshaller[ClientCredentialsRequest] = sprayJsonUnmarshaller[ClientCredentialsRequest]
+
+  override implicit def fromEntityUnmarshallerAccessTokenRequest: FromEntityUnmarshaller[AccessTokenRequest] =
+    sprayJsonUnmarshaller[AccessTokenRequest]
 
   override implicit def toEntityMarshallerClientCredentialsResponse: ToEntityMarshaller[ClientCredentialsResponse] =
     sprayJsonMarshaller[ClientCredentialsResponse]

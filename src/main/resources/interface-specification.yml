@@ -35,7 +35,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClientCredentialsRequest'
+              $ref: '#/components/schemas/AccessTokenRequest'
       responses:
         "200":
           description: |-
@@ -65,14 +65,13 @@ paths:
                 $ref: '#/components/schemas/Problem'
 components:
   schemas:
-    ClientCredentialsRequest:
+    AccessTokenRequest:
       type: object
       required:
         - client_id
         - client_assertion
         - client_assertion_type
         - grant_type
-        - audience
       properties:
         client_id:
           type: string
@@ -104,7 +103,7 @@ components:
             - Bearer
         expires_in:
           type: integer
-          format: int32
+          format: int64
           maximum: 600
     Problem:
       properties:

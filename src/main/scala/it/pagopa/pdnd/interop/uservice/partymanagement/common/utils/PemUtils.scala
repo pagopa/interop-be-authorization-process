@@ -10,18 +10,13 @@ import scala.util.Try
 
 object PemUtils {
 
-  def readPrivateKeyFromString(keyString: String, algorithm: String): ErrorOr[PrivateKey] = {
-    val bytes: Array[Byte] = parsePEMString(keyString)
+  def readPrivateKeyFromString(keyString: String, algorithm: String): Try[PrivateKey] =
+    parsePEMString(keyString).flatMap(PemUtils.getPrivateKey(algorithm))
 
-    PemUtils.getPrivateKey(bytes, algorithm)
-  }
+  def readPublicKeyFromString(keyString: String, algorithm: String): Try[PublicKey] =
+    parsePEMString(keyString).flatMap(PemUtils.getPublicKey(algorithm))
 
-  def readPublicKeyFromString(keyString: String, algorithm: String): ErrorOr[PublicKey] = {
-    val bytes: Array[Byte] = parsePEMString(keyString)
-    PemUtils.getPublicKey(bytes, algorithm)
-  }
-
-  private def parsePEMString(pem: String): Array[Byte] = {
+  private def parsePEMString(pem: String): Try[Array[Byte]] = Try {
     val byteStream: ByteArrayInputStream = new ByteArrayInputStream(pem.getBytes(StandardCharsets.UTF_8.name))
     val inputStream: InputStreamReader   = new InputStreamReader(byteStream)
     val reader: PemReader                = new PemReader(inputStream)
@@ -31,22 +26,20 @@ object PemUtils {
     content
   }
 
-  private def getPrivateKey(keyBytes: Array[Byte], algorithm: String): ErrorOr[PrivateKey] = {
+  private def getPrivateKey(algorithm: String): Array[Byte] => Try[PrivateKey] = keyBytes => {
     Try {
       val kf: KeyFactory               = KeyFactory.getInstance(algorithm)
       val keySpec: PKCS8EncodedKeySpec = new PKCS8EncodedKeySpec(keyBytes)
-      val privateKey: PrivateKey       = kf.generatePrivate(keySpec)
-      privateKey
-    }.toEither
+      kf.generatePrivate(keySpec)
+    }
   }
 
-  private def getPublicKey(keyBytes: Array[Byte], algorithm: String): ErrorOr[PublicKey] = {
+  private def getPublicKey(algorithm: String): Array[Byte] => Try[PublicKey] = keyBytes => {
     Try {
       val kf: KeyFactory              = KeyFactory.getInstance(algorithm)
       val keySpec: X509EncodedKeySpec = new X509EncodedKeySpec(keyBytes)
-      val publicKey: PublicKey        = kf.generatePublic(keySpec)
-      publicKey
-    }.toEither
+      kf.generatePublic(keySpec)
+    }
   }
 
 }
