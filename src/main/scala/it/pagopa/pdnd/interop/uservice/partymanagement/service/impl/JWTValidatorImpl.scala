@@ -12,6 +12,8 @@ import scala.util.Try
 
 class JWTValidatorImpl(vault: Vault) extends JWTValidator {
   private val logger: Logger = LoggerFactory.getLogger(this.getClass)
+
+//  TODO: use agreement_id
   override def validate(token: String): Try[DecodedJWT] =
     for {
       jwt      <- Try(JWT.decode(token))
@@ -27,6 +29,7 @@ class JWTValidatorImpl(vault: Vault) extends JWTValidator {
       _ = logger.info("Signature verified")
     } yield verified
 
+  // TODO use jwks service with auth0-jwks
   def getPublicKey(clientId: String, kid: String): Try[String] = {
     val data = vault.logical().read(s"secret/data/pdnd-interop-dev/keys/organizations/$clientId/keys/$kid")
     data.getData.asScala

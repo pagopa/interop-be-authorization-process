@@ -17,7 +17,7 @@ servers:
 #security:
 #  - bearerAuth: [ ]
 tags:
-  - name: oauth2
+  - name: auth
     description: Get security information
     externalDocs:
       description: Find out more
@@ -72,6 +72,7 @@ components:
         - client_assertion
         - client_assertion_type
         - grant_type
+        - agreement_id
       properties:
         client_id:
           type: string
@@ -87,6 +88,10 @@ components:
           type: string
           enum:
             - client_credentials
+        aggrement_id:
+          type: string
+          format: uuid
+          example: e58035ce-c753-4f72-b613-46f8a17b71cc
     ClientCredentialsResponse:
       type: object
       required:
@@ -101,6 +106,7 @@ components:
           type: string
           enum:
             - Bearer
+            - Agid-Pop
         expires_in:
           type: integer
           format: int64

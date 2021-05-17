@@ -35,8 +35,8 @@ class AuthApiServiceImpl(jwtValidator: JWTValidator, jwtGenerator: JWTGenerator)
     val token: Try[String] =
       for {
         validated <- jwtValidator.validate(accessTokenRequest.client_assertion)
-        seed      <- TokenSeed.create(validated)
-        token     <- jwtGenerator.generate(seed)
+        seed = TokenSeed.create(validated)
+        token <- jwtGenerator.generate(seed)
       } yield token
 
     token.fold(ex => manageError(ex), tk => createToken200(ClientCredentialsResponse(tk, "tokenType", expireIn)))
@@ -45,9 +45,9 @@ class AuthApiServiceImpl(jwtValidator: JWTValidator, jwtGenerator: JWTGenerator)
   private def manageError(error: Throwable): Route = error match {
     case ex: AlgorithmMismatchException =>
       createToken403(Problem(Option(ex.getMessage), 403, "Algorithm mismatch found"))
-    case ex: SignatureVerificationException => createToken403(Problem(Option(ex.getMessage), 403, "Invalid signature"))
-    case ex: TokenExpiredException          => createToken403(Problem(Option(ex.getMessage), 403, "Token expired"))
-    case ex: InvalidClaimException          => createToken403(Problem(Option(ex.getMessage), 403, "Invalid claim found"))
+    case ex: SignatureVerificationException => createToken403(Problem(Option(ex.getMessage), 401, "Invalid signature"))
+    case ex: TokenExpiredException          => createToken403(Problem(Option(ex.getMessage), 401, "Token expired"))
+    case ex: InvalidClaimException          => createToken403(Problem(Option(ex.getMessage), 401, "Invalid claim found"))
     case ex                                 => createToken400(Problem(Option(ex.getMessage), 400, "Something goes wrong during access token request"))
   }
 
