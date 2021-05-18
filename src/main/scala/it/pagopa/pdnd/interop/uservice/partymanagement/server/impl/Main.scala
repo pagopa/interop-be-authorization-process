@@ -8,7 +8,12 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApi
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.server.Controller
 import it.pagopa.pdnd.interop.uservice.partymanagement.api.impl.{AuthApiMarshallerImpl, AuthApiServiceImpl}
 import it.pagopa.pdnd.interop.uservice.partymanagement.common.system.{Authenticator, classicActorSystem}
-import it.pagopa.pdnd.interop.uservice.partymanagement.service.impl.{JWTGeneratorImpl, JWTValidatorImpl}
+import it.pagopa.pdnd.interop.uservice.partymanagement.service.VaultService
+import it.pagopa.pdnd.interop.uservice.partymanagement.service.impl.{
+  JWTGeneratorImpl,
+  JWTValidatorImpl,
+  VaultServiceImpl
+}
 import kamon.Kamon
 
 import scala.concurrent.Future
@@ -19,8 +24,9 @@ object Main extends App {
 
   lazy val vault: Vault = getVaultClient
 
-  val jwtValidator: JWTValidatorImpl = new JWTValidatorImpl(vault)
-  val jwtGenerator: JWTGeneratorImpl = new JWTGeneratorImpl(vault)
+  val vaultService: VaultService     = new VaultServiceImpl(vault)
+  val jwtValidator: JWTValidatorImpl = new JWTValidatorImpl(vaultService)
+  val jwtGenerator: JWTGeneratorImpl = new JWTGeneratorImpl(vaultService)
 
   val authApi: AuthApi = new AuthApi(
     new AuthApiServiceImpl(jwtValidator, jwtGenerator),

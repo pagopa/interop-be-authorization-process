@@ -99,3 +99,10 @@ lazy val root = (project in file("."))
   .aggregate(client)
   .dependsOn(generated)
   .enablePlugins(AshScriptPlugin, DockerPlugin)
+
+fork in Test := true
+
+envVars in Test := Map(
+  "PDND_INTEROP_RSA_PRIVATE_KEY" -> "pdndInteropRsaPrivateKey",
+  "PDND_INTEROP_EC_PRIVATE_KEY"  -> "pdndInteropEcPrivateKey"
+)
