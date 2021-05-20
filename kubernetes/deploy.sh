@@ -16,9 +16,9 @@ kubectl get secret regcred -n default -o yaml | sed s/"namespace: default"/"name
 
 kubectl create secret generic vault --from-literal=VAULT_ADDR=$VAULT_ADDR --from-literal=VAULT_TOKEN=$VAULT_TOKEN -n $NAMESPACE
 
-kubectl create secret generic cassandra --from-literal=CASSANDRA_USER=$CASSANDRA_USER --from-literal=CASSANDRA_PWD=$CASSANDRA_PWD -n $NAMESPACE
-
 kubectl create secret generic aws --from-literal=AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --from-literal=AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -n $NAMESPACE
+
+kubectl create secret generic key-paths --from-literal=PDND_INTEROP_RSA_PRIVATE_KEY=$PDND_INTEROP_RSA_PRIVATE_KEY --from-literal=PDND_INTEROP_EC_PRIVATE_KEY=$PDND_INTEROP_EC_PRIVATE_KEY -n $NAMESPACE
 
 $SCRIPT_PATH/templater.sh $SCRIPT_PATH/deployment.yaml.template -s -f $SCRIPT_PATH/config > $SCRIPT_PATH/deployment.yaml
 

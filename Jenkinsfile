@@ -50,7 +50,7 @@ pipeline {
 
             sh '''#!/bin/bash
             export DOCKER_REPO=$NEXUS
-            export MAVEN_REPO=${NEXUS}
+            export MAVEN_REPO=$NEXUS
             echo "realm=Sonatype Nexus Repository Manager\nhost=${NEXUS}\nuser=${NEXUS_CREDENTIALS_USR}\npassword=${NEXUS_CREDENTIALS_PSW}" > /home/sbtuser/.sbt/.credentials
             sbt -Djavax.net.ssl.trustStore=./PDNDTrustStore -Djavax.net.ssl.trustStorePassword=${PDND_TRUST_STORE_PSW} generateCode "project root" docker:publish
             '''
@@ -65,6 +65,8 @@ pipeline {
       environment {
         AWS_SECRET_ACCESS = credentials('jenkins-aws')
         CASSANDRA = credentials('cassandra-db')
+        PDND_INTEROP_RSA_PRIVATE_KEY = credentials('pdnd_interop_rsa_private_key')
+        PDND_INTEROP_EC_PRIVATE_KEY = credentials('pdnd_interop_ec_private_key')
       }
       steps{
         // we should use a container with kubectl preinstalled
@@ -76,6 +78,8 @@ pipeline {
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_PSW
             export CASSANDRA_USER=$CASSANDRA_USR
             export CASSANDRA_PWD=$CASSANDRA_PSW
+            export PDND_INTEROP_RSA_PRIVATE_KEY=$PDND_INTEROP_RSA_PRIVATE_KEY
+            export PDND_INTEROP_EC_PRIVATE_KEY=$PDND_INTEROP_EC_PRIVATE_KEY
             cd kubernetes
             curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
             chmod u+x ./kubectl
