@@ -51,7 +51,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClientCredentialsResponse'
-        "403":
+        "401":
           description: Unauthorized
           content:
             application/problem+json:

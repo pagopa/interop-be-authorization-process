@@ -24,9 +24,9 @@ package object impl {
       PemUtils.readPrivateKeyFromString(key, "EC").map(_.asInstanceOf[ECPrivateKey])
 
     algorithm match {
-      case "HS256"  => getHSAlgorithm(key, Algorithm.HMAC256)
-      case "HS384"  => getHSAlgorithm(key, Algorithm.HMAC384)
-      case "HS512"  => getHSAlgorithm(key, Algorithm.HMAC512)
+//      case "HS256"  => getHSAlgorithm(key, Algorithm.HMAC256)
+//      case "HS384"  => getHSAlgorithm(key, Algorithm.HMAC384)
+//      case "HS512"  => getHSAlgorithm(key, Algorithm.HMAC512)
       case "RS256"  => getRSAAlgorithm(rsaPublicKey, rsaPrivateKey, Algorithm.RSA256)
       case "RS384"  => getRSAAlgorithm(rsaPublicKey, rsaPrivateKey, Algorithm.RSA384)
       case "RS512"  => getRSAAlgorithm(rsaPublicKey, rsaPrivateKey, Algorithm.RSA512)
@@ -38,8 +38,8 @@ package object impl {
     }
   }
 
-  private def getHSAlgorithm(secret: String, hsAlgorithmFunc: String => Algorithm): Try[Algorithm] =
-    Try(hsAlgorithmFunc(secret))
+//  private def getHSAlgorithm(secret: String, hsAlgorithmFunc: String => Algorithm): Try[Algorithm] =
+//    Try(hsAlgorithmFunc(secret))
 
   private def getRSAAlgorithm(
     rsaPublicKey: Try[RSAPublicKey],

@@ -5,15 +5,22 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.{Marshal, ToEntityMarshaller}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.directives.SecurityDirectives
+import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshal}
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApi
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.AccessTokenRequest
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
+  AccessTokenRequest,
+  ClientCredentialsResponse,
+  Problem
+}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.server.Controller
 import it.pagopa.pdnd.interop.uservice.partymanagement.api.impl.{
   AuthApiMarshallerImpl,
   AuthApiServiceImpl,
-  accessTokenRequestFormat
+  accessTokenRequestFormat,
+  clientCredentialsResponseFormat,
+  problemFormat
 }
 import it.pagopa.pdnd.interop.uservice.partymanagement.common.system.{
   Authenticator,
@@ -35,6 +42,7 @@ import spray.json.DefaultJsonProtocol
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import scala.util.Try
 //import java.time.{Clock, Instant}
 import java.util.UUID
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -59,8 +67,9 @@ class AuthApiServiceImplSpec
     with MockFactory
     with BeforeAndAfterAll
     with OneInstancePerTest {
-  final lazy val url: String     = "http://localhost:8088/pdnd-interop-uservice-authorization-process/0.0.1"
+
   final lazy val keyPath: String = "src/test/resources/keys"
+
   import AuthApiServiceImplSpec._
 
   val vaultService: VaultService = mock[VaultService]
@@ -68,20 +77,23 @@ class AuthApiServiceImplSpec
   var controller: Option[Controller]                 = None
   var bindServer: Option[Future[Http.ServerBinding]] = None
 
-  val privatePdndRSAKeySource: BufferedSource   = Source.fromFile(s"$keyPath/pdnd-test-keypair.rsa.priv.bs64")
-  val privatePdndECKeySource: BufferedSource    = Source.fromFile(s"$keyPath/pdnd-test-private.ec.key.bs64")
-  val privateClientRSAKeySource: BufferedSource = Source.fromFile(s"$keyPath/client-test-keypair.rsa.priv.bs64")
-  val privateClientECKeySource: BufferedSource  = Source.fromFile(s"$keyPath/client-test-private.ec.pem.bs64")
-  val publicRsaKeySource: BufferedSource        = Source.fromFile(s"$keyPath/client-test-keypair.rsa.pub.bs64")
-  val publicECKeySource: BufferedSource         = Source.fromFile(s"$keyPath/client-test-public.ec.pem.bs64")
+  val privatePdndRSAKeySource: BufferedSource = Source.fromFile(s"$keyPath/pdnd-test-keypair.rsa.priv.bs64")
+  val privatePdndECKeySource: BufferedSource  = Source.fromFile(s"$keyPath/pdnd-test-private.ec.pem.bs64")
 
-  val privateRSAPdndKey: String   = privatePdndRSAKeySource.getLines().mkString
-  val privatePdndECKey: String    = privatePdndECKeySource.getLines().mkString
+  val privateClientRSAKeySource: BufferedSource = Source.fromFile(s"$keyPath/client-test-keypair.rsa.priv.bs64")
+  val publicClientRsaKeySource: BufferedSource  = Source.fromFile(s"$keyPath/client-test-keypair.rsa.pub.bs64")
+
+  val privateClientECKeySource: BufferedSource = Source.fromFile(s"$keyPath/client-test-private.ec.pem.bs64")
+  val publicClientECKeySource: BufferedSource  = Source.fromFile(s"$keyPath/client-test-public.ec.pem.bs64")
+
+  val privateRSAPdndKey: String = privatePdndRSAKeySource.getLines().mkString
+  val privatePdndECKey: String  = privatePdndECKeySource.getLines().mkString
+
   val privateClientRSAKey: String = privateClientRSAKeySource.getLines().mkString
   val privateClientECKey: String  = privateClientECKeySource.getLines().mkString
 
-  val publicClientRsaKey: String = publicRsaKeySource.getLines().mkString
-  val publicClientECKey: String  = publicECKeySource.getLines().mkString
+  val publicClientRsaKey: String = publicClientRsaKeySource.getLines().mkString
+  val publicClientECKey: String  = publicClientECKeySource.getLines().mkString
 
   override def beforeAll(): Unit = {
     (vaultService.getSecret _)
@@ -97,7 +109,12 @@ class AuthApiServiceImplSpec
     (vaultService.getSecret _)
       .expects(s"secret/data/pdnd-interop-dev/keys/organizations/$clientId/keys/$rsaKid")
       .returning(Map("public" -> publicClientRsaKey))
-      .repeat(2)
+      .repeat(6)
+
+    (vaultService.getSecret _)
+      .expects(s"secret/data/pdnd-interop-dev/keys/organizations/$clientId/keys/$ecKid")
+      .returning(Map("public" -> publicClientECKey))
+      .repeat(4)
 
     val jwtValidator: JWTValidator = new JWTValidatorImpl(vaultService)
     val jwtGenerator: JWTGenerator = new JWTGeneratorImpl(vaultService)
@@ -128,62 +145,187 @@ class AuthApiServiceImplSpec
     privateClientRSAKeySource.close()
     privateClientRSAKeySource.close()
     privateClientECKeySource.close()
-    publicECKeySource.close()
+    publicClientECKeySource.close()
     bindServer.foreach(_.foreach(_.unbind()))
 
   }
 
-  val issued: Instant   = Instant.now()
-  val expireIn: Instant = issued.plus(60, ChronoUnit.SECONDS)
-
-  val payload: Map[String, Any] = Map(
-    "iss" -> "f9f4e043-a9ed-4574-8310-d1fbe1c1b226",
-    "sub" -> "f9f4e043-a9ed-4574-8310-d1fbe1c1b226",
-    "jti" -> "12342",
-    "aud" -> "https://gateway.interop.pdnd.dev/auth",
-    "iat" -> issued.getEpochSecond,
-    "nbf" -> issued.getEpochSecond,
-    "exp" -> expireIn.getEpochSecond
-  )
-
   "Working with authorization" must {
-    "return 200" in {
+    "return 200 for RS256 token request" in {
 
-      val algorithm: Algorithm = generateAlgorithm("RS256", decodeBase64(privateClientRSAKey)).get
+      val response: HttpResponse = getServiceResponse("RS256", privateClientRSAKey, rsaKid)
 
-      val assertion: String = JWT.create().withKeyId(rsaKid).withPayload(payload.asJava).sign(algorithm)
-
-      val request = AccessTokenRequest(
-        client_id = UUID.fromString(clientId),
-        client_assertion = assertion,
-        client_assertion_type = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-        grant_type = "client_credentials",
-        agreement_id = UUID.fromString("f9f4e043-a9ed-4574-8310-d1fbe1c1b100")
-      )
-
-      val data = Await.result(Marshal(request).to[MessageEntity].map(_.dataBytes), Duration.Inf)
-
-      val response = Await.result(
-        Http().singleRequest(
-          HttpRequest(
-            uri = s"$url/as/token.oauth2",
-            method = HttpMethods.POST,
-            entity = HttpEntity(ContentTypes.`application/json`, data)
-          )
-        ),
-        Duration.Inf
-      )
+      val body: ClientCredentialsResponse =
+        Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
 
       response.status mustBe StatusCodes.OK
+      Try(JWT.decode(body.access_token)).isSuccess mustBe true
     }
+
+    "return 200 for RS384 token request" in {
+
+      val response: HttpResponse = getServiceResponse("RS384", privateClientRSAKey, rsaKid)
+
+      val body: ClientCredentialsResponse =
+        Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
+
+      response.status mustBe StatusCodes.OK
+      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+    }
+
+    "return 200 for RS512 token request" in {
+
+      val response: HttpResponse = getServiceResponse("RS512", privateClientRSAKey, rsaKid)
+
+      val body: ClientCredentialsResponse =
+        Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
+
+      response.status mustBe StatusCodes.OK
+      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+    }
+
+    "return 200 for ES256 token request" in {
+
+      val response: HttpResponse = getServiceResponse("ES256", privateClientECKey, ecKid)
+
+      val body: ClientCredentialsResponse =
+        Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
+
+      response.status mustBe StatusCodes.OK
+      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+    }
+
+    "return 200 for ES256K token request" in {
+      val response: HttpResponse = getServiceResponse("ES256K", privateClientECKey, ecKid)
+
+      val body: ClientCredentialsResponse =
+        Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
+
+      response.status mustBe StatusCodes.OK
+
+      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+    }
+
+    "return 200 for ES384 token request" in {
+      val response: HttpResponse = getServiceResponse("ES384", privateClientECKey, ecKid)
+
+      val body: ClientCredentialsResponse =
+        Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
+
+      response.status mustBe StatusCodes.OK
+      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+    }
+
+    "return 200 for ES512 token request" in {
+      val response: HttpResponse = getServiceResponse("ES512", privateClientECKey, ecKid)
+
+      val body: ClientCredentialsResponse =
+        Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
+
+      response.status mustBe StatusCodes.OK
+      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+    }
+
+    "fails if the client assertion not before is in future" in {
+
+      val issued: Instant    = Instant.now()
+      val notBefore: Instant = issued.plus(60, ChronoUnit.SECONDS)
+      val expireIn: Instant  = issued.plus(60, ChronoUnit.SECONDS)
+
+      val response = getServiceResponse("RS256", privateClientRSAKey, rsaKid, issued, notBefore, expireIn)
+
+      val body: Problem = Await.result(Unmarshal(response.entity).to[Problem], Duration.Inf)
+
+      response.status mustBe StatusCodes.Unauthorized
+      body.title mustBe "Invalid claim found"
+      body.detail.exists(_.startsWith("The Token can't be used before ")) mustBe true
+    }
+
+    "fails if the client assertion is expired" in {
+
+      val issued: Instant    = Instant.now().minus(60, ChronoUnit.SECONDS)
+      val notBefore: Instant = issued
+      val expireIn: Instant  = issued.plus(10, ChronoUnit.SECONDS)
+
+      val response = getServiceResponse("RS256", privateClientRSAKey, rsaKid, issued, notBefore, expireIn)
+
+      val body: Problem = Await.result(Unmarshal(response.entity).to[Problem], Duration.Inf)
+
+      response.status mustBe StatusCodes.Unauthorized
+      body.title mustBe "Token expired"
+      body.detail.exists(_.startsWith("The Token has expired on ")) mustBe true
+    }
+
   }
 }
 
+@SuppressWarnings(
+  Array("org.wartremover.warts.Any", "org.wartremover.warts.TryPartial", "org.wartremover.warts.DefaultArguments")
+)
 object AuthApiServiceImplSpec extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def toEntityMarshallerAccessTokenRequest: ToEntityMarshaller[AccessTokenRequest] =
     sprayJsonMarshaller[AccessTokenRequest]
 
-  val rsaKid   = "1234567890"
-  val clientId = "f9f4e043-a9ed-4574-8310-d1fbe1c1b226"
+  implicit def fromEntityUnmarshallerClientCredentialsResponse: FromEntityUnmarshaller[ClientCredentialsResponse] =
+    sprayJsonUnmarshaller[ClientCredentialsResponse]
+
+  implicit def fromEntityUnmarshallerProblem: FromEntityUnmarshaller[Problem] = sprayJsonUnmarshaller[Problem]
+
+  final lazy val url: String    = "http://localhost:8088/pdnd-interop-uservice-authorization-process/0.0.1"
+  final val rsaKid: String      = "1234567890"
+  final val ecKid: String       = "1234567891"
+  final val clientId: String    = "f9f4e043-a9ed-4574-8310-d1fbe1c1b226"
+  final val agreementId: String = "f9f4e043-a9ed-4574-8310-d1fbe1c1b100"
+  final val jti: String         = "b39216dc-56d1-4d1d-86c2-d8fa86e81732"
+  final val issued: Instant     = Instant.now()
+  final val expireIn: Instant   = issued.plus(60, ChronoUnit.SECONDS)
+
+  def createPayload(issued: Instant, notBefore: Instant, expireIn: Instant): Map[String, Any] = Map(
+    "iss" -> clientId,
+    "sub" -> clientId,
+    "jti" -> jti,
+    "aud" -> "https://gateway.interop.pdnd.dev/auth",
+    "iat" -> issued.getEpochSecond,
+    "nbf" -> notBefore.getEpochSecond,
+    "exp" -> expireIn.getEpochSecond
+  )
+
+  def getServiceResponse(
+    alg: String,
+    privateKey: String,
+    kid: String,
+    issued: Instant = issued,
+    notBefore: Instant = issued,
+    expireIn: Instant = expireIn
+  ): HttpResponse = {
+    val algorithm: Algorithm = generateAlgorithm(alg, decodeBase64(privateKey)).get
+
+    val payload           = createPayload(issued, notBefore, expireIn)
+    val assertion: String = JWT.create().withKeyId(kid).withPayload(payload.asJava).sign(algorithm)
+
+    val request = AccessTokenRequest(
+      client_id = UUID.fromString(clientId),
+      client_assertion = assertion,
+      client_assertion_type = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+      grant_type = "client_credentials",
+      agreement_id = UUID.fromString(agreementId)
+    )
+
+    val data = Await.result(Marshal(request).to[MessageEntity].map(_.dataBytes), Duration.Inf)
+
+    val response = Await.result(
+      Http().singleRequest(
+        HttpRequest(
+          uri = s"$url/as/token.oauth2",
+          method = HttpMethods.POST,
+          entity = HttpEntity(ContentTypes.`application/json`, data)
+        )
+      ),
+      Duration.Inf
+    )
+
+    response
+
+  }
 
 }

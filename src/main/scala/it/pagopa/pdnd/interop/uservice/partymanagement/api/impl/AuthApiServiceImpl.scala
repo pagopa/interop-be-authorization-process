@@ -44,10 +44,10 @@ class AuthApiServiceImpl(jwtValidator: JWTValidator, jwtGenerator: JWTGenerator)
 
   private def manageError(error: Throwable): Route = error match {
     case ex: AlgorithmMismatchException =>
-      createToken403(Problem(Option(ex.getMessage), 403, "Algorithm mismatch found"))
-    case ex: SignatureVerificationException => createToken403(Problem(Option(ex.getMessage), 401, "Invalid signature"))
-    case ex: TokenExpiredException          => createToken403(Problem(Option(ex.getMessage), 401, "Token expired"))
-    case ex: InvalidClaimException          => createToken403(Problem(Option(ex.getMessage), 401, "Invalid claim found"))
+      createToken401(Problem(Option(ex.getMessage), 401, "Algorithm mismatch found"))
+    case ex: SignatureVerificationException => createToken401(Problem(Option(ex.getMessage), 401, "Invalid signature"))
+    case ex: TokenExpiredException          => createToken401(Problem(Option(ex.getMessage), 401, "Token expired"))
+    case ex: InvalidClaimException          => createToken401(Problem(Option(ex.getMessage), 401, "Invalid claim found"))
     case ex                                 => createToken400(Problem(Option(ex.getMessage), 400, "Something goes wrong during access token request"))
   }
 
