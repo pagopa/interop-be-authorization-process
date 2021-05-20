@@ -1,0 +1,9 @@
+# How to generate RSA key pair
+openssl genrsa -out client-test-keypair.rsa.pem 2048
+openssl rsa -in client-test-keypair.rsa.pem -pubout -out client-test-keypair.rsa.pub
+openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in client-test-keypair.rsa.pem -out client-test-keypair.rsa.priv
+
+# How to generate EC key pair
+openssl ecparam -genkey -name prime256v1 -noout -out client-test-private.ec.key
+openssl pkcs8 -topk8 -inform pem -in client-test-private.ec.key -outform pem -nocrypt -out client-test-private.ec.pem
+openssl ec -in client-test-private.ec.pem -pubout -out client-test-public.ec.pem
