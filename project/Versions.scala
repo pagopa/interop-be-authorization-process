@@ -7,6 +7,7 @@ object Versions {
   lazy val vaultDriverVersion       = "5.1.0"
   lazy val bouncycastleVersion      = "1.68"
   lazy val catsVersion              = "2.6.0"
+  lazy val json4sVersion            = "3.6.11"
   lazy val kamonVersion             = "2.1.17"
   lazy val logbackVersion           = "1.2.3"
   lazy val scalatestVersion         = "3.2.8"

@@ -4,7 +4,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import it.pagopa.pdnd.interop.uservice.partymanagement.common.utils.PemUtils
 
 import java.security.interfaces.{ECPrivateKey, ECPublicKey, RSAPrivateKey, RSAPublicKey}
-import scala.util.Try
+import scala.util.{Failure, Try}
 package object impl {
   @SuppressWarnings(Array("org.wartremover.warts.Null"))
   private final val NULL: Null = null
@@ -34,7 +34,7 @@ package object impl {
       case "ES256K" => getESAlgorithm(ecPublicKey, ecPrivateKey, Algorithm.ECDSA256K)
       case "ES384"  => getESAlgorithm(ecPublicKey, ecPrivateKey, Algorithm.ECDSA384)
       case "ES512"  => getESAlgorithm(ecPublicKey, ecPrivateKey, Algorithm.ECDSA512)
-
+      case _        => Failure(new RuntimeException("sdfhjsdhfjksdh"))
     }
   }
 
