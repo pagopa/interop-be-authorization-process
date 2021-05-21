@@ -69,16 +69,16 @@ spec:
                 secretKeyRef:
                   name: aws
                   key: AWS_SECRET_ACCESS_KEY
-            - name: CASSANDRA_USER
+            - name: PDND_INTEROP_RSA_PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: cassandra
-                  key: CASSANDRA_USER
-            - name: CASSANDRA_PWD
+                  name: key-paths
+                  key: PDND_INTEROP_RSA_PRIVATE_KEY
+            - name: PDND_INTEROP_EC_PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: cassandra
-                  key: CASSANDRA_PWD
+                  name: key-paths
+                  key: PDND_INTEROP_EC_PRIVATE_KEY
       volumes:
       - name: snapshots-volume
         emptyDir: {}

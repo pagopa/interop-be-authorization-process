@@ -64,7 +64,6 @@ pipeline {
       agent { label 'sbt-template' }
       environment {
         AWS_SECRET_ACCESS = credentials('jenkins-aws')
-        CASSANDRA = credentials('cassandra-db')
         PDND_INTEROP_RSA_PRIVATE_KEY = credentials('pdnd_interop_rsa_private_key')
         PDND_INTEROP_EC_PRIVATE_KEY = credentials('pdnd_interop_ec_private_key')
       }

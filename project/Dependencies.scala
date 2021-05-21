@@ -11,7 +11,6 @@ object Dependencies {
     lazy val serialization = namespace                       %% "akka-serialization-jackson"   % akkaVersion
     lazy val stream        = namespace                       %% "akka-stream"                  % akkaVersion
     lazy val clusterTools  = namespace                       %% "akka-cluster-tools"           % akkaVersion
-    lazy val cassandra     = namespace                       %% "akka-persistence-cassandra"   % akkaCassandraVersion
     lazy val http          = namespace                       %% "akka-http"                    % akkaHttpVersion
     lazy val httpJson      = namespace                       %% "akka-http-spray-json"         % akkaHttpVersion
     lazy val httpJson4s    = "de.heikoseeberger"             %% "akka-http-json4s"             % "1.36.0"
