@@ -23,6 +23,40 @@ tags:
       description: Find out more
       url: http://swagger.io
 paths:
+#  /keys:
+#    post:
+#      tags:
+#        - auth
+#        summary: Add a public key
+#        description: Return ok
+#        operationId: addPublicKey
+#        requestBody:
+#          required: true
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/PublicKey'
+#        responses:
+#          "201":
+#            description: |-
+#              an Access token
+#            headers:
+#              Cache-Control:
+#                schema:
+#                  type: string
+#                  default: no-cache, no-store
+#                description: |-
+#                  no-cache, no-store
+#            content:
+#              application/json:
+#                schema:
+#                  $ref: '#/components/schemas/ClientCredentialsResponse'
+#          "400":
+#            description: Bad request
+#            content:
+#              application/problem+json:
+#                schema:
+#                  $ref: '#/components/schemas/Problem'
   /as/token.oauth2:
     post:
       tags:
@@ -65,6 +99,8 @@ paths:
                 $ref: '#/components/schemas/Problem'
 components:
   schemas:
+#    PublicKey:
+#      type: ob
     AccessTokenRequest:
       type: object
       required:
