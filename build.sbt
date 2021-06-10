@@ -8,8 +8,6 @@ ThisBuild / libraryDependencies := Dependencies.Jars.`server`.map(m =>
     m
 )
 
-//PB.targets in Compile := Seq(scalapb.gen() -> (sourceManaged in Compile).value)
-
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
 lazy val generateCode = taskKey[Unit]("A task for generating the code starting from the swagger definition")

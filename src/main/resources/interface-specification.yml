@@ -23,40 +23,35 @@ tags:
       description: Find out more
       url: http://swagger.io
 paths:
-#  /keys:
-#    post:
-#      tags:
-#        - auth
-#        summary: Add a public key
-#        description: Return ok
-#        operationId: addPublicKey
-#        requestBody:
-#          required: true
-#          content:
-#            application/json:
-#              schema:
-#                $ref: '#/components/schemas/PublicKey'
-#        responses:
-#          "201":
-#            description: |-
-#              an Access token
-#            headers:
-#              Cache-Control:
-#                schema:
-#                  type: string
-#                  default: no-cache, no-store
-#                description: |-
-#                  no-cache, no-store
-#            content:
-#              application/json:
-#                schema:
-#                  $ref: '#/components/schemas/ClientCredentialsResponse'
-#          "400":
-#            description: Bad request
-#            content:
-#              application/problem+json:
-#                schema:
-#                  $ref: '#/components/schemas/Problem'
+  /clients/{clientId}/credentials:
+    get:
+      tags:
+        - auth
+      parameters:
+        - name: clientId
+          in: path
+          description:
+          required: true
+          schema:
+            type: string
+            format: uuid
+      operationId: getClientCredentials
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        #                $ref: '#/components/schemas/Keys'
+        "404":
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /as/token.oauth2:
     post:
       tags:
@@ -99,8 +94,36 @@ paths:
                 $ref: '#/components/schemas/Problem'
 components:
   schemas:
-#    PublicKey:
-#      type: ob
+    Keys:
+      type: array
+      items:
+        $ref: '#/components/schemas/Key'
+    Key:
+      type: object
+      required:
+        - kty
+        - alg
+        - use
+        - kid
+      properties:
+        kty:
+          type: string
+        alg:
+          type: string
+        use:
+          type: string
+        kid:
+          type: string
+        n:
+          type: string
+        e:
+          type: string
+        crv:
+          type: string
+        x:
+          type: string
+        y:
+          type: string
     AccessTokenRequest:
       type: object
       required:
