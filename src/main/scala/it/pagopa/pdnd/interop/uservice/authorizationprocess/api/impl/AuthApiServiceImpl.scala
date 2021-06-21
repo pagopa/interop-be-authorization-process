@@ -61,7 +61,7 @@ class AuthApiServiceImpl(vaultService: VaultService, jwtValidator: JWTValidator,
 
     val token: Try[String] =
       for {
-        validated <- jwtValidator.validate(accessTokenRequest.client_assertion)
+        validated <- jwtValidator.validate(accessTokenRequest)
         seed = TokenSeed.create(validated)
         token <- jwtGenerator.generate(seed)
       } yield token

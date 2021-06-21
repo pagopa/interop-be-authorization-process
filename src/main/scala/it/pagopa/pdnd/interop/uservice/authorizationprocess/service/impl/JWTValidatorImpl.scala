@@ -3,6 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 import com.auth0.jwt.JWT
 import com.auth0.jwt.interfaces.DecodedJWT
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.decodeBase64
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.AccessTokenRequest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{JWTValidator, VaultService}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -12,10 +13,17 @@ class JWTValidatorImpl(vaultService: VaultService) extends JWTValidator {
   private val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
 //  TODO: use agreement_id
-  override def validate(token: String): Try[DecodedJWT] =
+  override def validate(accessTokenRequest: AccessTokenRequest): Try[DecodedJWT] =
     for {
-      jwt      <- Try(JWT.decode(token))
-      clientId <- Try(jwt.getClaim("iss").asString)
+      jwt     <- Try(JWT.decode(accessTokenRequest.client_assertion))
+      subject <- Try(jwt.getSubject)
+      clientId <- Either
+        .cond(
+          subject == accessTokenRequest.client_id.toString,
+          subject,
+          new RuntimeException(s"ClientId ${accessTokenRequest.client_id.toString} not equal to subject $subject")
+        )
+        .toTry
       _ = logger.info(clientId)
       kid <- Try(jwt.getKeyId)
       _ = logger.info(kid)
