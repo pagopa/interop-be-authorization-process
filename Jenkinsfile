@@ -68,6 +68,7 @@ pipeline {
         PDND_INTEROP_EC_PRIVATE_KEY = credentials('pdnd_interop_ec_private_key')
         VAULT_TOKEN = credentials('vault-token')
         VAULT_ADDR = credentials('vault-addr')
+        DOCKER_REPO = 'gateway.interop.pdnd.dev'
       }
       steps{
         // we should use a container with kubectl preinstalled
