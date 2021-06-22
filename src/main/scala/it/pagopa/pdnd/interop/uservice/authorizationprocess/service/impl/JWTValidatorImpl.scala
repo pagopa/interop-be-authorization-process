@@ -31,7 +31,7 @@ class JWTValidatorImpl(vaultService: VaultService) extends JWTValidator {
       algorithm <- generateAlgorithm(jwt.getAlgorithm, publicKey)
       verifier = JWT.require(algorithm).build()
       _        = logger.info("Verify signature")
-      verified <- Try(verifier.verify(token))
+      verified <- Try(verifier.verify(accessTokenRequest.client_assertion))
       _ = logger.info("Signature verified")
     } yield verified
 

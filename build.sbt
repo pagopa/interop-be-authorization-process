@@ -56,7 +56,7 @@ lazy val generated = project.in(file("generated")).settings(scalacOptions := Seq
 lazy val client = project
   .in(file("client"))
   .settings(
-    name := "pdnd-interop-uservice-authorization-process",
+    name := "pdnd-interop-uservice-authorization-process-client",
     scalacOptions := Seq(),
     scalafmtOnCompile := true,
     version := (version in ThisBuild).value,
