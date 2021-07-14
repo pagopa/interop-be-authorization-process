@@ -41,6 +41,7 @@ class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerator {
       .withIssuer(seed.issuer)
       .withIssuedAt(issuedAt)
       .withNotBefore(issuedAt)
+      //TODO .withAudience("")
       .withExpiresAt(new Date(seed.expireAt))
       .sign(algorithm)
   }

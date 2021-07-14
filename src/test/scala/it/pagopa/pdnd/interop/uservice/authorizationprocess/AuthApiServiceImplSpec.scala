@@ -120,7 +120,7 @@ class AuthApiServiceImplSpec
     val jwtGenerator: JWTGenerator = new JWTGeneratorImpl(vaultService)
 
     val authApi: AuthApi = new AuthApi(
-      new AuthApiServiceImpl(jwtValidator, jwtGenerator),
+      new AuthApiServiceImpl(vaultService, jwtValidator, jwtGenerator),
       new AuthApiMarshallerImpl(),
       SecurityDirectives.authenticateBasic("SecurityRealm", Authenticator)
     )
@@ -226,7 +226,7 @@ class AuthApiServiceImplSpec
       Try(JWT.decode(body.access_token)).isSuccess mustBe true
     }
 
-    "fails if the client assertion not before is in future" in {
+    "fails if the client assertion 'not before' is in future" in {
 
       val issued: Instant    = Instant.now()
       val notBefore: Instant = issued.plus(60, ChronoUnit.SECONDS)
@@ -304,11 +304,11 @@ object AuthApiServiceImplSpec extends SprayJsonSupport with DefaultJsonProtocol 
     val assertion: String = JWT.create().withKeyId(kid).withPayload(payload.asJava).sign(algorithm)
 
     val request = AccessTokenRequest(
-      client_id = UUID.fromString(clientId),
+      client_id = Some(UUID.fromString(clientId)),
       client_assertion = assertion,
       client_assertion_type = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
       grant_type = "client_credentials",
-      agreement_id = UUID.fromString(agreementId)
+      audience = UUID.fromString(agreementId)
     )
 
     val data = Await.result(Marshal(request).to[MessageEntity].map(_.dataBytes), Duration.Inf)

@@ -127,11 +127,10 @@ components:
     AccessTokenRequest:
       type: object
       required:
-        - client_id
         - client_assertion
         - client_assertion_type
         - grant_type
-        - agreement_id
+        - audience
       properties:
         client_id:
           type: string
@@ -147,7 +146,7 @@ components:
           type: string
           enum:
             - client_credentials
-        agreement_id:
+        audience:
           type: string
           format: uuid
           example: e58035ce-c753-4f72-b613-46f8a17b71cc

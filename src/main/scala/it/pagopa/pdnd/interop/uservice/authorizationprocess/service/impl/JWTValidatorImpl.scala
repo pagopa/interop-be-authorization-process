@@ -19,7 +19,7 @@ class JWTValidatorImpl(vaultService: VaultService) extends JWTValidator {
       subject <- Try(jwt.getSubject)
       clientId <- Either
         .cond(
-          subject == accessTokenRequest.client_id.toString,
+          subject == accessTokenRequest.client_id.map(_.toString).getOrElse(subject),
           subject,
           new RuntimeException(s"ClientId ${accessTokenRequest.client_id.toString} not equal to subject $subject")
         )
