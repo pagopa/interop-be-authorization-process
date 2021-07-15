@@ -8,32 +8,15 @@ import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshal}
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.nimbusds.jwt.SignedJWT
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApi
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
-  AccessTokenRequest,
-  ClientCredentialsResponse,
-  Problem
-}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{AccessTokenRequest, ClientCredentialsResponse, Problem}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.server.Controller
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{
-  AuthApiMarshallerImpl,
-  AuthApiServiceImpl,
-  accessTokenRequestFormat,
-  clientCredentialsResponseFormat,
-  problemFormat
-}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{
-  Authenticator,
-  classicActorSystem,
-  executionContext
-}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{AuthApiMarshallerImpl, AuthApiServiceImpl, accessTokenRequestFormat, clientCredentialsResponseFormat, problemFormat}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{Authenticator, classicActorSystem, executionContext}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.decodeBase64
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
-  JWTGeneratorImpl,
-  JWTValidatorImpl,
-  generateAlgorithm
-}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{JWTGenerator, JWTValidator, VaultService}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{JWTGeneratorImpl, JWTValidatorImpl, generateAlgorithm}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{JWTGenerator, JWTValidator, KeyManager, VaultService}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -73,6 +56,7 @@ class AuthApiServiceImplSpec
   import AuthApiServiceImplSpec._
 
   val vaultService: VaultService = mock[VaultService]
+  val keyManager: KeyManager     = mock[KeyManager]
 
   var controller: Option[Controller]                 = None
   var bindServer: Option[Future[Http.ServerBinding]] = None
@@ -116,11 +100,11 @@ class AuthApiServiceImplSpec
       .returning(Map("public" -> publicClientECKey))
       .repeat(4)
 
-    val jwtValidator: JWTValidator = new JWTValidatorImpl(vaultService)
-    val jwtGenerator: JWTGenerator = new JWTGeneratorImpl(vaultService)
+    val jwtValidator: JWTValidator = JWTValidatorImpl(keyManager)
+    val jwtGenerator: JWTGenerator = JWTGeneratorImpl(vaultService)
 
     val authApi: AuthApi = new AuthApi(
-      new AuthApiServiceImpl(vaultService, jwtValidator, jwtGenerator),
+      new AuthApiServiceImpl(jwtValidator, jwtGenerator),
       new AuthApiMarshallerImpl(),
       SecurityDirectives.authenticateBasic("SecurityRealm", Authenticator)
     )
@@ -159,7 +143,7 @@ class AuthApiServiceImplSpec
         Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
 
       response.status mustBe StatusCodes.OK
-      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+      Try(SignedJWT.parse(body.access_token)).isSuccess mustBe true
     }
 
     "return 200 for RS384 token request" in {
@@ -170,7 +154,7 @@ class AuthApiServiceImplSpec
         Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
 
       response.status mustBe StatusCodes.OK
-      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+      Try(SignedJWT.parse(body.access_token)).isSuccess mustBe true
     }
 
     "return 200 for RS512 token request" in {
@@ -181,7 +165,7 @@ class AuthApiServiceImplSpec
         Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
 
       response.status mustBe StatusCodes.OK
-      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+      Try(SignedJWT.parse(body.access_token)).isSuccess mustBe true
     }
 
     "return 200 for ES256 token request" in {
@@ -192,7 +176,7 @@ class AuthApiServiceImplSpec
         Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
 
       response.status mustBe StatusCodes.OK
-      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+      Try(SignedJWT.parse(body.access_token)).isSuccess mustBe true
     }
 
     "return 200 for ES256K token request" in {
@@ -203,7 +187,7 @@ class AuthApiServiceImplSpec
 
       response.status mustBe StatusCodes.OK
 
-      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+      Try(SignedJWT.parse(body.access_token)).isSuccess mustBe true
     }
 
     "return 200 for ES384 token request" in {
@@ -213,7 +197,7 @@ class AuthApiServiceImplSpec
         Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
 
       response.status mustBe StatusCodes.OK
-      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+      Try(SignedJWT.parse(body.access_token)).isSuccess mustBe true
     }
 
     "return 200 for ES512 token request" in {
@@ -223,7 +207,7 @@ class AuthApiServiceImplSpec
         Await.result(Unmarshal(response.entity).to[ClientCredentialsResponse], Duration.Inf)
 
       response.status mustBe StatusCodes.OK
-      Try(JWT.decode(body.access_token)).isSuccess mustBe true
+      Try(SignedJWT.parse(body.access_token)).isSuccess mustBe true
     }
 
     "fails if the client assertion 'not before' is in future" in {
