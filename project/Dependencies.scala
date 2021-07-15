@@ -5,32 +5,43 @@ object Dependencies {
 
   private[this] object akka {
     lazy val namespace     = "com.typesafe.akka"
-    lazy val actorTyped    = namespace                       %% "akka-actor-typed"             % akkaVersion
-    lazy val actor         = namespace                       %% "akka-actor"                   % akkaVersion
-    lazy val serialization = namespace                       %% "akka-serialization-jackson"   % akkaVersion
-    lazy val stream        = namespace                       %% "akka-stream"                  % akkaVersion
-    lazy val clusterTools  = namespace                       %% "akka-cluster-tools"           % akkaVersion
-    lazy val http          = namespace                       %% "akka-http"                    % akkaHttpVersion
-    lazy val httpJson      = namespace                       %% "akka-http-spray-json"         % akkaHttpVersion
-    lazy val httpJson4s    = "de.heikoseeberger"             %% "akka-http-json4s"             % "1.36.0"
-    lazy val management    = "com.lightbend.akka.management" %% "akka-management"              % "1.0.10"
-    lazy val slf4j         = namespace                       %% "akka-slf4j"                   % akkaVersion
+    lazy val actorTyped    = namespace                       %% "akka-actor-typed"           % akkaVersion
+    lazy val actor         = namespace                       %% "akka-actor"                 % akkaVersion
+    lazy val serialization = namespace                       %% "akka-serialization-jackson" % akkaVersion
+    lazy val stream        = namespace                       %% "akka-stream"                % akkaVersion
+    lazy val clusterTools  = namespace                       %% "akka-cluster-tools"         % akkaVersion
+    lazy val http          = namespace                       %% "akka-http"                  % akkaHttpVersion
+    lazy val httpJson      = namespace                       %% "akka-http-spray-json"       % akkaHttpVersion
+    lazy val httpJson4s    = "de.heikoseeberger"             %% "akka-http-json4s"           % "1.36.0"
+    lazy val management    = "com.lightbend.akka.management" %% "akka-management"            % "1.0.10"
+    lazy val slf4j         = namespace                       %% "akka-slf4j"                 % akkaVersion
 
   }
 
-  private[this] object auth0 {
-    lazy val namespace = "com.auth0"
-    lazy val jwt       = namespace % "java-jwt" % auth0Version
+  private[this] object pagopa {
+    lazy val namespace     = "it.pagopa"
+    lazy val keyManagement = namespace %% "pdnd-interop-uservice-key-management-client" % keyManagementVersion
+  }
+//
+//  private[this] object auth0 {
+//    lazy val namespace = "com.auth0"
+//    lazy val jwt       = namespace % "java-jwt" % auth0Version
+//  }
+
+  private[this] object nimbus {
+    lazy val namespace = "com.nimbusds"
+    lazy val joseJwt   = namespace % "nimbus-jose-jwt" % nimbusVersion
+  }
+
+  private[this] object bouncycastle {
+    lazy val namespace = "org.bouncycastle"
+    lazy val provider  = namespace % "bcprov-jdk15on" % bouncycastleVersion
+    lazy val kix       = namespace % "bcpkix-jdk15on" % bouncycastleVersion
   }
 
   private[this] object vault {
     lazy val namespace = "com.bettercloud"
     lazy val driver    = namespace % "vault-java-driver" % vaultDriverVersion
-  }
-
-  private[this] object bouncycastle {
-    lazy val namespace = "org.bouncycastle"
-    lazy val core      = namespace % "bcprov-jdk15on" % bouncycastleVersion
   }
 
   private[this] object scalpb {
@@ -84,16 +95,19 @@ object Dependencies {
       akka.httpJson      % Compile,
       akka.management    % Compile,
       cats.core          % Compile,
-      auth0.jwt          % Compile,
-      vault.driver       % Compile,
-      bouncycastle.core  % Compile,
-      logback.classic    % Compile,
-      akka.slf4j         % Compile,
-      kamon.bundle       % Compile,
-      kamon.prometheus   % Compile,
-      scalpb.core        % "protobuf",
-      scalatest.core     % Test,
-      scalamock.core     % Test
+//      auth0.jwt            % Compile,
+      nimbus.joseJwt        % Compile,
+      pagopa.keyManagement  % Compile,
+      vault.driver          % Compile,
+      bouncycastle.provider % Compile,
+      bouncycastle.kix      % Compile,
+      logback.classic       % Compile,
+      akka.slf4j            % Compile,
+      kamon.bundle          % Compile,
+      kamon.prometheus      % Compile,
+      scalpb.core           % "protobuf",
+      scalatest.core        % Test,
+      scalamock.core        % Test
     )
     lazy val client: Seq[ModuleID] =
       Seq(

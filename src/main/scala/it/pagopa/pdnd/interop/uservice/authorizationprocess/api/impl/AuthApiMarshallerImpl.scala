@@ -12,8 +12,6 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
 
 class AuthApiMarshallerImpl extends AuthApiMarshaller with SprayJsonSupport {
 
-//  override implicit def toEntityMarshallerKeyarray: ToEntityMarshaller[Seq[Key]] = sprayJsonMarshaller[Seq[Key]]
-
   override implicit def fromEntityUnmarshallerAccessTokenRequest: FromEntityUnmarshaller[AccessTokenRequest] =
     sprayJsonUnmarshaller[AccessTokenRequest]
 

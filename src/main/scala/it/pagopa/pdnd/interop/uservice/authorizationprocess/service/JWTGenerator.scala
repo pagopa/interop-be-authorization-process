@@ -1,9 +1,9 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.token.TokenSeed
+import com.nimbusds.jwt.SignedJWT
 
-import scala.util.Try
+import scala.concurrent.Future
 
 trait JWTGenerator {
-  def generate(seed: TokenSeed): Try[String]
+  def generate(jwt: SignedJWT): Future[String]
 }
