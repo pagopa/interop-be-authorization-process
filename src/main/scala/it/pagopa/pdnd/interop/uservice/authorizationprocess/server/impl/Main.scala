@@ -5,23 +5,22 @@ import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
 import com.bettercloud.vault.Vault
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApi
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.server.Controller
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{AuthApiMarshallerImpl, AuthApiServiceImpl}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.{ApplicationConfiguration, CorsSupport}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{
   Authenticator,
   classicActorSystem,
   executionContext
 }
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{KeyManager, VaultService}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.{ApplicationConfiguration, CorsSupport}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.server.Controller
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   JWTGeneratorImpl,
   JWTValidatorImpl,
   KeyManagerImpl,
   VaultServiceImpl
 }
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{KeyManagementInvoker, KeyManager, VaultService}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.KeyApi
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.ApiInvoker
 import kamon.Kamon
 
 import scala.concurrent.Future
@@ -32,7 +31,7 @@ object Main extends App with CorsSupport {
 
   lazy val vault: Vault = getVaultClient
 
-  val invoker: ApiInvoker            = ApiInvoker()
+  val invoker: KeyManagementInvoker  = KeyManagementInvoker()
   val keyApi: KeyApi                 = KeyApi(ApplicationConfiguration.getKeyManagementUrl)
   val keyManager: KeyManager         = KeyManagerImpl(invoker, keyApi)
   val vaultService: VaultService     = VaultServiceImpl(vault)
@@ -52,6 +51,6 @@ object Main extends App with CorsSupport {
   val controller: Controller = new Controller(authApi)
 
   val bindingFuture: Future[Http.ServerBinding] =
-    Http().newServerAt("0.0.0.0", 8088).bind(corsHandler(controller.routes))
+    Http().newServerAt("0.0.0.0", 8089).bind(corsHandler(controller.routes))
 
 }

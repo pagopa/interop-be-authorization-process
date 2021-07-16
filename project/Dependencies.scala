@@ -22,11 +22,6 @@ object Dependencies {
     lazy val namespace     = "it.pagopa"
     lazy val keyManagement = namespace %% "pdnd-interop-uservice-key-management-client" % keyManagementVersion
   }
-//
-//  private[this] object auth0 {
-//    lazy val namespace = "com.auth0"
-//    lazy val jwt       = namespace % "java-jwt" % auth0Version
-//  }
 
   private[this] object nimbus {
     lazy val namespace = "com.nimbusds"
@@ -81,7 +76,16 @@ object Dependencies {
     lazy val core      = namespace %% "scalamock" % scalaMockVersion
   }
 
+  private[this] object jackson {
+    lazy val namespace   = "com.fasterxml.jackson.core"
+    lazy val core        = namespace % "jackson-core"        % jacksonVersion
+    lazy val annotations = namespace % "jackson-annotations" % jacksonVersion
+    lazy val databind    = namespace % "jackson-databind"    % jacksonVersion
+  }
+
   object Jars {
+    lazy val overrides: Seq[ModuleID] =
+      Seq(jackson.annotations % Compile, jackson.core % Compile, jackson.databind % Compile)
     lazy val `server`: Seq[ModuleID] = Seq(
       // For making Java 12 happy
       "javax.annotation" % "javax.annotation-api" % "1.3.2" % "compile",

@@ -35,7 +35,7 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
       signer <- getSigner(seed.algorithm, key)
       signed <- signToken(token, signer)
       _ = logger.info("Token generated")
-    } yield signed.toString
+    } yield toBase64(signed)
   }
 
   def getPrivateKey(algorithm: JWSAlgorithm): Try[JWK] = {
@@ -53,9 +53,13 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
     val issuedAt: Date       = new Date(seed.issuedAt)
     val expirationTime: Date = new Date(seed.expireAt)
 
-    val header = new JWSHeader.Builder(seed.algorithm).`type`(JOSEObjectType.JWT).keyID(seed.kid).build()
+    val header: JWSHeader = new JWSHeader.Builder(seed.algorithm)
+      .customParam("use", "sig")
+      .`type`(JOSEObjectType.JWT)
+      .keyID(seed.kid)
+      .build()
 
-    val payload = new JWTClaimsSet.Builder()
+    val payload: JWTClaimsSet = new JWTClaimsSet.Builder()
       .issuer(seed.issuer)
       .audience("you")
       .subject(seed.clientId)
@@ -78,7 +82,7 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
   }
 
   private def readPrivateKeyFromString(keyString: String): Try[JWK] = Try {
-    JWK.parse(keyString)
+    JWK.parseFromPEMEncodedObjects(keyString)
   }
 
   private def rsa(jwk: JWK): Try[JWSSigner] = Try(new RSASSASigner(jwk.toRSAKey))
@@ -87,9 +91,13 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
 
   private def octect(jwk: JWK): Try[JWSSigner] = Try(new Ed25519Signer(jwk.toOctetKeyPair))
 
-  def signToken(jwt: SignedJWT, signer: JWSSigner): Try[SignedJWT] = Try {
+  private def signToken(jwt: SignedJWT, signer: JWSSigner): Try[SignedJWT] = Try {
     val _ = jwt.sign(signer)
     jwt
+  }
+
+  private def toBase64(jwt: SignedJWT): String = {
+    s"""${jwt.getHeader.toBase64URL}.${jwt.getPayload.toBase64URL}.${jwt.getSignature}"""
   }
 
   private def getPrivateKeyFromVault(path: String): Try[String] = {

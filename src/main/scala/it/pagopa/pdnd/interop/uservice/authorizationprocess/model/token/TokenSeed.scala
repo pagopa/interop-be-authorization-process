@@ -24,7 +24,7 @@ object TokenSeed {
     TokenSeed(
       id = UUID.randomUUID(),
       algorithm = assertion.getHeader.getAlgorithm,
-      kid = key.computeThumbprint().decodeToString(),
+      kid = key.computeThumbprint().toString,
       clientId = assertion.getJWTClaimsSet.getSubject,
       issuer = "PDND-Interop",
       issuedAt = Instant.now(Clock.system(ZoneId.of("UTC"))).toEpochMilli,

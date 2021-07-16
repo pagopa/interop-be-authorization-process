@@ -36,20 +36,16 @@ package object impl extends DefaultJsonProtocol with SprayJsonSupport {
   }
 
   def getVerifier(algorithm: JWSAlgorithm, key: Key): Future[JWSVerifier] = algorithm match {
-    case JWSAlgorithm.RS256 => rsa(key)
-    case JWSAlgorithm.ES256 => ec(key)
-    case _                  => Future.failed(new RuntimeException("Invalid key algorithm"))
+    case JWSAlgorithm.RS256 | JWSAlgorithm.RS384 | JWSAlgorithm.RS512 => rsa(key)
+    case JWSAlgorithm.ES256                                           => ec(key)
+    case _                                                            => Future.failed(new RuntimeException("Invalid key algorithm"))
 
   }
 
   def verify(verifier: JWSVerifier, jwt: SignedJWT): Future[SignedJWT] = Future.fromTry {
     {
       Either
-        .cond(
-          verifier.verify(jwt.getHeader, jwt.getPayload.toBytes, jwt.getSignature),
-          jwt,
-          new RuntimeException("Invalid JWT sign")
-        )
+        .cond(jwt.verify(verifier), jwt, new RuntimeException("Invalid JWT sign"))
         .toTry
     }
   }

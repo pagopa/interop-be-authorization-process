@@ -13,7 +13,7 @@ final case class JWTValidatorImpl(keyManager: KeyManager)(implicit ex: Execution
   override def validate(accessTokenRequest: AccessTokenRequest): Future[SignedJWT] =
     for {
       info <- extractJwtInfo(accessTokenRequest)
-      (jwt, clientId, kid) = info
+      (jwt, kid, clientId) = info
       publicKey <- keyManager.getKey(clientId, kid)
       verifier  <- getVerifier(jwt.getHeader.getAlgorithm, publicKey)
       _ = logger.info("Verify signature")
