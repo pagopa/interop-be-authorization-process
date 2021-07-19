@@ -1,53 +1,24 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl
 
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
-import cats.implicits._
-import com.auth0.jwt.exceptions.{
-  AlgorithmMismatchException,
-  InvalidClaimException,
-  SignatureVerificationException,
-  TokenExpiredException
-}
+import com.nimbusds.jose.JOSEException
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{decodeBase64, expireIn}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.token.TokenSeed
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.expireIn
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
   AccessTokenRequest,
   ClientCredentialsResponse,
   Problem
 }
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{JWTGenerator, JWTValidator, VaultService}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{JWTGenerator, JWTValidator}
 
-import scala.util.{Failure, Success, Try}
+import java.text.ParseException
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
-class AuthApiServiceImpl(vaultService: VaultService, jwtValidator: JWTValidator, jwtGenerator: JWTGenerator)
+class AuthApiServiceImpl(jwtValidator: JWTValidator, jwtGenerator: JWTGenerator)(implicit ec: ExecutionContext)
     extends AuthApiService {
-
-  /** Code: 200, Message: Success, DataType: Seq[String]
-    * Code: 404, Message: Not found, DataType: Problem
-    */
-  override def getClientCredentials(
-    clientId: String
-  )(implicit toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
-    val paths = vaultService
-      .getKeysList(s"secret/data/pdnd-interop-dev/keys/organizations/$clientId")
-
-    val keys = paths.traverse(path =>
-      vaultService
-        .getSecret(path)
-        .get("public")
-        .map(decodeBase64)
-        .toRight(new RuntimeException(s"Public key not found for $path"))
-        .toTry
-    )
-
-    keys match {
-      case Success(ks) => getClientCredentials200(ks)
-      case Failure(ex) => getClientCredentials404(Problem(Option(ex.getMessage), 404, "some error"))
-    }
-
-  }
 
   /** Code: 200, Message: an Access token, DataType: ClientCredentialsResponse
     * Code: 403, Message: Unauthorized, DataType: Problem
@@ -59,23 +30,22 @@ class AuthApiServiceImpl(vaultService: VaultService, jwtValidator: JWTValidator,
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
 
-    val token: Try[String] =
+    val token: Future[String] =
       for {
         validated <- jwtValidator.validate(accessTokenRequest)
-        seed = TokenSeed.create(validated)
-        token <- jwtGenerator.generate(seed)
+        token     <- jwtGenerator.generate(validated)
       } yield token
 
-    token.fold(ex => manageError(ex), tk => createToken200(ClientCredentialsResponse(tk, "tokenType", expireIn)))
+    onComplete(token) {
+      case Success(tk) => createToken200(ClientCredentialsResponse(tk, "tokenType", expireIn))
+      case Failure(ex) => manageError(ex)
+    }
   }
 
   private def manageError(error: Throwable): Route = error match {
-    case ex: AlgorithmMismatchException =>
-      createToken401(Problem(Option(ex.getMessage), 401, "Algorithm mismatch found"))
-    case ex: SignatureVerificationException => createToken401(Problem(Option(ex.getMessage), 401, "Invalid signature"))
-    case ex: TokenExpiredException          => createToken401(Problem(Option(ex.getMessage), 401, "Token expired"))
-    case ex: InvalidClaimException          => createToken401(Problem(Option(ex.getMessage), 401, "Invalid claim found"))
-    case ex                                 => createToken400(Problem(Option(ex.getMessage), 400, "Something goes wrong during access token request"))
+    case ex: ParseException => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+    case ex: JOSEException  => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+    case ex                 => createToken400(Problem(Option(ex.getMessage), 400, "Something goes wrong during access token request"))
   }
 
 }

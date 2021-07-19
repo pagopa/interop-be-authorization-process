@@ -1,16 +1,19 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
+import com.nimbusds.jose.crypto.{ECDSASigner, Ed25519Signer, RSASSASigner}
+import com.nimbusds.jose.jwk.JWK
+import com.nimbusds.jose.{JOSEObjectType, JWSAlgorithm, JWSHeader, JWSSigner}
+import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.decodeBase64
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.token.TokenSeed
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{JWTGenerator, VaultService}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.Date
-import scala.util.{Failure, Try}
+import scala.concurrent.Future
+import scala.util.Try
 
-class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerator {
+final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerator {
   private val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
 //   TODO: Start
@@ -24,35 +27,77 @@ class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerator {
     Try(System.getenv("PDND_INTEROP_EC_PRIVATE_KEY")).flatMap(keyPath => getPrivateKeyFromVault(keyPath))
 //  TODO:End
 
-  override def generate(seed: TokenSeed): Try[String] = for {
-    pk        <- getPrivateKey(seed.algorithm)
-    algorithm <- generateAlgorithm(seed.algorithm, pk)
-    _ = logger.info("Generating token")
-    token <- createToken(algorithm, seed)
-    _ = logger.info("Token generated")
-  } yield token
-
-  private def createToken(algorithm: Algorithm, seed: TokenSeed): Try[String] = Try {
-    val issuedAt: Date = new Date(seed.issuedAt)
-    JWT.create
-      .withJWTId(seed.id.toString)
-      .withKeyId(seed.kid)
-      .withSubject(seed.clientId)
-      .withIssuer(seed.issuer)
-      .withIssuedAt(issuedAt)
-      .withNotBefore(issuedAt)
-      //TODO .withAudience("")
-      .withExpiresAt(new Date(seed.expireAt))
-      .sign(algorithm)
+  override def generate(jwt: SignedJWT): Future[String] = Future.fromTry {
+    for {
+      key    <- getPrivateKey(jwt.getHeader.getAlgorithm)
+      seed   <- TokenSeed.create(jwt, key)
+      token  <- createToken(seed)
+      signer <- getSigner(seed.algorithm, key)
+      signed <- signToken(token, signer)
+      _ = logger.info("Token generated")
+    } yield toBase64(signed)
   }
 
-  def getPrivateKey(algorithm: String): Try[String] = {
-    logger.info(algorithm)
-    algorithm match {
-      case alg if alg.startsWith("RS") => rsaPrivateKey
-      case alg if alg.startsWith("ES") => ecPrivateKey
-      case _                           => Failure(new RuntimeException("PDND private key not found"))
+  def getPrivateKey(algorithm: JWSAlgorithm): Try[JWK] = {
+    val key = algorithm match {
+      case JWSAlgorithm.RS256 | JWSAlgorithm.RS384 | JWSAlgorithm.RS512                       => rsaPrivateKey
+      case JWSAlgorithm.PS256 | JWSAlgorithm.PS384 | JWSAlgorithm.PS256                       => rsaPrivateKey
+      case JWSAlgorithm.ES256 | JWSAlgorithm.ES384 | JWSAlgorithm.ES512 | JWSAlgorithm.ES256K => ecPrivateKey
+      case JWSAlgorithm.EdDSA                                                                 => ecPrivateKey
+
     }
+    key.flatMap(readPrivateKeyFromString)
+  }
+
+  private def createToken(seed: TokenSeed): Try[SignedJWT] = Try {
+    val issuedAt: Date       = new Date(seed.issuedAt)
+    val expirationTime: Date = new Date(seed.expireAt)
+
+    val header: JWSHeader = new JWSHeader.Builder(seed.algorithm)
+      .customParam("use", "sig")
+      .`type`(JOSEObjectType.JWT)
+      .keyID(seed.kid)
+      .build()
+
+    val payload: JWTClaimsSet = new JWTClaimsSet.Builder()
+      .issuer(seed.issuer)
+      .audience("you")
+      .subject(seed.clientId)
+      .issueTime(issuedAt)
+      .expirationTime(expirationTime)
+      .build()
+
+    new SignedJWT(header, payload)
+
+  }
+
+  def getSigner(algorithm: JWSAlgorithm, key: JWK): Try[JWSSigner] = {
+    algorithm match {
+      case JWSAlgorithm.RS256 | JWSAlgorithm.RS384 | JWSAlgorithm.RS512                       => rsa(key)
+      case JWSAlgorithm.PS256 | JWSAlgorithm.PS384 | JWSAlgorithm.PS256                       => rsa(key)
+      case JWSAlgorithm.ES256 | JWSAlgorithm.ES384 | JWSAlgorithm.ES512 | JWSAlgorithm.ES256K => ec(key)
+      case JWSAlgorithm.EdDSA                                                                 => octect(key)
+
+    }
+  }
+
+  private def readPrivateKeyFromString(keyString: String): Try[JWK] = Try {
+    JWK.parseFromPEMEncodedObjects(keyString)
+  }
+
+  private def rsa(jwk: JWK): Try[JWSSigner] = Try(new RSASSASigner(jwk.toRSAKey))
+
+  private def ec(jwk: JWK): Try[JWSSigner] = Try(new ECDSASigner(jwk.toECKey))
+
+  private def octect(jwk: JWK): Try[JWSSigner] = Try(new Ed25519Signer(jwk.toOctetKeyPair))
+
+  private def signToken(jwt: SignedJWT, signer: JWSSigner): Try[SignedJWT] = Try {
+    val _ = jwt.sign(signer)
+    jwt
+  }
+
+  private def toBase64(jwt: SignedJWT): String = {
+    s"""${jwt.getHeader.toBase64URL}.${jwt.getPayload.toBase64URL}.${jwt.getSignature}"""
   }
 
   private def getPrivateKeyFromVault(path: String): Try[String] = {

@@ -1,58 +1,71 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
-import com.auth0.jwt.algorithms.Algorithm
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.PemUtils
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import com.nimbusds.jose.crypto.{ECDSAVerifier, RSASSAVerifier}
+import com.nimbusds.jose.jwk.JWK
+import com.nimbusds.jose.{JWSAlgorithm, JWSVerifier}
+import com.nimbusds.jwt.SignedJWT
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.AccessTokenRequest
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{Key, OtherPrimeInfo}
+import spray.json.{DefaultJsonProtocol, RootJsonFormat, _}
 
-import java.security.interfaces.{ECPrivateKey, ECPublicKey, RSAPrivateKey, RSAPublicKey}
-import scala.util.{Failure, Try}
-package object impl {
-  @SuppressWarnings(Array("org.wartremover.warts.Null"))
-  private final val NULL: Null = null
+import scala.concurrent.Future
+import scala.util.Try
 
-  def generateAlgorithm(algorithm: String, key: String): Try[Algorithm] = {
+package object impl extends DefaultJsonProtocol with SprayJsonSupport {
 
-    val rsaPublicKey: Try[RSAPublicKey] =
-      PemUtils.readPublicKeyFromString(key, "RSA").map(_.asInstanceOf[RSAPublicKey])
+  implicit val otherPrimeInfoFormat: RootJsonFormat[OtherPrimeInfo] = jsonFormat3(OtherPrimeInfo.apply)
+  implicit val keyFormat: RootJsonFormat[Key]                       = jsonFormat22(Key.apply)
 
-    val rsaPrivateKey: Try[RSAPrivateKey] =
-      PemUtils.readPrivateKeyFromString(key, "RSA").map(_.asInstanceOf[RSAPrivateKey])
+  implicit def toEntityMarshallerKey: ToEntityMarshaller[Key] = sprayJsonMarshaller[Key]
 
-    val ecPublicKey: Try[ECPublicKey] =
-      PemUtils.readPublicKeyFromString(key, "EC").map(_.asInstanceOf[ECPublicKey])
+  def extractJwtInfo(accessTokenRequest: AccessTokenRequest): Future[(SignedJWT, String, String)] = Future.fromTry {
+    for {
+      jwt     <- Try(SignedJWT.parse(accessTokenRequest.client_assertion))
+      subject <- Try(jwt.getJWTClaimsSet.getSubject)
+      clientId <- Either
+        .cond(
+          subject == accessTokenRequest.client_id.map(_.toString).getOrElse(subject),
+          subject,
+          new RuntimeException(s"ClientId ${accessTokenRequest.client_id.toString} not equal to subject $subject")
+        )
+        .toTry
+      kid <- Try(jwt.getHeader.getKeyID)
+    } yield (jwt, kid, clientId)
+  }
 
-    val ecPrivateKey: Try[ECPrivateKey] =
-      PemUtils.readPrivateKeyFromString(key, "EC").map(_.asInstanceOf[ECPrivateKey])
+  def getVerifier(algorithm: JWSAlgorithm, key: Key): Future[JWSVerifier] = algorithm match {
+    case JWSAlgorithm.RS256 | JWSAlgorithm.RS384 | JWSAlgorithm.RS512 => rsa(key)
+    case JWSAlgorithm.ES256                                           => ec(key)
+    case _                                                            => Future.failed(new RuntimeException("Invalid key algorithm"))
 
-    algorithm match {
-//      case "HS256"  => getHSAlgorithm(key, Algorithm.HMAC256)
-//      case "HS384"  => getHSAlgorithm(key, Algorithm.HMAC384)
-//      case "HS512"  => getHSAlgorithm(key, Algorithm.HMAC512)
-      case "RS256"  => getRSAAlgorithm(rsaPublicKey, rsaPrivateKey, Algorithm.RSA256)
-      case "RS384"  => getRSAAlgorithm(rsaPublicKey, rsaPrivateKey, Algorithm.RSA384)
-      case "RS512"  => getRSAAlgorithm(rsaPublicKey, rsaPrivateKey, Algorithm.RSA512)
-      case "ES256"  => getESAlgorithm(ecPublicKey, ecPrivateKey, Algorithm.ECDSA256)
-      case "ES256K" => getESAlgorithm(ecPublicKey, ecPrivateKey, Algorithm.ECDSA256K)
-      case "ES384"  => getESAlgorithm(ecPublicKey, ecPrivateKey, Algorithm.ECDSA384)
-      case "ES512"  => getESAlgorithm(ecPublicKey, ecPrivateKey, Algorithm.ECDSA512)
-      case _        => Failure(new RuntimeException("sdfhjsdhfjksdh"))
+  }
+
+  def verify(verifier: JWSVerifier, jwt: SignedJWT): Future[SignedJWT] = Future.fromTry {
+    {
+      Either
+        .cond(jwt.verify(verifier), jwt, new RuntimeException("Invalid JWT sign"))
+        .toTry
     }
   }
 
-//  private def getHSAlgorithm(secret: String, hsAlgorithmFunc: String => Algorithm): Try[Algorithm] =
-//    Try(hsAlgorithmFunc(secret))
+  def rsa(key: Key): Future[RSASSAVerifier] = Future.fromTry {
+    Try {
+      val jwkTxt: String = key.toJson.compactPrint
+      val jwk: JWK       = JWK.parse(jwkTxt)
+      val publicKey      = jwk.toRSAKey
+      new RSASSAVerifier(publicKey)
+    }
+  }
 
-  private def getRSAAlgorithm(
-    rsaPublicKey: Try[RSAPublicKey],
-    rsaPrivateKey: Try[RSAPrivateKey],
-    rsaAlgorithmFunc: (RSAPublicKey, RSAPrivateKey) => Algorithm
-  ): Try[Algorithm] =
-    Try(rsaAlgorithmFunc(rsaPublicKey.getOrElse(NULL), rsaPrivateKey.getOrElse(NULL)))
-
-  private def getESAlgorithm(
-    ecPublicKey: Try[ECPublicKey],
-    ecPrivateKey: Try[ECPrivateKey],
-    esAlgorithmFunc: (ECPublicKey, ECPrivateKey) => Algorithm
-  ): Try[Algorithm] =
-    Try(esAlgorithmFunc(ecPublicKey.getOrElse(NULL), ecPrivateKey.getOrElse(NULL)))
+  def ec(key: Key): Future[ECDSAVerifier] = Future.fromTry {
+    Try {
+      val jwkTxt: String = key.toJson.compactPrint
+      val jwk: JWK       = JWK.parse(jwkTxt)
+      val publicKey      = jwk.toECKey
+      new ECDSAVerifier(publicKey)
+    }
+  }
 
 }

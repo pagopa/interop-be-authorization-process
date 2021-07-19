@@ -6,7 +6,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.VaultService
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-class VaultServiceImpl(vault: Vault) extends VaultService {
+final case class VaultServiceImpl(vault: Vault) extends VaultService {
   override def getSecret(path: String): Map[String, String] = {
     val data: LogicalResponse = vault.logical().read(path)
     data.getData.asScala.toMap

@@ -1,14 +1,17 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.model.token
 
-import com.auth0.jwt.interfaces.DecodedJWT
+import com.nimbusds.jose.JWSAlgorithm
+import com.nimbusds.jose.jwk.JWK
+import com.nimbusds.jwt.SignedJWT
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.expireIn
 
 import java.time.{Clock, Instant, ZoneId}
 import java.util.UUID
+import scala.util.Try
 
 final case class TokenSeed(
   id: UUID,
-  algorithm: String,
+  algorithm: JWSAlgorithm,
   kid: String,
   clientId: String,
   issuer: String,
@@ -17,12 +20,12 @@ final case class TokenSeed(
 )
 
 object TokenSeed {
-  def create(assertion: DecodedJWT): TokenSeed = {
+  def create(assertion: SignedJWT, key: JWK): Try[TokenSeed] = Try {
     TokenSeed(
       id = UUID.randomUUID(),
-      algorithm = assertion.getAlgorithm,
-      kid = "PDND-Interop-Kid",
-      clientId = assertion.getSubject,
+      algorithm = assertion.getHeader.getAlgorithm,
+      kid = key.computeThumbprint().toString,
+      clientId = assertion.getJWTClaimsSet.getSubject,
       issuer = "PDND-Interop",
       issuedAt = Instant.now(Clock.system(ZoneId.of("UTC"))).toEpochMilli,
       expireAt = Instant.now(Clock.system(ZoneId.of("UTC"))).plusMillis(expireIn).toEpochMilli

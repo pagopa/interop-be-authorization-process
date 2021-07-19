@@ -23,35 +23,6 @@ tags:
       description: Find out more
       url: http://swagger.io
 paths:
-  /clients/{clientId}/credentials:
-    get:
-      tags:
-        - auth
-      parameters:
-        - name: clientId
-          in: path
-          description:
-          required: true
-          schema:
-            type: string
-            format: uuid
-      operationId: getClientCredentials
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: string
-        #                $ref: '#/components/schemas/Keys'
-        "404":
-          description: Not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
   /as/token.oauth2:
     post:
       tags:
@@ -94,36 +65,6 @@ paths:
                 $ref: '#/components/schemas/Problem'
 components:
   schemas:
-    Keys:
-      type: array
-      items:
-        $ref: '#/components/schemas/Key'
-    Key:
-      type: object
-      required:
-        - kty
-        - alg
-        - use
-        - kid
-      properties:
-        kty:
-          type: string
-        alg:
-          type: string
-        use:
-          type: string
-        kid:
-          type: string
-        n:
-          type: string
-        e:
-          type: string
-        crv:
-          type: string
-        x:
-          type: string
-        y:
-          type: string
     AccessTokenRequest:
       type: object
       required:
