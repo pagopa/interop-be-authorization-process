@@ -16,11 +16,12 @@ final case class TokenSeed(
   clientId: String,
   issuer: String,
   issuedAt: Long,
-  expireAt: Long
+  expireAt: Long,
+  audience: List[String]
 )
 
 object TokenSeed {
-  def create(assertion: SignedJWT, key: JWK): Try[TokenSeed] = Try {
+  def create(assertion: SignedJWT, key: JWK, audience: List[String]): Try[TokenSeed] = Try {
     TokenSeed(
       id = UUID.randomUUID(),
       algorithm = assertion.getHeader.getAlgorithm,
@@ -28,7 +29,8 @@ object TokenSeed {
       clientId = assertion.getJWTClaimsSet.getSubject,
       issuer = "PDND-Interop",
       issuedAt = Instant.now(Clock.system(ZoneId.of("UTC"))).toEpochMilli,
-      expireAt = Instant.now(Clock.system(ZoneId.of("UTC"))).plusMillis(expireIn).toEpochMilli
+      expireAt = Instant.now(Clock.system(ZoneId.of("UTC"))).plusMillis(expireIn).toEpochMilli,
+      audience = audience
     )
 
   }

@@ -27,10 +27,10 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
     Try(System.getenv("PDND_INTEROP_EC_PRIVATE_KEY")).flatMap(keyPath => getPrivateKeyFromVault(keyPath))
 //  TODO:End
 
-  override def generate(jwt: SignedJWT): Future[String] = Future.fromTry {
+  override def generate(jwt: SignedJWT, audience: List[String]): Future[String] = Future.fromTry {
     for {
       key    <- getPrivateKey(jwt.getHeader.getAlgorithm)
-      seed   <- TokenSeed.create(jwt, key)
+      seed   <- TokenSeed.create(jwt, key, audience)
       token  <- createToken(seed)
       signer <- getSigner(seed.algorithm, key)
       signed <- signToken(token, signer)

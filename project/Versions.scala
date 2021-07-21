@@ -1,6 +1,7 @@
 object Versions {
   lazy val akkaPersistenceS3Version = "1.0.16"
   lazy val keyManagementVersion     = "0.1.0-SNAPSHOT"
+  lazy val agreementProcessVersion  = "0.1.0-SNAPSHOT"
   lazy val vaultDriverVersion       = "5.1.0"
   lazy val scalaMockVersion         = "5.1.0"
   lazy val stateMonitoringVersion   = "0.0.3-SNAPSHOT"

@@ -11,13 +11,21 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
   ClientCredentialsResponse,
   Problem
 }
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{JWTGenerator, JWTValidator}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
+  AgreementProcessService,
+  JWTGenerator,
+  JWTValidator
+}
 
 import java.text.ParseException
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-class AuthApiServiceImpl(jwtValidator: JWTValidator, jwtGenerator: JWTGenerator)(implicit ec: ExecutionContext)
+class AuthApiServiceImpl(
+  jwtValidator: JWTValidator,
+  jwtGenerator: JWTGenerator,
+  agreementProcessService: AgreementProcessService
+)(implicit ec: ExecutionContext)
     extends AuthApiService {
 
   /** Code: 200, Message: an Access token, DataType: ClientCredentialsResponse
@@ -30,10 +38,13 @@ class AuthApiServiceImpl(jwtValidator: JWTValidator, jwtGenerator: JWTGenerator)
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
 
+    val bearerToken = "TODO" //TODO this is a fake token, evaluate how to deal with it in production
+
     val token: Future[String] =
       for {
-        validated <- jwtValidator.validate(accessTokenRequest)
-        token     <- jwtGenerator.generate(validated)
+        validated    <- jwtValidator.validate(accessTokenRequest)
+        pdndAudience <- agreementProcessService.retrieveAudience(bearerToken, accessTokenRequest.audience.toString)
+        token        <- jwtGenerator.generate(validated, pdndAudience.audience.toList)
       } yield token
 
     onComplete(token) {
