@@ -24,8 +24,8 @@ class AgreementProcessServiceImpl(invoker: AgreementProcessInvoker, api: Process
     invoker
       .execute[Audience](request)
       .map { x =>
-        logger.info(s"Retrieving audience status code > ${x.code}")
-        logger.info(s"Retrieving audience content > ${x.content}")
+        logger.info(s"Retrieving audience status code > ${x.code.toString}")
+        logger.info(s"Retrieving audience content > ${x.content.toString}")
         x.content
       }
       .recoverWith { case ex =>
