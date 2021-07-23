@@ -11,7 +11,7 @@ object ApplicationConfiguration {
 
   def getKeyManagementUrl: String = {
     val keyManagementUrl: String = config.getString("services.key-management")
-    s"$keyManagementUrl/pdnd-interop-uservice-party-management/0.0.1"
+    s"$keyManagementUrl/pdnd-interop-uservice-key-management/0.0.1"
   }
 
   def getAgreementProcessURL: String = {
