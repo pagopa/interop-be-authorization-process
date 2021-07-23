@@ -11,6 +11,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.Date
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Try
 
 final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerator {
@@ -61,7 +62,7 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
 
     val payload: JWTClaimsSet = new JWTClaimsSet.Builder()
       .issuer(seed.issuer)
-      .audience("you")
+      .audience(seed.audience.asJava)
       .subject(seed.clientId)
       .issueTime(issuedAt)
       .expirationTime(expirationTime)
