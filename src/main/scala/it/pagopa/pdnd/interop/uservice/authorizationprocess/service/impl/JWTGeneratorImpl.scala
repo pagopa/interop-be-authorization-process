@@ -52,6 +52,7 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
 
   private def createToken(seed: TokenSeed): Try[SignedJWT] = Try {
     val issuedAt: Date       = new Date(seed.issuedAt)
+    val notBeforeTime: Date  = new Date(seed.nbf)
     val expirationTime: Date = new Date(seed.expireAt)
 
     val header: JWSHeader = new JWSHeader.Builder(seed.algorithm)
@@ -65,6 +66,7 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
       .audience(seed.audience.asJava)
       .subject(seed.clientId)
       .issueTime(issuedAt)
+      .notBeforeTime(notBeforeTime)
       .expirationTime(expirationTime)
       .build()
 

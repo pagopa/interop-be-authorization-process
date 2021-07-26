@@ -1,7 +1,7 @@
 openapi: 3.0.3
 
 info:
-  title: Securty Process Micro Service
+  title: Security Process Micro Service
   description: This service is the security supplier
   version: 0.0.1
   contact:
