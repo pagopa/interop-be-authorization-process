@@ -4,6 +4,7 @@ import com.nimbusds.jose.crypto.{ECDSASigner, Ed25519Signer, RSASSASigner}
 import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jose.{JOSEObjectType, JWSAlgorithm, JWSHeader, JWSSigner}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.ApplicationConfiguration
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.decodeBase64
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.token.TokenSeed
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{JWTGenerator, VaultService}
@@ -21,11 +22,19 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
 //   TODO: this part is static and initialized at the start up
 //   TODO - use a def instead of a val, but this approach generate to many calls to the vault
 //   TODO - use a refreshing cache, more complex
+  private val keyRootPath: Try[String] = Try(System.getenv("PDND_INTEROP_PRIVATE_KEY"))
+
   private val rsaPrivateKey: Try[String] =
-    Try(System.getenv("PDND_INTEROP_RSA_PRIVATE_KEY")).flatMap(keyPath => getPrivateKeyFromVault(keyPath))
+    keyRootPath.flatMap { root =>
+      val rsaPath = s"$root/${ApplicationConfiguration.getPdndIdIssuer}/rsa"
+      getPrivateKeyFromVault(rsaPath)
+    }
 
   private val ecPrivateKey: Try[String] =
-    Try(System.getenv("PDND_INTEROP_EC_PRIVATE_KEY")).flatMap(keyPath => getPrivateKeyFromVault(keyPath))
+    keyRootPath.flatMap { root =>
+      val rsaPath = s"$root/${ApplicationConfiguration.getPdndIdIssuer}/ec"
+      getPrivateKeyFromVault(rsaPath)
+    }
 //  TODO:End
 
   override def generate(jwt: SignedJWT, audience: List[String]): Future[String] = Future.fromTry {

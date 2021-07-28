@@ -19,4 +19,8 @@ object ApplicationConfiguration {
     s"$agreementProcessURL/pdnd-interop-uservice-agreement-process/0.0.1"
   }
 
+  def getPdndIdIssuer: String = {
+    config.getString("uservice-authorization-process.issuer")
+  }
+
 }

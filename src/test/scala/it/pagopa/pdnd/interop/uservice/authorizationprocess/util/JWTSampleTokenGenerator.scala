@@ -1,9 +1,10 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.util
-import com.nimbusds.jose.crypto.RSASSASigner
-import com.nimbusds.jose.jwk.{JWK, RSAKey}
-import com.nimbusds.jose.jwk.gen.RSAKeyGenerator
+import com.nimbusds.jose.crypto.{ECDSASigner, RSASSASigner}
+import com.nimbusds.jose.jwk.{Curve, ECKey, JWK, RSAKey}
+import com.nimbusds.jose.jwk.gen.{ECKeyGenerator, RSAKeyGenerator}
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.ApplicationConfiguration
 import org.bouncycastle.util.io.pem.{PemObject, PemWriter}
 
 import java.io.StringWriter
@@ -14,11 +15,20 @@ trait JWTMaker {
 
   val expirationTime: Date = Date.from(LocalDate.of(2098, 12, 12).atStartOfDay(ZoneId.systemDefault()).toInstant())
 
-  def generateKeys(): (String, String) = {
+  def generateRSAKeys(): (String, String, String) = {
     val rsaJWK: RSAKey = new RSAKeyGenerator(2048).generate
+    val kid            = rsaJWK.computeThumbprint().toJSONString
     val public: String = writeKey(rsaJWK.toPublicKey.getEncoded, "PUBLIC")
 
-    (public, rsaJWK.toJSONString())
+    (kid, public, rsaJWK.toJSONString)
+  }
+
+  def generateECKeys(): (String, String, String) = {
+    val ecKey: ECKey   = new ECKeyGenerator(Curve.P_256).generate
+    val kid            = ecKey.computeThumbprint().toJSONString
+    val public: String = writeKey(ecKey.toPublicKey.getEncoded, "PUBLIC")
+
+    (kid, public, ecKey.toJSONString)
   }
 
   private def writeKey(encodedKey: Array[Byte], header: String): String = {
@@ -31,17 +41,18 @@ trait JWTMaker {
     output.toString
   }
 
-  def makeJWT(clientId: String, audience: String, kid: String, privateKeyPEM: String): String = {
-    // RSA signatures require a public and private RSA key pair,// RSA signatures require a public and private RSA key pair,
+  def makeJWT(clientId: String, audience: String, algo: String, kid: String, privateKeyPEM: String): String = {
+    // RSA signatures require a public and private RSA key pair,
+    // EC signatures require a public and private EC key pair,
 
     val now = new Date();
     val jwk = JWK.parse(privateKeyPEM)
 
-    // Create RSA-signer with the private key
-    val signer = new RSASSASigner(jwk.toRSAKey.toPrivateKey)
+    // Create signer with the private key
+    val signer = if (algo == "RSA") new RSASSASigner(jwk.toRSAKey.toPrivateKey) else new ECDSASigner(jwk.toECKey)
 
     val claimsSet = new JWTClaimsSet.Builder()
-      .issuer("Scala-Test")
+      .issuer(ApplicationConfiguration.getPdndIdIssuer) //TODO pdnd issuer uuid
       .subject(clientId)
       .jwtID(UUID.randomUUID.toString)
       .audience(audience)
@@ -51,14 +62,16 @@ trait JWTMaker {
       .build()
 
     // Prepare JWS object with simple string as payload
+    val algorithm = if (algo == "RSA") JWSAlgorithm.RS256 else JWSAlgorithm.ES256
+
     val jwsObject = new SignedJWT(
-      new JWSHeader.Builder(JWSAlgorithm.RS256)
+      new JWSHeader.Builder(algorithm)
         .keyID(kid)
         .build,
       claimsSet
     )
 
-    // Compute the RSA signature
+    // Compute the signature
     jwsObject.sign(signer)
 
     // To serialize to compact form, produces something like
@@ -73,13 +86,8 @@ trait JWTMaker {
 
 object JWTSampleTokenGenerator extends App with JWTMaker {
 
-  val (publicKey, privateKey) = generateKeys()
-
-  //println("Public:")
-  //println(publicKey)
-  //println(" ---- ")
-  //println("Private: ")
-  //println(privateKey)
+  val (rsaKid, publicRsaKey, privateRsaKey) = generateRSAKeys()
+  val (ecKid, publicEcKey, privateEcKey)    = generateECKeys()
 
   val clientId = "e58035ce-c753-4f72-b613-46f8a17b71cc"
 
@@ -93,21 +101,40 @@ object JWTSampleTokenGenerator extends App with JWTMaker {
                        |GQIDAQAB
                        |-----END PUBLIC KEY-----""".stripMargin
 
-  val kid      = "OOPgXEwMztaf_VjKwjekSkL3zGUWIJGJtcXHSRFgSpE"
   val audience = "1a55bd02-a25d-43fe-9a34-fea7b0c871c1"
 
-  val privateKeyJSON =
-    """{
-      |    "p": "xrZZRpoFjrpuxtn--vwtOZigbWPmvjhNd0txev2LlYtgkZS2rZpYP8fwRF74ommOZci4FxYzewD6Is2IGrF0lOddXnfiOV74oXU04Sw64Pe8l-74dYyYVdBHRv5-jf1SKiGKKtRgBFfX2Q81LCny7bYt8IvE1_yYVLwfCfJ2Fls",
-      |    "kty": "RSA",
-      |    "q": "qv5cPN4c55sy0hVtyc5z6a_Tzui1CpM6jbSQDqfKllq_RDch7vXB-u1C7OsBb7JOELB75rOzNQ7m9yuj2EdSWbZAQ5SKZjpHM3OVO4ZE1owTzl9rnIHaMOl2RLIcD2IcH1OxLZow5MH1xaVPwfo6Tv9AD72WqETEriABdS_HuZs",
-      |    "d": "Pfj6QAnuT40Vsa0uoxTCxerVxjCtyPQy5k4fgoinwqM4ZFCikQtluZIZwXeHAcmWY6CfP_UAraZy_WDBna2tA-kqCKdTVIxOzZcaN-zscRe55zUAi5YJznxOhkErbwZDimVqtxlvD_s57MnhyeUJXT5zVJC1UKtFnsXfW8OIupXp7dYB_tpof3Y_UjdO4GTilByFCJWy1oJxvwNKfnb4pa67qw-eT7j-hNxdaIEaeGwkdAiSs4_hrlMm3M0CvQf27rFXh6u_2af8ujUdhGUUvNNk7Ynm225rw56_EroyJvX3DCXE-pOyHHgw4fQKPIC_Y1txy7q0FSAtvD4hgQWvIQ",
-      |    "e": "AQAB",
-      |    "qi": "Otq53saBA3piQMVhgzmyZlYdhZJgsur92aQURZ_lMaNqEPEf540tpwfEYO75AEoFt6YC2q95Q-2dIppQuc6NP_F17UHBaRYYjT-07L9tECZNNYW3G92lW9D5oE_qd6_K-VtC6yRPHqqx2QkKsdUI2aWbuQnPHHgFP-I6_LePGLQ",
-      |    "dp": "ioEvWPaiSQnJjPEFuQtsumiX6adofc3gsPX08zUmxeWQOejeK8MZH9vMrNtFkm7gwjFVn0HqQCI-N2PrKi_mgqOBgQcut65qvp9jbE_X-lazLXNz2vtUcvvpsqJQs8eOLa-TDqdZBa301Wa0OURD_0ysWK4TVjjKNMWrHNPTW2E",
-      |    "dq": "bqZkt7qfh7xleY8GWYXwejMeZBEwPiShylsisWkg7oTQqmrm2YRMv3zTRw6YAlimraQWuWZlvBrlmOKzhtw4TPdjxJeVq6tgscnEsx0i5JcGphAXSdK5h9c7gh6ji8zYF-mHiNPzecSNrxVXdFXhb4c7RDRSDpdZkrgBWXzOyKs",
-      |    "n": "hLqHzj2PX1WC1YZTy9MSwyRwlObval2H4o9onTcq_tH6ky75Y18HEarlMRGsSLBbZoaMsA52N5wmDBQR7HN5OFaWeDbY8kbWhTyAXCcfX2hMjow2Wb0d9GfY73dY0LIvH3bXE-mQTw-tWArUmGKt5faihtO1lmRx3J_PBbaM71RFobNv94kf4QgwITU6P3NRIxnCIZi7-uTItcIJF3YWuL3uPXNcX5Li0DI1JQUjhd0bHjkRO3_uFuFYe9kFdgWtSFoFT7bo3PqucaxChjbXdJ9bIxQg00KZWUBHXlwlC7RpMxSJW_c3RjIfsYx2E6uhROFcga59goUgArW6OWRMGQ"
-      |}""".stripMargin
-  println(makeJWT(clientId, audience, kid, privateKeyJSON))
+//  val kidRsa = "mcUXwiCT3D-z8safjBoKE9nqs_7usagK-Ptmvo1nVIg"
+//  val privateRSAKeyJSON =
+//    """{"p":"wEKHw1qnE1roCwjy6qd-0exuErxSBp9bWREt8xFbR4auVdn1VoiuGQKkzDRHxRE2b5A-2N1u8tEaGrZvgRXDTfuysVHU_2c5dxXIRbyCpqf9fWo83OT67X5_sfLilHK-5Vl1RLZJEB-s0hGlQ2yc5Z7oi9iyCsZ33Iae5asXb78","kty":"RSA","q":"qv921TQkjHHOp9_xut_XQ8XsJP4TVtIbnZvjqj2ipw7jE1TpUoAzt7LUagndRREEE2Mnp4mYiMxMKZqR8WA2vA7ZCjeTdiGHqt7oDjHAmzOxh0VLjAusM92kN4z6lUXByUNx0Qi4CTMSyT9TbhgH5G6mI6VrEU3mTl8Pxs9C-Js","d":"QJeWiaa52xdnHLRor4UvwZ5TfwkaMhHlXCgLrYJPD3llpQP-W0suIwWo8Pui5z_97zrUqPBdUoesL2bA_XQrfNPvYG1nhc4gl-A7FCwg813KyGwI8APTLDDt1FJ53C0I8d9_xj-V1Bj-5Bt05UK5Nn3JG4zJ6h5blK9vnFdYB3e6wOF2gp6eTt1-jxzVV70bW4NjRuD_03wyCiaygspkj1rfNV6l09RfH65k0c9GydeBcc0Z2wyZWNEAUy1UnZxBUb6srF_y1M-BGiO-ftQvPGQSZko16q4kIU3kRTBI2M_dGTDchNkQcs1w20x6V5K71YMPFxN97_I4FooDxjcR5Q","e":"AQAB","qi":"CKxSpZt0k9BgtbfKetePnb2KulxI0yB_ky2AStcu34NviTWAZbE6NI5fNvkR8zigvUM6foAdNPwvDMHZS6EphKFkxfMAsGtYeV8_jnPC9h7Ekcvey7xvcjm8ISJCOHJP37XOWXIZw2dFu_o8R_fFmEtq0HoyaZR8daZGtVtiIvM","dp":"mU90O096k3CWQNZt_rh55KQIUmBheG5yxV9xqLZad3rqYgNgJBTx33fAOiYmZPsI0YXQ19Ybtv0PN-XqnKDiELl5EPUUSGXj6RYxkYp1FLg4511kEzF09xU8doYcMAwgNXtUi-pf8L-RbCIuCsn9gw1omru9neINioi_BJ2eHrk","dq":"ogcM_7q3wwh3q-RsNgmx_PsG5oqFoqfWGQLEt-RNQgS-L-wuZckquC7QTWXpb29PMFutEHg1u7HxnR5kmZX0Zz-ecqr0pGPjHIq40fJcsfNKjYWgryPEWST0XNrN-jGuDNpGd67OS5FEhMLneBN3LwGVlYNBr5Tj3HEBDv4HVG8","n":"gGwJq77iNwK2RoeYNfmEbdzL3CfN0skQjOQsD_ufzhzqMA4RUDLlUwsVCzoNVXWZNweyDkhKZHTzQ4z4BpBSBQspZ6WphijqdtCkDt_BXmeqXuEXzdXycLCHHKrv88BzDoi--JAMtANoyJMh29pOXwk3KKPhRKH8nzt0BM6WBRUzkBAYrcavLj-3BddUuZRw5KkRL6VLddRbcj6z8Xww7_qKJyAroOKlWaIo3O9TKTZ1sjTpQ5Rlu5EBfSt6BFjjZ2hAbQ7kZWGxLckJjrYu57VQrH5C0IQ0MFisRU18rFKojEBfJJt6uhfyDk7rcIGecnq5G7wl0mb5jGDti6-wpQ"}""".stripMargin
+//
+//  val kidEc = "mcUXwiCT3D-z8safjBoKE9nqs_7usagK-Ptmvo1nVIg"
+//  val privateEcKeyJSON =
+//    """{"kty":"EC","d":"4w_IvomaTMXlrvzpwjF5ZnWxc80hfeZMtPwQfwkgkF4","crv":"P-256","x":"_Jg0lLnqrYwcGcj9qB07z-mr85dzjf0KAfIXe9mqXmY","y":"Qf0_Edm3bxP-R5TrZ8ZEwl92YhEj4Fmv0ZlGjiXoLGs"}""".stripMargin
+
+  def printOut(
+    kind: String,
+    clientId: String,
+    audience: String,
+    publicKey: String,
+    privateKey: String,
+    kid: String
+  ): Unit = {
+    val delimiter = "=".repeat(100)
+    println(delimiter)
+    println(s"Kid $kind:")
+    println(ecKid)
+    println()
+    println(s"Public $kind:")
+    println(publicKey)
+    println(s"Private $kind: ")
+    println(privateKey)
+    println()
+    println(s"JWT $kind:")
+    println(makeJWT(clientId, audience, kind, kid, privateKey))
+    println(delimiter)
+  }
+
+  printOut("RSA", clientId, audience, publicRsaKey, privateRsaKey, rsaKid)
+  printOut("EC", clientId, audience, publicEcKey, privateEcKey, ecKid)
 
 }

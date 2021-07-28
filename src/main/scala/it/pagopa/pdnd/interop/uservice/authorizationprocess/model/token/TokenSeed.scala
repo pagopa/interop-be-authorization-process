@@ -3,6 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.model.token
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jwt.SignedJWT
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.ApplicationConfiguration
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.expireIn
 
 import java.time.{Clock, Instant, ZoneId}
@@ -29,7 +30,8 @@ object TokenSeed {
       algorithm = assertion.getHeader.getAlgorithm,
       kid = key.computeThumbprint().toString,
       clientId = assertion.getJWTClaimsSet.getSubject,
-      issuer = "PDND-Interop",
+      //TODO issuer: only for test purpose, priv/pub key are deployed to key manager associated to this uuid
+      issuer = ApplicationConfiguration.getPdndIdIssuer,
       issuedAt = issuedAt.toEpochMilli,
       nbf = issuedAt.toEpochMilli,
       expireAt = issuedAt.plusMillis(expireIn).toEpochMilli,
