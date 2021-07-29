@@ -26,14 +26,14 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
 
   private val rsaPrivateKey: Try[String] =
     keyRootPath.flatMap { root =>
-      val rsaPath = s"$root/${ApplicationConfiguration.getPdndIdIssuer}/rsa"
-      getPrivateKeyFromVault(rsaPath)
+      val rsaPath = s"$root/${ApplicationConfiguration.getPdndIdIssuer}"
+      getPrivateKeyFromVault(rsaPath, "rsa")
     }
 
   private val ecPrivateKey: Try[String] =
     keyRootPath.flatMap { root =>
-      val rsaPath = s"$root/${ApplicationConfiguration.getPdndIdIssuer}/ec"
-      getPrivateKeyFromVault(rsaPath)
+      val rsaPath = s"$root/${ApplicationConfiguration.getPdndIdIssuer}"
+      getPrivateKeyFromVault(rsaPath, "ec")
     }
 //  TODO:End
 
@@ -113,10 +113,10 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
     s"""${jwt.getHeader.toBase64URL}.${jwt.getPayload.toBase64URL}.${jwt.getSignature}"""
   }
 
-  private def getPrivateKeyFromVault(path: String): Try[String] = {
+  private def getPrivateKeyFromVault(path: String, key: String): Try[String] = {
     vaultService
       .getSecret(path)
-      .get("private")
+      .get(key)
       .map(decodeBase64)
       .toRight(new RuntimeException("PDND private key not found"))
       .toTry
