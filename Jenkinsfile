@@ -64,8 +64,7 @@ pipeline {
       agent { label 'sbt-template' }
       environment {
         AWS_SECRET_ACCESS = credentials('jenkins-aws')
-        PDND_INTEROP_RSA_PRIVATE_KEY = credentials('pdnd_interop_rsa_private_key')
-        PDND_INTEROP_EC_PRIVATE_KEY = credentials('pdnd_interop_ec_private_key')
+        PDND_INTEROP_PRIVATE_KEY = credentials('	pdnd_interop_private_key')
         VAULT_TOKEN = credentials('vault-token')
         VAULT_ADDR = credentials('vault-addr')
         DOCKER_REPO = 'gateway.interop.pdnd.dev'
