@@ -94,7 +94,7 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
   }
 
   private def readPrivateKeyFromString(keyString: String): Try[JWK] = Try {
-    JWK.parseFromPEMEncodedObjects(keyString)
+    JWK.parse(keyString)
   }
 
   private def rsa(jwk: JWK): Try[JWSSigner] = Try(new RSASSASigner(jwk.toRSAKey))
