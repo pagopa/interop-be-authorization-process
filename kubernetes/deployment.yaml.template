@@ -69,16 +69,11 @@ spec:
                 secretKeyRef:
                   name: aws
                   key: AWS_SECRET_ACCESS_KEY
-            - name: PDND_INTEROP_RSA_PRIVATE_KEY
+            - name: PDND_INTEROP_PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
                   name: key-paths
-                  key: PDND_INTEROP_RSA_PRIVATE_KEY
-            - name: PDND_INTEROP_EC_PRIVATE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: key-paths
-                  key: PDND_INTEROP_EC_PRIVATE_KEY
+                  key: PDND_INTEROP_PRIVATE_KEY
       volumes:
       - name: snapshots-volume
         emptyDir: {}
