@@ -68,7 +68,12 @@ class AuthApiServiceImpl(
       agreement <- agreementManagementService.retrieveAgreement(bearerToken, clientSeed.agreementId.toString)
       _         <- validateUsableAgreementStatus(agreement)
       client    <- authorizationManagementService.createClient(clientSeed.agreementId, clientSeed.description)
-    } yield client
+    } yield Client(
+      id = client.id,
+      agreementId = client.agreementId,
+      description = client.description,
+      operators = client.operators
+    )
 
     onComplete(result) {
       case Success(client) => createClient201(client)

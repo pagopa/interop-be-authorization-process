@@ -1,6 +1,6 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.Client
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.Client
 
 import java.util.UUID
 import scala.concurrent.Future
