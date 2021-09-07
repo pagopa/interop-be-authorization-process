@@ -14,4 +14,10 @@ trait AuthorizationManagementService {
     */
 
   def createClient(agreementId: UUID, description: String): Future[Client]
+  def listClients(
+    offset: Option[Int],
+    limit: Option[Int],
+    agreementId: Option[UUID],
+    operatorId: Option[UUID]
+  ): Future[Seq[Client]]
 }

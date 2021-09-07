@@ -1,11 +1,13 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.common
 
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.UuidConversionError
 import spray.json.{JsString, JsValue, JsonFormat, deserializationError}
 
 import java.net.URI
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.{Base64, UUID}
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 package object utils {
@@ -70,4 +72,10 @@ package object utils {
       }
     }
 
+  def toUuid(str: String): Either[UuidConversionError, UUID] =
+    Try(UUID.fromString(str)).toEither.left.map(_ => UuidConversionError(str))
+
+  implicit class EitherOps[A](val either: Either[Throwable, A]) extends AnyVal {
+    def toFuture: Future[A] = either.fold(e => Future.failed(e), a => Future.successful(a))
+  }
 }

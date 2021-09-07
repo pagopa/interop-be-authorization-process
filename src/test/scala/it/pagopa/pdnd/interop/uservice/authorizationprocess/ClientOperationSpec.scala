@@ -78,4 +78,28 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
 
   }
+
+  "Client list" should {
+    "succeed" in {
+
+      (mockAuthorizationManagementService.listClients _)
+        .expects(*, *, *, *)
+        .once()
+        .returns(Future.successful(Seq(createdClient)))
+
+      val expected = Seq(
+        Client(
+          id = createdClient.id,
+          agreementId = createdClient.agreementId,
+          description = createdClient.description,
+          operators = createdClient.operators
+        )
+      )
+
+      Get() ~> service.listClients(Some(0), Some(10), Some(agreementId.toString), None) ~> check {
+        status shouldEqual StatusCodes.OK
+        entityAs[Seq[Client]] shouldEqual expected
+      }
+    }
+  }
 }

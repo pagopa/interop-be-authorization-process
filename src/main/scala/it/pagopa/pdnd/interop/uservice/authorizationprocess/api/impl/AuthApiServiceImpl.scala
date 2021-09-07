@@ -3,11 +3,16 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
+import cats.implicits.toTraverseOps
 import com.nimbusds.jose.JOSEException
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.invoker.{ApiError => AgreementManagementApiError}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.expireIn
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{AgreementStatusNotValidError, UnauthenticatedError}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, expireIn, toUuid}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
+  AgreementStatusNotValidError,
+  UnauthenticatedError,
+  UuidConversionError
+}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 
@@ -15,6 +20,7 @@ import java.text.ParseException
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 class AuthApiServiceImpl(
   jwtValidator: JWTValidator,
   jwtGenerator: JWTGenerator,
@@ -88,6 +94,42 @@ class AuthApiServiceImpl(
           Problem(Some(s"Agreement id ${clientSeed.agreementId.toString} not found"), 404, "Agreement not found")
         )
       case Failure(ex) => createClient500(Problem(Option(ex.getMessage), 500, "Error on client creation"))
+    }
+  }
+
+  /** Code: 200, Message: Request succeed, DataType: Seq[Client]
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 500, Message: Internal Server Error, DataType: Problem
+    */
+  override def listClients(
+    offset: Option[Int],
+    limit: Option[Int],
+    agreementId: Option[String],
+    operatorId: Option[String]
+  )(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerClientarray: ToEntityMarshaller[Seq[Client]]
+  ): Route = {
+    val result = for {
+      _             <- extractBearer(contexts)
+      agreementUuid <- agreementId.map(toUuid).sequence.toFuture
+      operatorUuid  <- operatorId.map(toUuid).sequence.toFuture
+      clients       <- authorizationManagementService.listClients(offset, limit, agreementUuid, operatorUuid)
+    } yield clients.map(client =>
+      Client(
+        id = client.id,
+        agreementId = client.agreementId,
+        description = client.description,
+        operators = client.operators
+      )
+    )
+
+    onComplete(result) {
+      case Success(clients)                   => listClients200(clients)
+      case Failure(ex: UuidConversionError)   => listClients400(Problem(Option(ex.getMessage), 400, "Not authorized"))
+      case Failure(ex @ UnauthenticatedError) => listClients401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex)                        => listClients500(Problem(Option(ex.getMessage), 500, "Error on client creation"))
     }
   }
 }
