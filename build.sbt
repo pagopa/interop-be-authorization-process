@@ -11,8 +11,8 @@ ThisBuild / libraryDependencies := Dependencies.Jars.`server`.map(m =>
 ThisBuild / dependencyOverrides ++= Dependencies.Jars.overrides
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
-resolvers in ThisBuild += "Pagopa Nexus Snapshots" at s"https://gateway.interop.pdnd.dev/nexus/repository/maven-snapshots/"
-resolvers in ThisBuild += "Pagopa Nexus Releases" at s"https://gateway.interop.pdnd.dev/nexus/repository/maven-releases/"
+ThisBuild / resolvers += "Pagopa Nexus Snapshots" at s"https://gateway.interop.pdnd.dev/nexus/repository/maven-snapshots/"
+ThisBuild / resolvers += "Pagopa Nexus Releases" at s"https://gateway.interop.pdnd.dev/nexus/repository/maven-releases/"
 
 credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
 
@@ -51,7 +51,7 @@ generateCode := {
 
 }
 
-(compile in Compile) := ((compile in Compile) dependsOn generateCode).value
+(Compile / compile) := ((Compile / compile) dependsOn generateCode).value
 
 cleanFiles += baseDirectory.value / "generated" / "src"
 
@@ -65,7 +65,7 @@ lazy val client = project
     name := "pdnd-interop-uservice-authorization-process-client",
     scalacOptions := Seq(),
     scalafmtOnCompile := true,
-    version := (version in ThisBuild).value,
+    version := (ThisBuild / version).value,
     libraryDependencies := Dependencies.Jars.client.map(m =>
       if (scalaVersion.value.startsWith("3.0"))
         m.withDottyCompat(scalaVersion.value)
