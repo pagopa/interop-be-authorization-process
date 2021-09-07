@@ -12,7 +12,7 @@ import scala.concurrent.{ExecutionContext, Future}
 final case class KeyManagerImpl(invoker: ApiInvoker, api: KeyApi)(implicit ec: ExecutionContext) extends KeyManager {
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
   override def getKey(clientId: String, kid: String): Future[Key] = {
-    val request: ApiRequest[Key] = api.getPartyKeyById(UUID.fromString(clientId), kid)
+    val request: ApiRequest[Key] = api.getClientKeyById(UUID.fromString(clientId), kid)
     invoker
       .execute[Key](request)
       .map { x =>
