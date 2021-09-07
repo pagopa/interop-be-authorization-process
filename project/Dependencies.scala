@@ -15,6 +15,9 @@ object Dependencies {
     lazy val httpJson4s    = "de.heikoseeberger"             %% "akka-http-json4s"           % "1.36.0"
     lazy val management    = "com.lightbend.akka.management" %% "akka-management"            % "1.0.10"
     lazy val slf4j         = namespace                       %% "akka-slf4j"                 % akkaVersion
+    lazy val httpTestkit   = namespace                       %% "akka-http-testkit"          % akkaHttpVersion
+    lazy val streamTestkit = namespace                       %% "akka-stream-testkit"        % akkaVersion
+    lazy val testkit       = namespace                       %% "akka-testkit"               % akkaVersion
 
   }
 
@@ -115,6 +118,9 @@ object Dependencies {
       kamon.bundle               % Compile,
       kamon.prometheus           % Compile,
       scalpb.core                % "protobuf",
+      akka.httpTestkit           % Test,
+      akka.streamTestkit         % Test,
+      akka.testkit               % Test,
       scalatest.core             % Test,
       scalamock.core             % Test
     )

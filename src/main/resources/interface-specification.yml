@@ -83,14 +83,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Client'
-        "422":
-          description: Agreement status not valid
+        "401":
+          description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
         "404":
           description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "422":
+          description: Agreement status not valid
           content:
             application/problem+json:
               schema:

@@ -6,7 +6,6 @@ import akka.management.scaladsl.AkkaManagement
 import com.bettercloud.vault.Vault
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
 import it.pagopa.pdnd.interop.uservice.agreementprocess.client.api.{ProcessApi => AgreementProcessApi}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{ClientApi => AuthorizationClientApi}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApi
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{AuthApiMarshallerImpl, AuthApiServiceImpl}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{
@@ -16,6 +15,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{
 }
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.{ApplicationConfiguration, CorsSupport}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.server.Controller
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   AgreementManagementServiceImpl,
   AgreementProcessServiceImpl,
@@ -25,8 +25,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   KeyManagerImpl,
   VaultServiceImpl
 }
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.KeyApi
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{KeyApi, ClientApi => AuthorizationClientApi}
 import kamon.Kamon
 
 import scala.concurrent.Future
@@ -85,7 +84,7 @@ object Main
       authorizationManagementService
     ),
     new AuthApiMarshallerImpl(),
-    SecurityDirectives.authenticateBasic("SecurityRealm", Authenticator)
+    SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
   )
 
   locally {
