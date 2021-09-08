@@ -5,7 +5,7 @@ import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
 import com.bettercloud.vault.Vault
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
-import it.pagopa.pdnd.interop.uservice.agreementprocess.client.api.{ProcessApi => AgreementProcessApi}
+import it.pagopa.pdnd.interop.uservice.agreementprocess.client.api.{AgreementApi => AgreementProcessApi}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApi
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{AuthApiMarshallerImpl, AuthApiServiceImpl}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{
@@ -25,7 +25,10 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   KeyManagerImpl,
   VaultServiceImpl
 }
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{KeyApi, ClientApi => AuthorizationClientApi}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{
+  KeyApi => AuthorizationKeyApi,
+  ClientApi => AuthorizationClientApi
+}
 import kamon.Kamon
 
 import scala.concurrent.Future
@@ -45,9 +48,16 @@ trait AgreementManagementAPI {
 }
 
 trait AuthorizationManagementAPI {
+  val authorizationManagementClientApi: AuthorizationClientApi = AuthorizationClientApi(
+    ApplicationConfiguration.getAuthorizationManagementURL
+  )
+  val authorizationManagementKeyApi: AuthorizationKeyApi = AuthorizationKeyApi(
+    ApplicationConfiguration.getAuthorizationManagementURL
+  )
   val authorizationManagementService = new AuthorizationManagementServiceImpl(
     AuthorizationManagementInvoker(),
-    AuthorizationClientApi(ApplicationConfiguration.getAuthorizationManagementURL)
+    AuthorizationClientApi(ApplicationConfiguration.getAuthorizationManagementURL),
+    AuthorizationKeyApi(ApplicationConfiguration.getAuthorizationManagementURL)
   )
 }
 
@@ -57,10 +67,9 @@ trait JWTGenerator {
   val jwtGenerator: JWTGeneratorImpl     = JWTGeneratorImpl(vaultService)
 }
 
-trait JWTValidator {
+trait JWTValidator extends AuthorizationManagementAPI {
   private val invoker: KeyManagementInvoker = KeyManagementInvoker()
-  private val keyApi: KeyApi                = KeyApi(ApplicationConfiguration.getKeyManagementUrl)
-  private val keyManager: KeyManager        = KeyManagerImpl(invoker, keyApi)
+  private val keyManager: KeyManager        = KeyManagerImpl(invoker, authorizationManagementKeyApi)
   val jwtValidator: JWTValidatorImpl        = JWTValidatorImpl(keyManager)
 }
 

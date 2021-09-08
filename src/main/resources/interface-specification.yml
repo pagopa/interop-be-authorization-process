@@ -13,6 +13,7 @@ info:
   x-summary: an x-summary
 servers:
   - url: 'https://gateway.interop.pdnd.dev/pdnd-interop-uservice-authorization-process/0.0.1'
+#  - url: http://localhost:8088/pdnd-interop-uservice-authorization-process/0.0.1
     description: This service is the security supplier
 #security:
 #  - bearerAuth: [ ]
@@ -334,6 +335,48 @@ paths:
                 $ref: '#/components/schemas/Problem'
         "500":
           description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  '/clients/{clientId}/keys/{keyId}/enable':
+    patch:
+      tags:
+        - auth
+      summary: Enables a client key by key identifier (kid).
+      description: 'Given a client and a disabled key identifier it enables the corresponding key, if any'
+      operationId: enableKeyById
+      parameters:
+        - name: clientId
+          in: path
+          description: ID of the client holding the key
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: keyId
+          in: path
+          description: the unique identifier of the key (kid) to enable
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: the corresponding key has been enabled.
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "404":
+          description: Key not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "500":
+          description: Internal Server Error
           content:
             application/problem+json:
               schema:

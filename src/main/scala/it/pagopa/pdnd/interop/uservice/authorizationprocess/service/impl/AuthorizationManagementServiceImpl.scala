@@ -4,7 +4,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
   AuthorizationManagementService,
   KeyManagementInvoker
 }
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.ClientApi
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{ClientApi, KeyApi}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.ApiRequest
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{Client, ClientSeed, OperatorSeed}
 import org.slf4j.{Logger, LoggerFactory}
@@ -12,8 +12,9 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: ClientApi)(implicit ec: ExecutionContext)
-    extends AuthorizationManagementService {
+class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientApi: ClientApi, keyApi: KeyApi)(implicit
+  ec: ExecutionContext
+) extends AuthorizationManagementService {
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
@@ -24,31 +25,13 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: Cli
     * @return
     */
   override def createClient(agreementId: UUID, description: String): Future[Client] = {
-    val request: ApiRequest[Client] = api.createClient(ClientSeed(agreementId, description))
-    invoker
-      .execute[Client](request)
-      .map { response =>
-        logger.debug(s"Creating client content > ${response.content.toString}")
-        response.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Creating client, error > ${ex.getMessage}")
-        Future.failed[Client](ex)
-      }
+    val request: ApiRequest[Client] = clientApi.createClient(ClientSeed(agreementId, description))
+    invoke(request, "Client creation")
   }
 
   override def getClient(clientId: String): Future[Client] = {
-    val request: ApiRequest[Client] = api.getClient(clientId)
-    invoker
-      .execute[Client](request)
-      .map { x =>
-        logger.debug(s"Retrieved client content > ${x.content.toString}")
-        x.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Retrieve client, error > ${ex.getMessage}")
-        Future.failed[Client](ex)
-      }
+    val request: ApiRequest[Client] = clientApi.getClient(clientId)
+    invoke(request, "Client retrieve")
   }
 
   override def listClients(
@@ -57,58 +40,39 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: Cli
     agreementId: Option[UUID],
     operatorId: Option[UUID]
   ): Future[Seq[Client]] = {
-    val request: ApiRequest[Seq[Client]] = api.listClients(offset, limit, agreementId, operatorId)
-    invoker
-      .execute[Seq[Client]](request)
-      .map { response =>
-        logger.debug(s"Listing clients content > ${response.content.toString}")
-        response.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Listing clients, error > ${ex.getMessage}")
-        Future.failed[Seq[Client]](ex)
-      }
+    val request: ApiRequest[Seq[Client]] = clientApi.listClients(offset, limit, agreementId, operatorId)
+    invoke(request, "Client list")
   }
 
   override def deleteClient(clientId: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = api.deleteClient(clientId)
-    invoker
-      .execute[Unit](request)
-      .map { response =>
-        logger.debug(s"Client deleted content")
-        response.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Delete client, error > ${ex.getMessage}")
-        Future.failed[Unit](ex)
-      }
+    val request: ApiRequest[Unit] = clientApi.deleteClient(clientId)
+    invoke(request, "Client delete")
   }
 
   override def addOperator(clientId: UUID, operatorId: UUID): Future[Client] = {
-    val request: ApiRequest[Client] = api.addOperator(clientId, OperatorSeed(operatorId))
-    invoker
-      .execute[Client](request)
-      .map { response =>
-        logger.debug(s"Adding operator to client content > ${response.content.toString}")
-        response.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Adding operator to client, error > ${ex.getMessage}")
-        Future.failed[Client](ex)
-      }
+    val request: ApiRequest[Client] = clientApi.addOperator(clientId, OperatorSeed(operatorId))
+    invoke(request, "Operator addition to client")
   }
 
   override def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit] = {
-    val request: ApiRequest[Unit] = api.removeClientOperator(clientId, operatorId)
+    val request: ApiRequest[Unit] = clientApi.removeClientOperator(clientId, operatorId)
+    invoke(request, "Operator removal from client")
+  }
+
+  override def enableKey(clientId: UUID, kid: String): Future[Unit] = {
+    val request: ApiRequest[Unit] = keyApi.enableKeyById(clientId, kid)
+    invoke(request, "Key enable")
+  }
+
+  private def invoke[T](request: ApiRequest[T], logMessage: String)(implicit m: Manifest[T]): Future[T] =
     invoker
-      .execute[Unit](request)
+      .execute[T](request)
       .map { response =>
-        logger.debug(s"Removing client operator content > ${response.content.toString}")
+        logger.debug(s"$logMessage. Status code: ${response.code.toString}. Content: ${response.content.toString}")
         response.content
       }
       .recoverWith { case ex =>
-        logger.error(s"Removing client operator, error > ${ex.getMessage}")
-        Future.failed[Unit](ex)
+        logger.error(s"$logMessage. Error: ${ex.getMessage}")
+        Future.failed[T](ex)
       }
-  }
 }
