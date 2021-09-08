@@ -84,7 +84,6 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: Cli
       }
   }
 
-
   override def addOperator(clientId: UUID, operatorId: UUID): Future[Client] = {
     val request: ApiRequest[Client] = api.addOperator(clientId, OperatorSeed(operatorId))
     invoker
@@ -96,6 +95,20 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: Cli
       .recoverWith { case ex =>
         logger.error(s"Adding operator to client, error > ${ex.getMessage}")
         Future.failed[Client](ex)
+      }
+  }
+
+  override def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit] = {
+    val request: ApiRequest[Unit] = api.removeClientOperator(clientId, operatorId)
+    invoker
+      .execute[Unit](request)
+      .map { response =>
+        logger.debug(s"Removing client operator content > ${response.content.toString}")
+        response.content
+      }
+      .recoverWith { case ex =>
+        logger.error(s"Removing client operator, error > ${ex.getMessage}")
+        Future.failed[Unit](ex)
       }
   }
 }
