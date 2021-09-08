@@ -22,7 +22,6 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   AuthorizationManagementServiceImpl,
   JWTGeneratorImpl,
   JWTValidatorImpl,
-  KeyManagerImpl,
   VaultServiceImpl
 }
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{
@@ -67,10 +66,8 @@ trait JWTGenerator {
   val jwtGenerator: JWTGeneratorImpl     = JWTGeneratorImpl(vaultService)
 }
 
-trait JWTValidator extends AuthorizationManagementAPI {
-  private val invoker: KeyManagementInvoker = KeyManagementInvoker()
-  private val keyManager: KeyManager        = KeyManagerImpl(invoker, authorizationManagementKeyApi)
-  val jwtValidator: JWTValidatorImpl        = JWTValidatorImpl(keyManager)
+trait JWTValidator { self: AuthorizationManagementAPI =>
+  val jwtValidator: JWTValidatorImpl = JWTValidatorImpl(authorizationManagementService)
 }
 
 object Main
