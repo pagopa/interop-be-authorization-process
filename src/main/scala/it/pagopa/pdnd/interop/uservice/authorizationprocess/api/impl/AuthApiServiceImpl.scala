@@ -242,4 +242,26 @@ class AuthApiServiceImpl(
       case Failure(ex) => removeClientOperator500(Problem(Option(ex.getMessage), 500, "Error on operator removal"))
     }
   }
+
+  /** Code: 204, Message: the corresponding key has been enabled.
+    * Code: 404, Message: Key not found, DataType: Problem
+    */
+  override def enableKeyById(clientId: String, keyId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result = for {
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      _          <- authorizationManagementService.enableKey(clientUuid, keyId)
+    } yield ()
+
+    onComplete(result) {
+      case Success(_)                         => enableKeyById204
+      case Failure(ex @ UnauthenticatedError) => enableKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        enableKeyById404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(ex) => enableKeyById500(Problem(Option(ex.getMessage), 500, "Error on key enabling"))
+    }
+  }
 }

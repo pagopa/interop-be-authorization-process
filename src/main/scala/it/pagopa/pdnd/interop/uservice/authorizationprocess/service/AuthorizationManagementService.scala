@@ -25,4 +25,6 @@ trait AuthorizationManagementService {
 
   def addOperator(clientId: UUID, operatorId: UUID): Future[Client]
   def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit]
+
+  def enableKey(clientId: UUID, kid: String): Future[Unit]
 }

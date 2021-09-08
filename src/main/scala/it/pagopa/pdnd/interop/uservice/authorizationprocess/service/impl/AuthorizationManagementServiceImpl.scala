@@ -4,7 +4,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
   AuthorizationManagementService,
   KeyManagementInvoker
 }
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.ClientApi
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{ClientApi, KeyApi}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.ApiRequest
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{Client, ClientSeed, OperatorSeed}
 import org.slf4j.{Logger, LoggerFactory}
@@ -12,8 +12,9 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: ClientApi)(implicit ec: ExecutionContext)
-    extends AuthorizationManagementService {
+class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientApi: ClientApi, keyApi: KeyApi)(implicit
+  ec: ExecutionContext
+) extends AuthorizationManagementService {
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
@@ -24,7 +25,7 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: Cli
     * @return
     */
   override def createClient(agreementId: UUID, description: String): Future[Client] = {
-    val request: ApiRequest[Client] = api.createClient(ClientSeed(agreementId, description))
+    val request: ApiRequest[Client] = clientApi.createClient(ClientSeed(agreementId, description))
     invoker
       .execute[Client](request)
       .map { response =>
@@ -38,7 +39,7 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: Cli
   }
 
   override def getClient(clientId: String): Future[Client] = {
-    val request: ApiRequest[Client] = api.getClient(clientId)
+    val request: ApiRequest[Client] = clientApi.getClient(clientId)
     invoker
       .execute[Client](request)
       .map { x =>
@@ -57,7 +58,7 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: Cli
     agreementId: Option[UUID],
     operatorId: Option[UUID]
   ): Future[Seq[Client]] = {
-    val request: ApiRequest[Seq[Client]] = api.listClients(offset, limit, agreementId, operatorId)
+    val request: ApiRequest[Seq[Client]] = clientApi.listClients(offset, limit, agreementId, operatorId)
     invoker
       .execute[Seq[Client]](request)
       .map { response =>
@@ -108,6 +109,20 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: Cli
       }
       .recoverWith { case ex =>
         logger.error(s"Removing client operator, error > ${ex.getMessage}")
+        Future.failed[Unit](ex)
+      }
+  }
+
+  override def enableKey(clientId: UUID, kid: String): Future[Unit] = {
+    val request: ApiRequest[Unit] = keyApi.enableKeyById(clientId, kid)
+    invoker
+      .execute[Unit](request)
+      .map { response =>
+        logger.debug(s"Enabling key content > ${response.content.toString}")
+        response.content
+      }
+      .recoverWith { case ex =>
+        logger.error(s"Enabling key, error > ${ex.getMessage}")
         Future.failed[Unit](ex)
       }
   }
