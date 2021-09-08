@@ -66,6 +66,41 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         status shouldEqual StatusCodes.NotFound
       }
     }
+  }
 
+  "Operator removal" should {
+    "succeed" in {
+      val operatorId = UUID.randomUUID()
+      (mockAuthorizationManagementService.removeClientOperator _)
+        .expects(createdClient.id, operatorId)
+        .once()
+        .returns(Future.successful(()))
+
+      Get() ~> service.removeClientOperator(createdClient.id.toString, operatorId.toString) ~> check {
+        status shouldEqual StatusCodes.NoContent
+      }
+    }
+
+    "fail if missing authorization header" in {
+      implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
+      val operatorId                               = UUID.randomUUID()
+
+      Get() ~> service.removeClientOperator(createdClient.id.toString, operatorId.toString) ~> check {
+        status shouldEqual StatusCodes.Unauthorized
+      }
+    }
+
+    "fail if client does not exist" in {
+      val operatorId = UUID.randomUUID()
+
+      (mockAuthorizationManagementService.removeClientOperator _)
+        .expects(*, *)
+        .once()
+        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
+
+      Get() ~> service.removeClientOperator(createdClient.id.toString, operatorId.toString) ~> check {
+        status shouldEqual StatusCodes.NotFound
+      }
+    }
   }
 }
