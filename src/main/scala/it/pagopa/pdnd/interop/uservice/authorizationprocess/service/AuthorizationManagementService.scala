@@ -20,4 +20,5 @@ trait AuthorizationManagementService {
     agreementId: Option[UUID],
     operatorId: Option[UUID]
   ): Future[Seq[Client]]
+  def getClient(clientId: String): Future[Client]
 }

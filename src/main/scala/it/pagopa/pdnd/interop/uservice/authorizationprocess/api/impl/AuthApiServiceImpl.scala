@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.Route
 import cats.implicits.toTraverseOps
 import com.nimbusds.jose.JOSEException
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.invoker.{ApiError => AgreementManagementApiError}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, expireIn, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
@@ -130,6 +131,35 @@ class AuthApiServiceImpl(
       case Failure(ex: UuidConversionError)   => listClients400(Problem(Option(ex.getMessage), 400, "Not authorized"))
       case Failure(ex @ UnauthenticatedError) => listClients401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex)                        => listClients500(Problem(Option(ex.getMessage), 500, "Error on client creation"))
+    }
+  }
+
+
+  /** Code: 200, Message: Client retrieved, DataType: Client
+    * Code: 404, Message: Client not found, DataType: Problem
+    * Code: 500, Message: Internal server error, DataType: Problem
+    */
+  override def getClient(clientId: String)(implicit
+                                           contexts: Seq[(String, String)],
+                                           toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+                                           toEntityMarshallerClient: ToEntityMarshaller[Client]
+  ): Route = {
+    val result = for {
+      _      <- extractBearer(contexts)
+      client <- authorizationManagementService.getClient(clientId)
+    } yield Client(
+      id = client.id,
+      agreementId = client.agreementId,
+      description = client.description,
+      operators = client.operators
+    )
+
+    onComplete(result) {
+      case Success(client)                    => getClient200(client)
+      case Failure(ex @ UnauthenticatedError) => getClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        getClient404(Problem(Some(ex.message), 404, "Client not found"))
+      case Failure(ex) => getClient500(Problem(Option(ex.getMessage), 500, "Error on client creation"))
     }
   }
 }

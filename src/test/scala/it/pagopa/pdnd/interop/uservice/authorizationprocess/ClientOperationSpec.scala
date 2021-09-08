@@ -9,6 +9,7 @@ import it.pagopa.pdnd.interop.uservice.agreementmanagement
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
+import it.pagopa.pdnd.interop.uservice.keymanagement
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -77,6 +78,39 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       }
     }
 
+  }
+
+  "Client retrieve" should {
+    "succeed" in {
+      (mockAuthorizationManagementService.getClient _)
+        .expects(*)
+        .once()
+        .returns(Future.successful(createdClient))
+
+      val expected =
+        Client(
+          id = createdClient.id,
+          agreementId = createdClient.agreementId,
+          description = createdClient.description,
+          operators = createdClient.operators
+        )
+
+      Get() ~> service.getClient(createdClient.id.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+        entityAs[Client] shouldEqual expected
+      }
+    }
+
+    "fail if client does not exist" in {
+      (mockAuthorizationManagementService.getClient _)
+        .expects(*)
+        .once()
+        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+
+      Get() ~> service.getClient(createdClient.id.toString) ~> check {
+        status shouldEqual StatusCodes.NotFound
+      }
+    }
   }
 
   "Client list" should {

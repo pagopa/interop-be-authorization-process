@@ -163,6 +163,45 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /clients/{clientId}:
+    get:
+      description: Retrieves a Client
+      tags:
+        - auth
+      summary: Get a Client
+      operationId: getClient
+      parameters:
+        - name: clientId
+          in: path
+          description: The Client id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Client retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "404":
+          description: Client not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "500":
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   schemas:
     AccessTokenRequest:
