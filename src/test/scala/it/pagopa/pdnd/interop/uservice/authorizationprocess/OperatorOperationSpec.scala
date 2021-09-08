@@ -5,6 +5,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, OperatorSeed}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
+import it.pagopa.pdnd.interop.uservice.keymanagement
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -44,34 +45,27 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       }
     }
 
-//    "fail if missing authorization header" in {
-//      implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-//      Get() ~> service.createClient(clientSeed) ~> check {
-//        status shouldEqual StatusCodes.Unauthorized
-//      }
-//    }
-//
-//    "fail if the agreement does not exist" in {
-//      (mockAgreementManagementService.retrieveAgreement _)
-//        .expects(bearerToken, clientSeed.agreementId.toString)
-//        .once()
-//        .returns(Future.failed(agreementmanagement.client.invoker.ApiError(404, "Some message", None)))
-//
-//      Get() ~> service.createClient(clientSeed) ~> check {
-//        status shouldEqual StatusCodes.NotFound
-//      }
-//    }
-//
-//    "fail if the agreement is not in an expected status" in {
-//      (mockAgreementManagementService.retrieveAgreement _)
-//        .expects(bearerToken, clientSeed.agreementId.toString)
-//        .once()
-//        .returns(Future.successful(suspendedAgreement))
-//
-//      Get() ~> service.createClient(clientSeed) ~> check {
-//        status shouldEqual StatusCodes.UnprocessableEntity
-//      }
-//    }
+    "fail if missing authorization header" in {
+      implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
+      val seed                                     = OperatorSeed(UUID.randomUUID())
+
+      Get() ~> service.addOperator(createdClient.id.toString, seed) ~> check {
+        status shouldEqual StatusCodes.Unauthorized
+      }
+    }
+
+    "fail if client does not exist" in {
+      val seed = OperatorSeed(UUID.randomUUID())
+
+      (mockAuthorizationManagementService.addOperator _)
+        .expects(*, *)
+        .once()
+        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
+
+      Get() ~> service.addOperator(createdClient.id.toString, seed) ~> check {
+        status shouldEqual StatusCodes.NotFound
+      }
+    }
 
   }
 }
