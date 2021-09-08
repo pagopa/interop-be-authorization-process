@@ -107,6 +107,62 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+    get:
+      tags:
+        - auth
+      summary: List clients
+      description: List clients
+      operationId: listClients
+      parameters:
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            format: int32
+        - name: limit
+          in: query
+          description: Pagination limit
+          schema:
+            type: integer
+            format: int32
+        - name: agreementId
+          in: query
+          description: ID of agreement that MUST be related to the Client
+          schema:
+            type: string
+            format: uuid
+        - name: operatorId
+          in: query
+          description: ID of operator that MUST be related to the Client
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Request succeed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clients'
+        "400":
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   schemas:
     AccessTokenRequest:
@@ -189,6 +245,10 @@ components:
         - agreementId
         - description
         - operators
+    Clients:
+      type: array
+      items:
+        $ref: '#/components/schemas/Client'
     Problem:
       properties:
         detail:

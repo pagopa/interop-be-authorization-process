@@ -27,13 +27,32 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: Cli
     val request: ApiRequest[Client] = api.createClient(ClientSeed(agreementId, description))
     invoker
       .execute[Client](request)
-      .map { x =>
-        logger.info(s"Creating client content > ${x.content.toString}")
-        x.content
+      .map { response =>
+        logger.debug(s"Creating client content > ${response.content.toString}")
+        response.content
       }
       .recoverWith { case ex =>
         logger.error(s"Creating client, error > ${ex.getMessage}")
         Future.failed[Client](ex)
+      }
+  }
+
+  override def listClients(
+    offset: Option[Int],
+    limit: Option[Int],
+    agreementId: Option[UUID],
+    operatorId: Option[UUID]
+  ): Future[Seq[Client]] = {
+    val request: ApiRequest[Seq[Client]] = api.listClients(offset, limit, agreementId, operatorId)
+    invoker
+      .execute[Seq[Client]](request)
+      .map { response =>
+        logger.debug(s"Listing clients content > ${response.content.toString}")
+        response.content
+      }
+      .recoverWith { case ex =>
+        logger.error(s"Listing clients, error > ${ex.getMessage}")
+        Future.failed[Seq[Client]](ex)
       }
   }
 }
