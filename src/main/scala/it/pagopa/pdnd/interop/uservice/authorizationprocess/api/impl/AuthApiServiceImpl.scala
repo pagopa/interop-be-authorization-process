@@ -162,4 +162,25 @@ class AuthApiServiceImpl(
     }
   }
 
+  /** Code: 204, Message: Client deleted
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Client not found, DataType: Problem
+    * Code: 500, Message: Internal server error, DataType: Problem
+    */
+  override def deleteClient(
+    clientId: String
+  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
+    val result = for {
+      _ <- extractBearer(contexts)
+      _ <- authorizationManagementService.deleteClient(clientId)
+    } yield ()
+
+    onComplete(result) {
+      case Success(_)                         => deleteClient204
+      case Failure(ex @ UnauthenticatedError) => deleteClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        deleteClient404(Problem(Option(ex.getMessage), 404, "Client not found"))
+      case Failure(ex) => deleteClient500(Problem(Option(ex.getMessage), 500, "Error on client deletion"))
+    }
+  }
 }
