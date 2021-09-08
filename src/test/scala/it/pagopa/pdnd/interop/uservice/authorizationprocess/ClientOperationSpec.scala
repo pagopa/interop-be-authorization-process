@@ -5,12 +5,10 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.Client
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
-import it.pagopa.pdnd.interop.uservice.agreementmanagement
-import it.pagopa.pdnd.interop.uservice.keymanagement
+import it.pagopa.pdnd.interop.uservice.{agreementmanagement, keymanagement}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
-import it.pagopa.pdnd.interop.uservice.keymanagement
 
 import scala.concurrent.{ExecutionContext, Future}
 

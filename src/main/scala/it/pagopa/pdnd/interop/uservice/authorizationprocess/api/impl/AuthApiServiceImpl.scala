@@ -122,7 +122,7 @@ class AuthApiServiceImpl(
       case Failure(ex @ UnauthenticatedError) => getClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClient404(Problem(Some(ex.message), 404, "Client not found"))
-      case Failure(ex) => getClient500(Problem(Option(ex.getMessage), 500, "Error on client creation"))
+      case Failure(ex) => getClient500(Problem(Option(ex.getMessage), 500, "Error on client retrieve"))
     }
   }
 
@@ -158,7 +158,7 @@ class AuthApiServiceImpl(
       case Success(clients)                   => listClients200(clients)
       case Failure(ex: UuidConversionError)   => listClients400(Problem(Option(ex.getMessage), 400, "Not authorized"))
       case Failure(ex @ UnauthenticatedError) => listClients401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex)                        => listClients500(Problem(Option(ex.getMessage), 500, "Error on client creation"))
+      case Failure(ex)                        => listClients500(Problem(Option(ex.getMessage), 500, "Error on clients list"))
     }
   }
 
