@@ -184,16 +184,15 @@ class AuthApiServiceImpl(
     }
   }
 
-
   /** Code: 201, Message: Operator added, DataType: Client
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Missing Required Information, DataType: Problem
     * Code: 500, Message: Internal server error, DataType: Problem
     */
   override def addOperator(clientId: String, operatorSeed: OperatorSeed)(implicit
-                                                                         contexts: Seq[(String, String)],
-                                                                         toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-                                                                         toEntityMarshallerClient: ToEntityMarshaller[Client]
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
     val result = for {
       _          <- extractBearer(contexts)
