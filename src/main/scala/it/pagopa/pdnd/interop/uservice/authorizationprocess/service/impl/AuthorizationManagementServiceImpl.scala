@@ -26,30 +26,12 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     */
   override def createClient(agreementId: UUID, description: String): Future[Client] = {
     val request: ApiRequest[Client] = clientApi.createClient(ClientSeed(agreementId, description))
-    invoker
-      .execute[Client](request)
-      .map { response =>
-        logger.debug(s"Creating client content > ${response.content.toString}")
-        response.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Creating client, error > ${ex.getMessage}")
-        Future.failed[Client](ex)
-      }
+    invoke(request, "Client creation")
   }
 
   override def getClient(clientId: String): Future[Client] = {
     val request: ApiRequest[Client] = clientApi.getClient(clientId)
-    invoker
-      .execute[Client](request)
-      .map { x =>
-        logger.debug(s"Retrieved client content > ${x.content.toString}")
-        x.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Retrieve client, error > ${ex.getMessage}")
-        Future.failed[Client](ex)
-      }
+    invoke(request, "Client retrieve")
   }
 
   override def listClients(
@@ -59,71 +41,38 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     operatorId: Option[UUID]
   ): Future[Seq[Client]] = {
     val request: ApiRequest[Seq[Client]] = clientApi.listClients(offset, limit, agreementId, operatorId)
-    invoker
-      .execute[Seq[Client]](request)
-      .map { response =>
-        logger.debug(s"Listing clients content > ${response.content.toString}")
-        response.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Listing clients, error > ${ex.getMessage}")
-        Future.failed[Seq[Client]](ex)
-      }
+    invoke(request, "Client list")
   }
 
   override def deleteClient(clientId: String): Future[Unit] = {
     val request: ApiRequest[Unit] = clientApi.deleteClient(clientId)
-    invoker
-      .execute[Unit](request)
-      .map { response =>
-        logger.debug(s"Client deleted content")
-        response.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Delete client, error > ${ex.getMessage}")
-        Future.failed[Unit](ex)
-      }
+    invoke(request, "Client delete")
   }
 
   override def addOperator(clientId: UUID, operatorId: UUID): Future[Client] = {
     val request: ApiRequest[Client] = clientApi.addOperator(clientId, OperatorSeed(operatorId))
-    invoker
-      .execute[Client](request)
-      .map { response =>
-        logger.debug(s"Adding operator to client content > ${response.content.toString}")
-        response.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Adding operator to client, error > ${ex.getMessage}")
-        Future.failed[Client](ex)
-      }
+    invoke(request, "Operator addition to client")
   }
 
   override def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit] = {
     val request: ApiRequest[Unit] = clientApi.removeClientOperator(clientId, operatorId)
-    invoker
-      .execute[Unit](request)
-      .map { response =>
-        logger.debug(s"Removing client operator content > ${response.content.toString}")
-        response.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Removing client operator, error > ${ex.getMessage}")
-        Future.failed[Unit](ex)
-      }
+    invoke(request, "Operator removal from client")
   }
 
   override def enableKey(clientId: UUID, kid: String): Future[Unit] = {
     val request: ApiRequest[Unit] = keyApi.enableKeyById(clientId, kid)
+    invoke(request, "Key enable")
+  }
+
+  private def invoke[T](request: ApiRequest[T], logMessage: String): Future[T] =
     invoker
-      .execute[Unit](request)
+      .execute[T](request)
       .map { response =>
-        logger.debug(s"Enabling key content > ${response.content.toString}")
+        logger.debug(s"$logMessage. Status code: ${response.code.toString}. Content: ${response.content.toString}")
         response.content
       }
       .recoverWith { case ex =>
-        logger.error(s"Enabling key, error > ${ex.getMessage}")
-        Future.failed[Unit](ex)
+        logger.error(s"$logMessage. Error: ${ex.getMessage}")
+        Future.failed[T](ex)
       }
-  }
 }
