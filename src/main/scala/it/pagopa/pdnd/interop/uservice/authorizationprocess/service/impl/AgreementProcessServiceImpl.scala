@@ -1,6 +1,6 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 
-import it.pagopa.pdnd.interop.uservice.agreementprocess.client.api.ProcessApi
+import it.pagopa.pdnd.interop.uservice.agreementprocess.client.api.AgreementApi
 import it.pagopa.pdnd.interop.uservice.agreementprocess.client.invoker.{ApiRequest, BearerToken}
 import it.pagopa.pdnd.interop.uservice.agreementprocess.client.model.Audience
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{AgreementProcessInvoker, AgreementProcessService}
@@ -8,7 +8,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AgreementProcessServiceImpl(invoker: AgreementProcessInvoker, api: ProcessApi)(implicit ec: ExecutionContext)
+class AgreementProcessServiceImpl(invoker: AgreementProcessInvoker, api: AgreementApi)(implicit ec: ExecutionContext)
     extends AgreementProcessService {
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)

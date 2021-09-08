@@ -5,7 +5,7 @@ import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
 import com.bettercloud.vault.Vault
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
-import it.pagopa.pdnd.interop.uservice.agreementprocess.client.api.{ProcessApi => AgreementProcessApi}
+import it.pagopa.pdnd.interop.uservice.agreementprocess.client.api.{AgreementApi => AgreementProcessApi}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApi
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{AuthApiMarshallerImpl, AuthApiServiceImpl}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{
