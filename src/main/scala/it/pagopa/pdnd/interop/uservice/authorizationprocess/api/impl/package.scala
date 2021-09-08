@@ -23,6 +23,9 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val operatorSeedFormat: RootJsonFormat[OperatorSeed] = jsonFormat1(OperatorSeed)
 
+  implicit val primeInfoFormat: RootJsonFormat[OtherPrimeInfo] = jsonFormat3(OtherPrimeInfo)
+  implicit val keyFormat: RootJsonFormat[Key]                  = jsonFormat22(Key)
+
   def extractBearer(contexts: Seq[(String, String)]): Future[String] = Future.fromTry {
     contexts.toMap.get("bearer").toRight(UnauthenticatedError).toTry
   }

@@ -1,6 +1,6 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.Client
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{Client, Key}
 
 import java.util.UUID
 import scala.concurrent.Future
@@ -26,5 +26,7 @@ trait AuthorizationManagementService {
   def addOperator(clientId: UUID, operatorId: UUID): Future[Client]
   def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit]
 
+  def getKey(clientId: UUID, kid: String): Future[Key]
+  def deleteKey(clientId: UUID, kid: String): Future[Unit]
   def enableKey(clientId: UUID, kid: String): Future[Unit]
 }

@@ -6,7 +6,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
 }
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{ClientApi, KeyApi}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.ApiRequest
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{Client, ClientSeed, OperatorSeed}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{Client, ClientSeed, Key, OperatorSeed}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -57,6 +57,16 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
   override def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit] = {
     val request: ApiRequest[Unit] = clientApi.removeClientOperator(clientId, operatorId)
     invoke(request, "Operator removal from client")
+  }
+
+  override def getKey(clientId: UUID, kid: String): Future[Key] = {
+    val request: ApiRequest[Key] = keyApi.getClientKeyById(clientId, kid)
+    invoke(request, "Key Retrieve")
+  }
+
+  override def deleteKey(clientId: UUID, kid: String): Future[Unit] = {
+    val request: ApiRequest[Unit] = keyApi.deleteClientKeyById(clientId, kid)
+    invoke(request, "Key Delete")
   }
 
   override def enableKey(clientId: UUID, kid: String): Future[Unit] = {
