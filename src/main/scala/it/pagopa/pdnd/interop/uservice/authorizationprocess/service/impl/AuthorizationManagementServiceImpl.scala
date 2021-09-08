@@ -64,7 +64,7 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     invoke(request, "Key enable")
   }
 
-  private def invoke[T](request: ApiRequest[T], logMessage: String): Future[T] =
+  private def invoke[T](request: ApiRequest[T], logMessage: String)(implicit m: Manifest[T]): Future[T] =
     invoker
       .execute[T](request)
       .map { response =>
