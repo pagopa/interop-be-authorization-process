@@ -6,7 +6,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
 }
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.ClientApi
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.ApiRequest
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{Client, ClientSeed}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{Client, ClientSeed, OperatorSeed}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -81,6 +81,21 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: Cli
       .recoverWith { case ex =>
         logger.error(s"Delete client, error > ${ex.getMessage}")
         Future.failed[Unit](ex)
+      }
+  }
+
+
+  override def addOperator(clientId: UUID, operatorId: UUID): Future[Client] = {
+    val request: ApiRequest[Client] = api.addOperator(clientId, OperatorSeed(operatorId))
+    invoker
+      .execute[Client](request)
+      .map { response =>
+        logger.debug(s"Adding operator to client content > ${response.content.toString}")
+        response.content
+      }
+      .recoverWith { case ex =>
+        logger.error(s"Adding operator to client, error > ${ex.getMessage}")
+        Future.failed[Client](ex)
       }
   }
 }

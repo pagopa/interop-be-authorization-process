@@ -236,6 +236,59 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  '/clients/{clientId}/operators':
+    post:
+      tags:
+        - auth
+      summary: Add an Operator to a Client
+      operationId: addOperator
+      parameters:
+        - name: clientId
+          in: path
+          description: The Client id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "201":
+          description: Operator added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        "400":
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "404":
+          description: Missing Required Information
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "500":
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      requestBody:
+        required: true
+        description: An Operator seed
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperatorSeed'
+      description: Adds an Operator to a Client
 components:
   schemas:
     AccessTokenRequest:
@@ -322,6 +375,15 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Client'
+    OperatorSeed:
+      description: Models the seed for an Operator-Client relationship to be persisted
+      type: object
+      properties:
+        operatorId:
+          type: string
+          format: uuid
+      required:
+        - operatorId
     Problem:
       properties:
         detail:
