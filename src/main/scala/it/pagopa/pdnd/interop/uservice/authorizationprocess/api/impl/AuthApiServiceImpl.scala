@@ -214,4 +214,32 @@ class AuthApiServiceImpl(
       case Failure(ex) => addOperator500(Problem(Option(ex.getMessage), 500, "Error on operator addition"))
     }
   }
+
+  /** Code: 204, Message: Operator removed
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Client or operator not found, DataType: Problem
+    * Code: 500, Message: Internal server error, DataType: Problem
+    */
+  override def removeClientOperator(clientId: String, operatorId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result = for {
+      _            <- extractBearer(contexts)
+      clientUuid   <- toUuid(clientId).toFuture
+      operatorUuid <- toUuid(operatorId).toFuture
+      _            <- authorizationManagementService.removeClientOperator(clientUuid, operatorUuid)
+    } yield ()
+
+    onComplete(result) {
+      case Success(_) => removeClientOperator204
+      case Failure(ex @ UnauthenticatedError) =>
+        removeClientOperator401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: UuidConversionError) =>
+        removeClientOperator400(Problem(Option(ex.getMessage), 400, "Bad request"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        removeClientOperator404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(ex) => removeClientOperator500(Problem(Option(ex.getMessage), 500, "Error on operator removal"))
+    }
+  }
 }

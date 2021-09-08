@@ -23,5 +23,6 @@ trait AuthorizationManagementService {
   ): Future[Seq[Client]]
   def deleteClient(clientId: String): Future[Unit]
 
-  def addOperator(clientId: UUID, operatorId: UUID):
+  def addOperator(clientId: UUID, operatorId: UUID): Future[Client]
+  def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit]
 }
