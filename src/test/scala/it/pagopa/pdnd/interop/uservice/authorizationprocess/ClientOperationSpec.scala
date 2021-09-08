@@ -5,11 +5,10 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.Client
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
-import it.pagopa.pdnd.interop.uservice.agreementmanagement
+import it.pagopa.pdnd.interop.uservice.{agreementmanagement, keymanagement}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
-import it.pagopa.pdnd.interop.uservice.keymanagement
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -133,6 +132,30 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       Get() ~> service.listClients(Some(0), Some(10), Some(agreementId.toString), None) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Seq[Client]] shouldEqual expected
+      }
+    }
+  }
+
+  "Client delete" should {
+    "succeed" in {
+      (mockAuthorizationManagementService.deleteClient _)
+        .expects(*)
+        .once()
+        .returns(Future.successful(()))
+
+      Get() ~> service.deleteClient(createdClient.id.toString) ~> check {
+        status shouldEqual StatusCodes.NoContent
+      }
+    }
+
+    "fail if client does not exist" in {
+      (mockAuthorizationManagementService.deleteClient _)
+        .expects(*)
+        .once()
+        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+
+      Get() ~> service.deleteClient(createdClient.id.toString) ~> check {
+        status shouldEqual StatusCodes.NotFound
       }
     }
   }

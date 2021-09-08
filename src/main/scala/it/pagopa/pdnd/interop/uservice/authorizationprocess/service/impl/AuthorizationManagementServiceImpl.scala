@@ -69,4 +69,18 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: Cli
         Future.failed[Seq[Client]](ex)
       }
   }
+
+  override def deleteClient(clientId: String): Future[Unit] = {
+    val request: ApiRequest[Unit] = api.deleteClient(clientId)
+    invoker
+      .execute[Unit](request)
+      .map { response =>
+        logger.debug(s"Client deleted content")
+        response.content
+      }
+      .recoverWith { case ex =>
+        logger.error(s"Delete client, error > ${ex.getMessage}")
+        Future.failed[Unit](ex)
+      }
+  }
 }

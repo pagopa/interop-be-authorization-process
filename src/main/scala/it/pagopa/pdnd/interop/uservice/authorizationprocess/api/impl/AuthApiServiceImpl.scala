@@ -122,7 +122,7 @@ class AuthApiServiceImpl(
       case Failure(ex @ UnauthenticatedError) => getClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClient404(Problem(Some(ex.message), 404, "Client not found"))
-      case Failure(ex) => getClient500(Problem(Option(ex.getMessage), 500, "Error on client creation"))
+      case Failure(ex) => getClient500(Problem(Option(ex.getMessage), 500, "Error on client retrieve"))
     }
   }
 
@@ -158,8 +158,29 @@ class AuthApiServiceImpl(
       case Success(clients)                   => listClients200(clients)
       case Failure(ex: UuidConversionError)   => listClients400(Problem(Option(ex.getMessage), 400, "Not authorized"))
       case Failure(ex @ UnauthenticatedError) => listClients401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex)                        => listClients500(Problem(Option(ex.getMessage), 500, "Error on client creation"))
+      case Failure(ex)                        => listClients500(Problem(Option(ex.getMessage), 500, "Error on clients list"))
     }
   }
 
+  /** Code: 204, Message: Client deleted
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Client not found, DataType: Problem
+    * Code: 500, Message: Internal server error, DataType: Problem
+    */
+  override def deleteClient(
+    clientId: String
+  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
+    val result = for {
+      _ <- extractBearer(contexts)
+      _ <- authorizationManagementService.deleteClient(clientId)
+    } yield ()
+
+    onComplete(result) {
+      case Success(_)                         => deleteClient204
+      case Failure(ex @ UnauthenticatedError) => deleteClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        deleteClient404(Problem(Option(ex.getMessage), 404, "Client not found"))
+      case Failure(ex) => deleteClient500(Problem(Option(ex.getMessage), 500, "Error on client deletion"))
+    }
+  }
 }
