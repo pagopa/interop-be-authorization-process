@@ -15,6 +15,9 @@ object Dependencies {
     lazy val httpJson4s    = "de.heikoseeberger"             %% "akka-http-json4s"           % "1.36.0"
     lazy val management    = "com.lightbend.akka.management" %% "akka-management"            % "1.0.10"
     lazy val slf4j         = namespace                       %% "akka-slf4j"                 % akkaVersion
+    lazy val httpTestkit   = namespace                       %% "akka-http-testkit"          % akkaHttpVersion
+    lazy val streamTestkit = namespace                       %% "akka-stream-testkit"        % akkaVersion
+    lazy val testkit       = namespace                       %% "akka-testkit"               % akkaVersion
 
   }
 
@@ -23,6 +26,8 @@ object Dependencies {
     lazy val keyManagement = namespace %% "pdnd-interop-uservice-key-management-client" % keyManagementVersion
     lazy val agreementProcess =
       namespace %% "pdnd-interop-uservice-agreement-process-client" % agreementProcessVersion
+    lazy val agreementManagement =
+      namespace %% "pdnd-interop-uservice-agreement-management-client" % agreementManagementVersion
   }
 
   private[this] object nimbus {
@@ -92,28 +97,32 @@ object Dependencies {
       // For making Java 12 happy
       "javax.annotation" % "javax.annotation-api" % "1.3.2" % "compile",
       //
-      akka.actorTyped         % Compile,
-      akka.actor              % Compile,
-      akka.serialization      % Compile,
-      akka.stream             % Compile,
-      akka.clusterTools       % Compile,
-      akka.http               % Compile,
-      akka.httpJson           % Compile,
-      akka.management         % Compile,
-      cats.core               % Compile,
-      nimbus.joseJwt          % Compile,
-      pagopa.keyManagement    % Compile,
-      pagopa.agreementProcess % Compile,
-      vault.driver            % Compile,
-      bouncycastle.provider   % Compile,
-      bouncycastle.kix        % Compile,
-      logback.classic         % Compile,
-      akka.slf4j              % Compile,
-      kamon.bundle            % Compile,
-      kamon.prometheus        % Compile,
-      scalpb.core             % "protobuf",
-      scalatest.core          % Test,
-      scalamock.core          % Test
+      akka.actorTyped            % Compile,
+      akka.actor                 % Compile,
+      akka.serialization         % Compile,
+      akka.stream                % Compile,
+      akka.clusterTools          % Compile,
+      akka.http                  % Compile,
+      akka.httpJson              % Compile,
+      akka.management            % Compile,
+      cats.core                  % Compile,
+      nimbus.joseJwt             % Compile,
+      pagopa.keyManagement       % Compile,
+      pagopa.agreementProcess    % Compile,
+      pagopa.agreementManagement % Compile,
+      vault.driver               % Compile,
+      bouncycastle.provider      % Compile,
+      bouncycastle.kix           % Compile,
+      logback.classic            % Compile,
+      akka.slf4j                 % Compile,
+      kamon.bundle               % Compile,
+      kamon.prometheus           % Compile,
+      scalpb.core                % "protobuf",
+      akka.httpTestkit           % Test,
+      akka.streamTestkit         % Test,
+      akka.testkit               % Test,
+      scalatest.core             % Test,
+      scalamock.core             % Test
     )
     lazy val client: Seq[ModuleID] =
       Seq(

@@ -1,10 +1,9 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 
 import it.pagopa.pdnd.interop.uservice.agreementprocess.client.api.ProcessApi
-import it.pagopa.pdnd.interop.uservice.agreementprocess.client.invoker.ApiRequest
+import it.pagopa.pdnd.interop.uservice.agreementprocess.client.invoker.{ApiRequest, BearerToken}
 import it.pagopa.pdnd.interop.uservice.agreementprocess.client.model.Audience
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{AgreementProcessInvoker, AgreementProcessService}
-import it.pagopa.pdnd.interop.uservice.agreementprocess.client.invoker.BearerToken
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.{ExecutionContext, Future}

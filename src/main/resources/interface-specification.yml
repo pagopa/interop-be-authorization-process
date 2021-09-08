@@ -63,6 +63,50 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /clients:
+    post:
+      tags:
+        - auth
+      summary: Create a new client
+      description: Create a new client
+      operationId: createClient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientSeed'
+      responses:
+        "201":
+          description: Client created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "404":
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "422":
+          description: Agreement status not valid
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   schemas:
     AccessTokenRequest:
@@ -110,6 +154,41 @@ components:
           type: integer
           format: int64
           maximum: 600
+    ClientSeed:
+      description: Client creation request body
+      type: object
+      properties:
+        agreementId:
+          type: string
+          format: uuid
+        description:
+          type: string
+      required:
+        - agreementId
+        - description
+    Client:
+      description: Models a Client
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        agreementId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        operators:
+          type: array
+          items:
+            type: string
+            format: uuid
+          uniqueItems: true
+      required:
+        - id
+        - agreementId
+        - description
+        - operators
     Problem:
       properties:
         detail:
