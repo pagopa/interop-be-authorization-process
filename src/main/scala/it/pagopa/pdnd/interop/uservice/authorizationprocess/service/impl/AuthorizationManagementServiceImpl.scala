@@ -37,6 +37,20 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, api: Cli
       }
   }
 
+  override def getClient(clientId: String): Future[Client] = {
+    val request: ApiRequest[Client] = api.getClient(clientId)
+    invoker
+      .execute[Client](request)
+      .map { x =>
+        logger.debug(s"Retrieved client content > ${x.content.toString}")
+        x.content
+      }
+      .recoverWith { case ex =>
+        logger.error(s"Retrieve client, error > ${ex.getMessage}")
+        Future.failed[Client](ex)
+      }
+  }
+
   override def listClients(
     offset: Option[Int],
     limit: Option[Int],
