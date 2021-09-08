@@ -72,7 +72,7 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
   }
 
   override def deleteClient(clientId: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = api.deleteClient(clientId)
+    val request: ApiRequest[Unit] = clientApi.deleteClient(clientId)
     invoker
       .execute[Unit](request)
       .map { response =>
@@ -86,7 +86,7 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
   }
 
   override def addOperator(clientId: UUID, operatorId: UUID): Future[Client] = {
-    val request: ApiRequest[Client] = api.addOperator(clientId, OperatorSeed(operatorId))
+    val request: ApiRequest[Client] = clientApi.addOperator(clientId, OperatorSeed(operatorId))
     invoker
       .execute[Client](request)
       .map { response =>
@@ -100,7 +100,7 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
   }
 
   override def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit] = {
-    val request: ApiRequest[Unit] = api.removeClientOperator(clientId, operatorId)
+    val request: ApiRequest[Unit] = clientApi.removeClientOperator(clientId, operatorId)
     invoker
       .execute[Unit](request)
       .map { response =>
