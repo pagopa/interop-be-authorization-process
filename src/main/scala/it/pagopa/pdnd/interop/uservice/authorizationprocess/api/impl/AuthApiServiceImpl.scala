@@ -156,7 +156,7 @@ class AuthApiServiceImpl(
 
     onComplete(result) {
       case Success(clients)                   => listClients200(clients)
-      case Failure(ex: UuidConversionError)   => listClients400(Problem(Option(ex.getMessage), 400, "Not authorized"))
+      case Failure(ex: UuidConversionError)   => listClients400(Problem(Option(ex.getMessage), 400, "Bad request"))
       case Failure(ex @ UnauthenticatedError) => listClients401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex)                        => listClients500(Problem(Option(ex.getMessage), 500, "Error on clients list"))
     }
@@ -181,6 +181,37 @@ class AuthApiServiceImpl(
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         deleteClient404(Problem(Option(ex.getMessage), 404, "Client not found"))
       case Failure(ex) => deleteClient500(Problem(Option(ex.getMessage), 500, "Error on client deletion"))
+    }
+  }
+
+  /** Code: 201, Message: Operator added, DataType: Client
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Missing Required Information, DataType: Problem
+    * Code: 500, Message: Internal server error, DataType: Problem
+    */
+  override def addOperator(clientId: String, operatorSeed: OperatorSeed)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerClient: ToEntityMarshaller[Client]
+  ): Route = {
+    val result = for {
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      client     <- authorizationManagementService.addOperator(clientUuid, operatorSeed.operatorId)
+    } yield Client(
+      id = client.id,
+      agreementId = client.agreementId,
+      description = client.description,
+      operators = client.operators
+    )
+
+    onComplete(result) {
+      case Success(client)                    => addOperator201(client)
+      case Failure(ex @ UnauthenticatedError) => addOperator401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: UuidConversionError)   => addOperator400(Problem(Option(ex.getMessage), 400, "Bad request"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        addOperator404(Problem(Some(ex.message), 404, "Client not found"))
+      case Failure(ex) => addOperator500(Problem(Option(ex.getMessage), 500, "Error on operator addition"))
     }
   }
 }
