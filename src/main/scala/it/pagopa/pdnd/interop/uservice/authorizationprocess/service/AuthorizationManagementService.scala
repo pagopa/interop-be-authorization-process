@@ -31,4 +31,5 @@ trait AuthorizationManagementService {
   def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed]): Future[KeysResponse]
   def deleteKey(clientId: UUID, kid: String): Future[Unit]
   def enableKey(clientId: UUID, kid: String): Future[Unit]
+  def disableKey(clientId: UUID, kid: String): Future[Unit]
 }
