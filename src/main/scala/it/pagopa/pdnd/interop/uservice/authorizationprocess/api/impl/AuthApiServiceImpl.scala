@@ -12,6 +12,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, expireIn, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
   AgreementStatusNotValidError,
+  EnumParameterError,
   UnauthenticatedError,
   UuidConversionError
 }
@@ -20,7 +21,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 
 import java.text.ParseException
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 class AuthApiServiceImpl(
@@ -317,6 +318,58 @@ class AuthApiServiceImpl(
     }
   }
 
+  /** Code: 201, Message: Keys created, DataType: Keys
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Client id not found, DataType: Problem
+    * Code: 500, Message: Internal Server Error, DataType: Problem
+    */
+  override def createKeys(clientId: String, keysSeeds: Seq[KeySeed])(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerKeys: ToEntityMarshaller[Keys],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result = for {
+      _            <- extractBearer(contexts)
+      clientUuid   <- toUuid(clientId).toFuture
+      seeds        <- keysSeeds.map(toClientKeySeed).sequence.toFuture
+      keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)
+    } yield Keys(keysResponse.keys.map(keyToApi))
+
+    onComplete(result) {
+      case Success(keys)                      => createKeys201(keys)
+      case Failure(ex @ UnauthenticatedError) => createKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: EnumParameterError)    => createKeys400(Problem(Option(ex.getMessage), 400, "Bad Request"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        createKeys404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(ex) => createKeys500(Problem(Option(ex.getMessage), 500, "Error on key creation"))
+    }
+  }
+
+  /** Code: 200, Message: returns the corresponding array of keys, DataType: Keys
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Client id not found, DataType: Problem
+    * Code: 500, Message: Internal Server Error, DataType: Problem
+    */
+  override def getClientKeys(clientId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerKeys: ToEntityMarshaller[Keys],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result = for {
+      _            <- extractBearer(contexts)
+      clientUuid   <- toUuid(clientId).toFuture
+      keysResponse <- authorizationManagementService.getClientKeys(clientUuid)
+    } yield Keys(keysResponse.keys.map(keyToApi))
+
+    onComplete(result) {
+      case Success(keys)                      => getClientKeys200(keys)
+      case Failure(ex @ UnauthenticatedError) => getClientKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        getClientKeys404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(ex) => getClientKeys500(Problem(Option(ex.getMessage), 500, "Error on client keys retrieve"))
+    }
+  }
+
   private[this] def keyToApi(key: keymanagement.client.model.Key): Key =
     Key(
       kty = key.kty,
@@ -346,4 +399,12 @@ class AuthApiServiceImpl(
   private[this] def primeInfoToApi(info: keymanagement.client.model.OtherPrimeInfo): OtherPrimeInfo =
     OtherPrimeInfo(r = info.r, d = info.d, t = info.t)
 
+  private[this] def toClientKeySeed(keySeed: KeySeed): Either[EnumParameterError, keymanagement.client.model.KeySeed] =
+    Try(keymanagement.client.model.KeySeedEnums.Use.withName(keySeed.use)).toEither
+      .map(use =>
+        keymanagement.client.model
+          .KeySeed(operatorId = keySeed.operatorId, key = keySeed.key, use = use, alg = keySeed.alg)
+      )
+      .left
+      .map(_ => EnumParameterError("use", keymanagement.client.model.KeySeedEnums.Use.values.toSeq.map(_.toString)))
 }

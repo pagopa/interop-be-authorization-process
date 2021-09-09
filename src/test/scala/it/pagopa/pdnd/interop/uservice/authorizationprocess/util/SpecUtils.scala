@@ -4,7 +4,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement, AgreementEnums}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{AuthApiMarshallerImpl, _}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, ClientSeed, Key}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, ClientSeed, Key, Keys}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
   OtherPrimeInfo,
@@ -90,5 +90,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   implicit def fromResponseUnmarshallerKeyRequest: FromEntityUnmarshaller[Key] =
     sprayJsonUnmarshaller[Key]
+
+  implicit def fromResponseUnmarshallerKeysRequest: FromEntityUnmarshaller[Keys] =
+    sprayJsonUnmarshaller[Keys]
 
 }
