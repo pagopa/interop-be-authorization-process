@@ -25,7 +25,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val bearerToken: String    = "token"
   val agreementId: UUID      = UUID.randomUUID()
-  val clientSeed: ClientSeed = ClientSeed(agreementId, "client description")
+  val clientSeed: ClientSeed = ClientSeed(agreementId, "client name", Some("client description"))
 
   val validAgreement: Agreement = Agreement(
     id = agreementId,
@@ -49,6 +49,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     AuthManagementClient(
       id = UUID.randomUUID(),
       agreementId = agreementId,
+      clientSeed.name,
       clientSeed.description,
       operators = Set.empty
     )

@@ -31,8 +31,8 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     * @param description
     * @return
     */
-  override def createClient(agreementId: UUID, description: String): Future[Client] = {
-    val request: ApiRequest[Client] = clientApi.createClient(ClientSeed(agreementId, description))
+  override def createClient(agreementId: UUID, name: String, description: Option[String]): Future[Client] = {
+    val request: ApiRequest[Client] = clientApi.createClient(ClientSeed(agreementId, name, description))
     invoke(request, "Client creation")
   }
 
