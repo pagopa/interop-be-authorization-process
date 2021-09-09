@@ -31,13 +31,14 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returns(Future.successful(validAgreement))
 
       (mockAuthorizationManagementService.createClient _)
-        .expects(clientSeed.agreementId, clientSeed.description)
+        .expects(clientSeed.agreementId, clientSeed.name, clientSeed.description)
         .once()
         .returns(Future.successful(createdClient))
 
       val expected = Client(
         id = createdClient.id,
         agreementId = createdClient.agreementId,
+        name = createdClient.name,
         description = createdClient.description,
         operators = createdClient.operators
       )
@@ -90,6 +91,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         Client(
           id = createdClient.id,
           agreementId = createdClient.agreementId,
+          name = createdClient.name,
           description = createdClient.description,
           operators = createdClient.operators
         )
@@ -124,6 +126,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         Client(
           id = createdClient.id,
           agreementId = createdClient.agreementId,
+          name = createdClient.name,
           description = createdClient.description,
           operators = createdClient.operators
         )

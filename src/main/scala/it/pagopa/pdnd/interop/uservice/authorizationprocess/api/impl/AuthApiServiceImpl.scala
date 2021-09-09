@@ -79,13 +79,12 @@ class AuthApiServiceImpl(
       bearerToken <- extractBearer(contexts)
       agreement   <- agreementManagementService.retrieveAgreement(bearerToken, clientSeed.agreementId.toString)
       _           <- validateUsableAgreementStatus(agreement)
-      client      <- authorizationManagementService.createClient(clientSeed.agreementId, clientSeed.description)
-    } yield Client(
-      id = client.id,
-      agreementId = client.agreementId,
-      description = client.description,
-      operators = client.operators
-    )
+      client <- authorizationManagementService.createClient(
+        clientSeed.agreementId,
+        clientSeed.name,
+        clientSeed.description
+      )
+    } yield clientToApi(client)
 
     onComplete(result) {
       case Success(client)                    => createClient201(client)
@@ -112,12 +111,7 @@ class AuthApiServiceImpl(
     val result = for {
       _      <- extractBearer(contexts)
       client <- authorizationManagementService.getClient(clientId)
-    } yield Client(
-      id = client.id,
-      agreementId = client.agreementId,
-      description = client.description,
-      operators = client.operators
-    )
+    } yield clientToApi(client)
 
     onComplete(result) {
       case Success(client)                    => getClient200(client)
@@ -147,14 +141,7 @@ class AuthApiServiceImpl(
       agreementUuid <- agreementId.map(toUuid).sequence.toFuture
       operatorUuid  <- operatorId.map(toUuid).sequence.toFuture
       clients       <- authorizationManagementService.listClients(offset, limit, agreementUuid, operatorUuid)
-    } yield clients.map(client =>
-      Client(
-        id = client.id,
-        agreementId = client.agreementId,
-        description = client.description,
-        operators = client.operators
-      )
-    )
+    } yield clients.map(clientToApi)
 
     onComplete(result) {
       case Success(clients)                   => listClients200(clients)
@@ -200,12 +187,7 @@ class AuthApiServiceImpl(
       _          <- extractBearer(contexts)
       clientUuid <- toUuid(clientId).toFuture
       client     <- authorizationManagementService.addOperator(clientUuid, operatorSeed.operatorId)
-    } yield Client(
-      id = client.id,
-      agreementId = client.agreementId,
-      description = client.description,
-      operators = client.operators
-    )
+    } yield clientToApi(client)
 
     onComplete(result) {
       case Success(client)                    => addOperator201(client)
@@ -394,6 +376,15 @@ class AuthApiServiceImpl(
       case Failure(ex) => getClientKeys500(Problem(Option(ex.getMessage), 500, "Error on client keys retrieve"))
     }
   }
+
+  private[this] def clientToApi(client: keymanagement.client.model.Client): Client =
+    Client(
+      id = client.id,
+      agreementId = client.agreementId,
+      name = client.name,
+      description = client.description,
+      operators = client.operators
+    )
 
   private[this] def keyToApi(key: keymanagement.client.model.Key): Key =
     Key(

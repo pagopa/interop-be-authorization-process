@@ -35,6 +35,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       val expected = Client(
         id = createdClient.id,
         agreementId = createdClient.agreementId,
+        name = createdClient.name,
         description = createdClient.description,
         operators = Set(operatorId)
       )

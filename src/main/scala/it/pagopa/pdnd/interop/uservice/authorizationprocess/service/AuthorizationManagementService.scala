@@ -13,7 +13,7 @@ trait AuthorizationManagementService {
     * @return
     */
 
-  def createClient(agreementId: UUID, description: String): Future[Client]
+  def createClient(agreementId: UUID, name: String, description: Option[String]): Future[Client]
   def getClient(clientId: String): Future[Client]
   def listClients(
     offset: Option[Int],
