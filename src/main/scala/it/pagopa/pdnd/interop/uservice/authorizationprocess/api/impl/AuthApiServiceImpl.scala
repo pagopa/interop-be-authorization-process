@@ -318,6 +318,31 @@ class AuthApiServiceImpl(
     }
   }
 
+  /** Code: 204, Message: the corresponding key has been disabled.
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Key not found, DataType: Problem
+    * Code: 500, Message: Internal Server Error, DataType: Problem
+    */
+  override def disableKeyById(clientId: String, keyId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result = for {
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      _          <- authorizationManagementService.disableKey(clientUuid, keyId)
+    } yield ()
+
+    onComplete(result) {
+      case Success(_) => disableKeyById204
+      case Failure(ex @ UnauthenticatedError) =>
+        disableKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        disableKeyById404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(ex) => disableKeyById500(Problem(Option(ex.getMessage), 500, "Error on key disabling"))
+    }
+  }
+
   /** Code: 201, Message: Keys created, DataType: Keys
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Client id not found, DataType: Problem
