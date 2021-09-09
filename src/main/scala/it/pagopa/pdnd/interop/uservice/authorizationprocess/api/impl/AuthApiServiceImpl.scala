@@ -358,7 +358,7 @@ class AuthApiServiceImpl(
     val result = for {
       _            <- extractBearer(contexts)
       clientUuid   <- toUuid(clientId).toFuture
-      keysResponse <- authorizationManagementService.getKeys(clientUuid)
+      keysResponse <- authorizationManagementService.getClientKeys(clientUuid)
     } yield Keys(keysResponse.keys.map(keyToApi))
 
     onComplete(result) {

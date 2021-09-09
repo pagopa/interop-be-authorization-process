@@ -27,7 +27,7 @@ trait AuthorizationManagementService {
   def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit]
 
   def getKey(clientId: UUID, kid: String): Future[Key]
-  def getKeys(clientId: UUID): Future[KeysResponse]
+  def getClientKeys(clientId: UUID): Future[KeysResponse]
   def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed]): Future[KeysResponse]
   def deleteKey(clientId: UUID, kid: String): Future[Unit]
   def enableKey(clientId: UUID, kid: String): Future[Unit]

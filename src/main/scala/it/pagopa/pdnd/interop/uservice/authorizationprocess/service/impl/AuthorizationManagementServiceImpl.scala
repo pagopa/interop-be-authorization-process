@@ -81,7 +81,7 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     invoke(request, "Key enable")
   }
 
-  override def getKeys(clientId: UUID): Future[KeysResponse] = {
+  override def getClientKeys(clientId: UUID): Future[KeysResponse] = {
     val request: ApiRequest[KeysResponse] = keyApi.getClientKeys(clientId)
     invoke(request, "Client keys retrieve")
   }
