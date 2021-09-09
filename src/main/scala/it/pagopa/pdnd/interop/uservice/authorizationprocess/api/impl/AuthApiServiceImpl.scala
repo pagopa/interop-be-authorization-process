@@ -7,6 +7,7 @@ import cats.implicits.toTraverseOps
 import com.nimbusds.jose.JOSEException
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.invoker.{ApiError => AgreementManagementApiError}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
+import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, expireIn, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
@@ -243,6 +244,57 @@ class AuthApiServiceImpl(
     }
   }
 
+  /** Code: 200, Message: returns the corresponding key, DataType: Key
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Key not found, DataType: Problem
+    * Code: 500, Message: Internal Server Error, DataType: Problem
+    */
+  override def getClientKeyById(clientId: String, keyId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerKey: ToEntityMarshaller[Key],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result = for {
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      key        <- authorizationManagementService.getKey(clientUuid, keyId)
+    } yield keyToApi(key)
+
+    onComplete(result) {
+      case Success(key) => getClientKeyById200(key)
+      case Failure(ex @ UnauthenticatedError) =>
+        getClientKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        getClientKeyById404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(ex) => getClientKeyById500(Problem(Option(ex.getMessage), 500, "Error on key retrieve"))
+    }
+  }
+
+  /** Code: 204, Message: the corresponding key has been deleted.
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Key not found, DataType: Problem
+    * Code: 500, Message: Internal Server Error, DataType: Problem
+    */
+  override def deleteClientKeyById(clientId: String, keyId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result = for {
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      _          <- authorizationManagementService.deleteKey(clientUuid, keyId)
+    } yield ()
+
+    onComplete(result) {
+      case Success(_) => deleteClientKeyById204
+      case Failure(ex @ UnauthenticatedError) =>
+        deleteClientKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        deleteClientKeyById404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(ex) => deleteClientKeyById500(Problem(Option(ex.getMessage), 500, "Error on key delete"))
+    }
+  }
+
   /** Code: 204, Message: the corresponding key has been enabled.
     * Code: 404, Message: Key not found, DataType: Problem
     */
@@ -264,4 +316,34 @@ class AuthApiServiceImpl(
       case Failure(ex) => enableKeyById500(Problem(Option(ex.getMessage), 500, "Error on key enabling"))
     }
   }
+
+  private[this] def keyToApi(key: keymanagement.client.model.Key): Key =
+    Key(
+      kty = key.kty,
+      key_ops = key.keyOps,
+      use = key.use,
+      alg = key.alg,
+      kid = key.kid,
+      x5u = key.x5u,
+      x5t = key.x5t,
+      x5tS256 = key.x5tS256,
+      x5c = key.x5c,
+      crv = key.crv,
+      x = key.x,
+      y = key.y,
+      d = key.d,
+      k = key.k,
+      n = key.n,
+      e = key.e,
+      p = key.p,
+      q = key.q,
+      dp = key.dp,
+      dq = key.dq,
+      qi = key.qi,
+      oth = key.oth.map(_.map(primeInfoToApi))
+    )
+
+  private[this] def primeInfoToApi(info: keymanagement.client.model.OtherPrimeInfo): OtherPrimeInfo =
+    OtherPrimeInfo(r = info.r, d = info.d, t = info.t)
+
 }
