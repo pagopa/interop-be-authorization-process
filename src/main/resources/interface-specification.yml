@@ -339,6 +339,99 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  '/clients/{clientId}/keys':
+    post:
+      tags:
+        - auth
+      summary: Create Keys for the specific clientId.
+      operationId: createKeys
+      responses:
+        "201":
+          description: Keys created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Keys'
+        "400":
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "404":
+          description: Client id not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      requestBody:
+        required: true
+        description: an array of base64 encoded PEM keys.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeysSeed'
+      description: Creates one or more keys for the corresponding client.
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          description: ID of client that the added keys MUST belong to
+          schema:
+            type: string
+            format: uuid
+    get:
+      tags:
+        - auth
+      summary: Returns a set of keys by client ID.
+      description: 'Given a client identifier it returns its corresponding set of keys, if any'
+      operationId: getClientKeys
+      parameters:
+        - name: clientId
+          in: path
+          description: ID of the client to look up
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: returns the corresponding array of keys
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Keys'
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "404":
+          description: Client id not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
   '/clients/{clientId}/keys/{keyId}':
     get:
       tags:
@@ -637,6 +730,44 @@ components:
         - r
         - d
         - t
+    Keys:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/Key'
+      required:
+        - keys
+    KeysSeed:
+      type: array
+      items:
+        $ref: '#/components/schemas/KeySeed'
+    KeySeed:
+      description: 'Models the seed for a public key to be persisted'
+      type: object
+      properties:
+        operatorId:
+          type: string
+          format: uuid
+          description: 'Represents the identifier of the platform security operator that is uploading the key'
+        key:
+          type: string
+          description: 'Base64 UTF-8 encoding of a public key in PEM format'
+        use:
+          type: string
+          description: 'The expected use for this key.'
+          enum:
+            - sig
+            - enc
+        alg:
+          type: string
+          description: 'The algorithm type of the key.'
+      required:
+        - operatorId
+        - key
+        - use
+        - alg
     Problem:
       properties:
         detail:

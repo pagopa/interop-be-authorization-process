@@ -6,7 +6,14 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
 }
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{ClientApi, KeyApi}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.ApiRequest
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{Client, ClientSeed, Key, OperatorSeed}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
+  Client,
+  ClientSeed,
+  Key,
+  KeySeed,
+  KeysResponse,
+  OperatorSeed
+}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -74,6 +81,16 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     invoke(request, "Key enable")
   }
 
+  override def getKeys(clientId: UUID): Future[KeysResponse] = {
+    val request: ApiRequest[KeysResponse] = keyApi.getClientKeys(clientId)
+    invoke(request, "Client keys retrieve")
+  }
+
+  override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed]): Future[KeysResponse] = {
+    val request: ApiRequest[KeysResponse] = keyApi.createKeys(clientId, keysSeeds)
+    invoke(request, "Key creation")
+  }
+
   private def invoke[T](request: ApiRequest[T], logMessage: String)(implicit m: Manifest[T]): Future[T] =
     invoker
       .execute[T](request)
@@ -85,4 +102,5 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
         logger.error(s"$logMessage. Error: ${ex.getMessage}")
         Future.failed[T](ex)
       }
+
 }
