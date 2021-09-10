@@ -19,9 +19,9 @@ object ApplicationConfiguration {
     s"$agreementProcessURL/pdnd-interop-uservice-agreement-process/0.0.1"
   }
 
-  def getAgreementManagementURL: String = {
-    val agreementManagementURL: String = config.getString("services.agreement-management")
-    s"$agreementManagementURL/pdnd-interop-uservice-agreement-management/0.0.1"
+  def getCatalogProcessURL: String = {
+    val catalogProcessURL: String = config.getString("services.catalog-process")
+    s"$catalogProcessURL/pdnd-interop-uservice-catalog-process/0.0.1"
   }
 
   def getAuthorizationManagementURL: String = {

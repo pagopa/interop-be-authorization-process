@@ -5,7 +5,8 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.Client
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
-import it.pagopa.pdnd.interop.uservice.{agreementmanagement, keymanagement}
+import it.pagopa.pdnd.interop.uservice.keymanagement
+import it.pagopa.pdnd.interopuservice.catalogprocess
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -19,25 +20,25 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     mockJwtValidator,
     mockJwtGenerator,
     mockAgreementProcessService,
-    mockAgreementManagementService,
+    mockCatalogProcessService,
     mockAuthorizationManagementService
   )(ExecutionContext.global)
 
   "Client creation" should {
     "succeed" in {
-      (mockAgreementManagementService.retrieveAgreement _)
-        .expects(bearerToken, clientSeed.agreementId.toString)
+      (mockCatalogProcessService.getEService _)
+        .expects(bearerToken, clientSeed.eServiceId.toString)
         .once()
-        .returns(Future.successful(validAgreement))
+        .returns(Future.successful(eService))
 
       (mockAuthorizationManagementService.createClient _)
-        .expects(clientSeed.agreementId, clientSeed.name, clientSeed.description)
+        .expects(clientSeed.eServiceId, clientSeed.name, clientSeed.description)
         .once()
         .returns(Future.successful(createdClient))
 
       val expected = Client(
         id = createdClient.id,
-        agreementId = createdClient.agreementId,
+        eServiceId = createdClient.eServiceId,
         name = createdClient.name,
         description = createdClient.description,
         operators = createdClient.operators
@@ -56,25 +57,14 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       }
     }
 
-    "fail if the agreement does not exist" in {
-      (mockAgreementManagementService.retrieveAgreement _)
-        .expects(bearerToken, clientSeed.agreementId.toString)
+    "fail if the E-Service does not exist" in {
+      (mockCatalogProcessService.getEService _)
+        .expects(bearerToken, clientSeed.eServiceId.toString)
         .once()
-        .returns(Future.failed(agreementmanagement.client.invoker.ApiError(404, "Some message", None)))
+        .returns(Future.failed(catalogprocess.client.invoker.ApiError(404, "Some message", None)))
 
       Get() ~> service.createClient(clientSeed) ~> check {
         status shouldEqual StatusCodes.NotFound
-      }
-    }
-
-    "fail if the agreement is not in an expected status" in {
-      (mockAgreementManagementService.retrieveAgreement _)
-        .expects(bearerToken, clientSeed.agreementId.toString)
-        .once()
-        .returns(Future.successful(suspendedAgreement))
-
-      Get() ~> service.createClient(clientSeed) ~> check {
-        status shouldEqual StatusCodes.UnprocessableEntity
       }
     }
 
@@ -90,7 +80,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expected =
         Client(
           id = createdClient.id,
-          agreementId = createdClient.agreementId,
+          eServiceId = createdClient.eServiceId,
           name = createdClient.name,
           description = createdClient.description,
           operators = createdClient.operators
@@ -125,14 +115,14 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expected = Seq(
         Client(
           id = createdClient.id,
-          agreementId = createdClient.agreementId,
+          eServiceId = createdClient.eServiceId,
           name = createdClient.name,
           description = createdClient.description,
           operators = createdClient.operators
         )
       )
 
-      Get() ~> service.listClients(Some(0), Some(10), Some(agreementId.toString), None) ~> check {
+      Get() ~> service.listClients(Some(0), Some(10), Some(eServiceId.toString), None) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Seq[Client]] shouldEqual expected
       }

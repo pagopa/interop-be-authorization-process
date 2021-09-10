@@ -96,12 +96,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "422":
-          description: Agreement status not valid
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
         "500":
           description: Internal Server Error
           content:
@@ -127,9 +121,9 @@ paths:
           schema:
             type: integer
             format: int32
-        - name: agreementId
+        - name: eServiceId
           in: query
-          description: ID of agreement that MUST be related to the Client
+          description: ID of E-Service that MUST be related to the Client
           schema:
             type: string
             format: uuid
@@ -654,7 +648,7 @@ components:
       description: Client creation request body
       type: object
       properties:
-        agreementId:
+        eServiceId:
           type: string
           format: uuid
         name:
@@ -662,7 +656,7 @@ components:
         description:
           type: string
       required:
-        - agreementId
+        - eServiceId
         - name
     Client:
       description: Models a Client
@@ -671,7 +665,7 @@ components:
         id:
           type: string
           format: uuid
-        agreementId:
+        eServiceId:
           type: string
           format: uuid
         name:
@@ -686,7 +680,7 @@ components:
           uniqueItems: true
       required:
         - id
-        - agreementId
+        - eServiceId
         - name
         - operators
     Clients:

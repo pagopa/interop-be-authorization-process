@@ -5,19 +5,18 @@ import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
 import cats.implicits.toTraverseOps
 import com.nimbusds.jose.JOSEException
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.invoker.{ApiError => AgreementManagementApiError}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
-import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, expireIn, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
-  AgreementStatusNotValidError,
   EnumParameterError,
   UnauthenticatedError,
   UuidConversionError
 }
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
+import it.pagopa.pdnd.interop.uservice.keymanagement
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
+import it.pagopa.pdnd.interopuservice.catalogprocess.client.invoker.{ApiError => CatalogProcessApiError}
 
 import java.text.ParseException
 import scala.concurrent.{ExecutionContext, Future}
@@ -28,11 +27,10 @@ class AuthApiServiceImpl(
   jwtValidator: JWTValidator,
   jwtGenerator: JWTGenerator,
   agreementProcessService: AgreementProcessService,
-  agreementManagementService: AgreementManagementService,
+  catalogProcessService: CatalogProcessService,
   authorizationManagementService: AuthorizationManagementService
 )(implicit ec: ExecutionContext)
-    extends AuthApiService
-    with Validation {
+    extends AuthApiService {
 
   /** Code: 200, Message: an Access token, DataType: ClientCredentialsResponse
     * Code: 403, Message: Unauthorized, DataType: Problem
@@ -77,10 +75,9 @@ class AuthApiServiceImpl(
   ): Route = {
     val result = for {
       bearerToken <- extractBearer(contexts)
-      agreement   <- agreementManagementService.retrieveAgreement(bearerToken, clientSeed.agreementId.toString)
-      _           <- validateUsableAgreementStatus(agreement)
+      _           <- catalogProcessService.getEService(bearerToken, clientSeed.eServiceId.toString)
       client <- authorizationManagementService.createClient(
-        clientSeed.agreementId,
+        clientSeed.eServiceId,
         clientSeed.name,
         clientSeed.description
       )
@@ -89,12 +86,8 @@ class AuthApiServiceImpl(
     onComplete(result) {
       case Success(client)                    => createClient201(client)
       case Failure(ex @ UnauthenticatedError) => createClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex: AgreementStatusNotValidError) =>
-        createClient422(Problem(Option(ex.getMessage), 422, "Invalid Agreement"))
-      case Failure(ex: AgreementManagementApiError[_]) if ex.code == 404 =>
-        createClient404(
-          Problem(Some(s"Agreement id ${clientSeed.agreementId.toString} not found"), 404, "Agreement not found")
-        )
+      case Failure(ex: CatalogProcessApiError[_]) if ex.code == 404 =>
+        createClient404(Problem(Some(s"E-Service id ${clientSeed.eServiceId.toString} not found"), 404, "Not found"))
       case Failure(ex) => createClient500(Problem(Option(ex.getMessage), 500, "Error on client creation"))
     }
   }
@@ -129,7 +122,7 @@ class AuthApiServiceImpl(
   override def listClients(
     offset: Option[Int],
     limit: Option[Int],
-    agreementId: Option[String],
+    eServiceId: Option[String],
     operatorId: Option[String]
   )(implicit
     contexts: Seq[(String, String)],
@@ -137,10 +130,10 @@ class AuthApiServiceImpl(
     toEntityMarshallerClientarray: ToEntityMarshaller[Seq[Client]]
   ): Route = {
     val result = for {
-      _             <- extractBearer(contexts)
-      agreementUuid <- agreementId.map(toUuid).sequence.toFuture
-      operatorUuid  <- operatorId.map(toUuid).sequence.toFuture
-      clients       <- authorizationManagementService.listClients(offset, limit, agreementUuid, operatorUuid)
+      _            <- extractBearer(contexts)
+      eServiceUuid <- eServiceId.map(toUuid).sequence.toFuture
+      operatorUuid <- operatorId.map(toUuid).sequence.toFuture
+      clients      <- authorizationManagementService.listClients(offset, limit, eServiceUuid, operatorUuid)
     } yield clients.map(clientToApi)
 
     onComplete(result) {
@@ -380,7 +373,7 @@ class AuthApiServiceImpl(
   private[this] def clientToApi(client: keymanagement.client.model.Client): Client =
     Client(
       id = client.id,
-      agreementId = client.agreementId,
+      eServiceId = client.eServiceId,
       name = client.name,
       description = client.description,
       operators = client.operators

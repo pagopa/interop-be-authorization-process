@@ -9,16 +9,16 @@ trait AuthorizationManagementService {
 
   /** Returns the expected audience defined by the producer of the corresponding agreementId.
     *
-    * @param agreementId
+    * @param eServiceId
     * @return
     */
 
-  def createClient(agreementId: UUID, name: String, description: Option[String]): Future[Client]
+  def createClient(eServiceId: UUID, name: String, description: Option[String]): Future[Client]
   def getClient(clientId: String): Future[Client]
   def listClients(
     offset: Option[Int],
     limit: Option[Int],
-    agreementId: Option[UUID],
+    eServiceId: Option[UUID],
     operatorId: Option[UUID]
   ): Future[Seq[Client]]
   def deleteClient(clientId: String): Future[Unit]

@@ -20,7 +20,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     mockJwtValidator,
     mockJwtGenerator,
     mockAgreementProcessService,
-    mockAgreementManagementService,
+    mockCatalogProcessService,
     mockAuthorizationManagementService
   )(ExecutionContext.global)
 
@@ -34,7 +34,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
       val expected = Client(
         id = createdClient.id,
-        agreementId = createdClient.agreementId,
+        eServiceId = createdClient.eServiceId,
         name = createdClient.name,
         description = createdClient.description,
         operators = Set(operatorId)
