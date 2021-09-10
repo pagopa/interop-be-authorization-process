@@ -12,5 +12,5 @@ trait CatalogProcessService {
     * @return
     */
 
-  def getEService(bearerToken: String, agreementId: String): Future[EService]
+  def getEService(bearerToken: String, eServiceId: String): Future[EService]
 }

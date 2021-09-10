@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.Client
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, ClientDetail, EService}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interopuservice.catalogprocess
@@ -34,14 +34,14 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       (mockAuthorizationManagementService.createClient _)
         .expects(clientSeed.eServiceId, clientSeed.name, clientSeed.description)
         .once()
-        .returns(Future.successful(createdClient))
+        .returns(Future.successful(client))
 
       val expected = Client(
-        id = createdClient.id,
-        eServiceId = createdClient.eServiceId,
-        name = createdClient.name,
-        description = createdClient.description,
-        operators = createdClient.operators
+        id = client.id,
+        eServiceId = client.eServiceId,
+        name = client.name,
+        description = client.description,
+        operators = client.operators
       )
 
       Get() ~> service.createClient(clientSeed) ~> check {
@@ -75,20 +75,24 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       (mockAuthorizationManagementService.getClient _)
         .expects(*)
         .once()
-        .returns(Future.successful(createdClient))
+        .returns(Future.successful(client))
+
+      (mockCatalogProcessService.getEService _)
+        .expects(*, client.eServiceId.toString)
+        .once()
+        .returns(Future.successful(eService))
 
       val expected =
-        Client(
-          id = createdClient.id,
-          eServiceId = createdClient.eServiceId,
-          name = createdClient.name,
-          description = createdClient.description,
-          operators = createdClient.operators
+        ClientDetail(
+          id = client.id,
+          eService = EService(eService.id, eService.name),
+          name = client.name,
+          description = client.description
         )
 
-      Get() ~> service.getClient(createdClient.id.toString) ~> check {
+      Get() ~> service.getClient(client.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[Client] shouldEqual expected
+        entityAs[ClientDetail] shouldEqual expected
       }
     }
 
@@ -98,7 +102,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
-      Get() ~> service.getClient(createdClient.id.toString) ~> check {
+      Get() ~> service.getClient(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -110,21 +114,24 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       (mockAuthorizationManagementService.listClients _)
         .expects(*, *, *, *)
         .once()
-        .returns(Future.successful(Seq(createdClient)))
+        .returns(Future.successful(Seq(client)))
+
+      (mockCatalogProcessService.getEService _)
+        .expects(*, client.eServiceId.toString)
+        .returns(Future.successful(eService))
 
       val expected = Seq(
-        Client(
-          id = createdClient.id,
-          eServiceId = createdClient.eServiceId,
-          name = createdClient.name,
-          description = createdClient.description,
-          operators = createdClient.operators
+        ClientDetail(
+          id = client.id,
+          eService = EService(eService.id, eService.name),
+          name = client.name,
+          description = client.description
         )
       )
 
       Get() ~> service.listClients(Some(0), Some(10), Some(eServiceId.toString), None) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[Seq[Client]] shouldEqual expected
+        entityAs[Seq[ClientDetail]] shouldEqual expected
       }
     }
   }
@@ -136,7 +143,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(()))
 
-      Get() ~> service.deleteClient(createdClient.id.toString) ~> check {
+      Get() ~> service.deleteClient(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
@@ -147,7 +154,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
-      Get() ~> service.deleteClient(createdClient.id.toString) ~> check {
+      Get() ~> service.deleteClient(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }

@@ -15,6 +15,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.keymanagement
+import it.pagopa.pdnd.interopuservice.catalogprocess
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
 import it.pagopa.pdnd.interopuservice.catalogprocess.client.invoker.{ApiError => CatalogProcessApiError}
 
@@ -98,19 +99,22 @@ class AuthApiServiceImpl(
     */
   override def getClient(clientId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerClient: ToEntityMarshaller[Client]
+    toEntityMarshallerClient: ToEntityMarshaller[ClientDetail],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _      <- extractBearer(contexts)
-      client <- authorizationManagementService.getClient(clientId)
-    } yield clientToApi(client)
+      bearerToken <- extractBearer(contexts)
+      client      <- authorizationManagementService.getClient(clientId)
+      eService    <- catalogProcessService.getEService(bearerToken, client.eServiceId.toString)
+    } yield clientDetailToApi(client, eService)
 
     onComplete(result) {
       case Success(client)                    => getClient200(client)
       case Failure(ex @ UnauthenticatedError) => getClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClient404(Problem(Some(ex.message), 404, "Client not found"))
+      case Failure(ex: CatalogProcessApiError[_]) if ex.code == 404 =>
+        getClient404(Problem(Some(ex.message), 404, "E-Service not found"))
       case Failure(ex) => getClient500(Problem(Option(ex.getMessage), 500, "Error on client retrieve"))
     }
   }
@@ -126,15 +130,16 @@ class AuthApiServiceImpl(
     operatorId: Option[String]
   )(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerClientarray: ToEntityMarshaller[Seq[Client]]
+    toEntityMarshallerClientDetailarray: ToEntityMarshaller[Seq[ClientDetail]],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _            <- extractBearer(contexts)
-      eServiceUuid <- eServiceId.map(toUuid).sequence.toFuture
-      operatorUuid <- operatorId.map(toUuid).sequence.toFuture
-      clients      <- authorizationManagementService.listClients(offset, limit, eServiceUuid, operatorUuid)
-    } yield clients.map(clientToApi)
+      bearerToken        <- extractBearer(contexts)
+      eServiceUuid       <- eServiceId.map(toUuid).sequence.toFuture
+      operatorUuid       <- operatorId.map(toUuid).sequence.toFuture
+      clients            <- authorizationManagementService.listClients(offset, limit, eServiceUuid, operatorUuid)
+      clientsAndEService <- clientEServicePair(bearerToken, clients)
+    } yield clientsAndEService.map(pair => clientDetailToApi(pair._1, pair._2))
 
     onComplete(result) {
       case Success(clients)                   => listClients200(clients)
@@ -379,6 +384,20 @@ class AuthApiServiceImpl(
       operators = client.operators
     )
 
+  private[this] def clientDetailToApi(
+    client: keymanagement.client.model.Client,
+    eService: catalogprocess.client.model.EService
+  ): ClientDetail =
+    ClientDetail(
+      id = client.id,
+      eService = eServiceToApi(eService),
+      name = client.name,
+      description = client.description
+    )
+
+  private[this] def eServiceToApi(eService: catalogprocess.client.model.EService): EService =
+    EService(eService.id, eService.name)
+
   private[this] def keyToApi(key: keymanagement.client.model.Key): Key =
     Key(
       kty = key.kty,
@@ -416,4 +435,14 @@ class AuthApiServiceImpl(
       )
       .left
       .map(_ => EnumParameterError("use", keymanagement.client.model.KeySeedEnums.Use.values.toSeq.map(_.toString)))
+
+  private[this] def clientEServicePair(
+    token: String,
+    clients: Seq[keymanagement.client.model.Client]
+  ): Future[Seq[(keymanagement.client.model.Client, catalogprocess.client.model.EService)]] =
+    // TODO Improve multiple requests
+    clients.traverse(client =>
+      catalogProcessService.getEService(token, client.eServiceId.toString).map(eService => (client, eService))
+    )
+
 }

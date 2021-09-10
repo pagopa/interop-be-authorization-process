@@ -139,7 +139,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Clients'
+                $ref: '#/components/schemas/ClientsDetails'
         "400":
           description: Bad Request
           content:
@@ -178,7 +178,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Client'
+                $ref: '#/components/schemas/ClientDetail'
         "401":
           description: Unauthorized
           content:
@@ -683,10 +683,39 @@ components:
         - eServiceId
         - name
         - operators
-    Clients:
-      type: array
+    ClientDetail:
+      description: Models Client details
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eService:
+          $ref: '#/components/schemas/EService'
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - id
+        - eService
+        - name
+    EService:
+      description: Models an E-Service
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required:
+        - id
+        - name
+    ClientsDetails:
+      type: object
       items:
-        $ref: '#/components/schemas/Client'
+        $ref: '#/components/schemas/ClientDetail'
     OperatorSeed:
       description: Models the seed for an Operator-Client relationship to be persisted
       type: object
