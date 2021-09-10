@@ -2,7 +2,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.util
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement, AgreementEnums}
+import it.pagopa.pdnd.interopuservice.catalogprocess.client.model.{Attributes, EService}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{AuthApiMarshallerImpl, _}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, ClientSeed, Key, Keys}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
@@ -20,35 +20,29 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockJwtValidator: JWTValidator                                     = mock[JWTValidator]
   val mockJwtGenerator: JWTGenerator                                     = mock[JWTGenerator]
   val mockAgreementProcessService: AgreementProcessService               = mock[AgreementProcessService]
-  val mockAgreementManagementService: AgreementManagementService         = mock[AgreementManagementService]
+  val mockCatalogProcessService: CatalogProcessService                   = mock[CatalogProcessService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
 
   val bearerToken: String    = "token"
-  val agreementId: UUID      = UUID.randomUUID()
-  val clientSeed: ClientSeed = ClientSeed(agreementId, "client name", Some("client description"))
+  val eServiceId: UUID       = UUID.randomUUID()
+  val clientSeed: ClientSeed = ClientSeed(eServiceId, "client name", Some("client description"))
 
-  val validAgreement: Agreement = Agreement(
-    id = agreementId,
-    eserviceId = UUID.randomUUID(),
+  val eService: EService = EService(
+    id = eServiceId,
     producerId = UUID.randomUUID(),
-    consumerId = UUID.randomUUID(),
-    status = AgreementEnums.Status.Active,
-    verifiedAttributes = Seq.empty
-  )
-
-  val suspendedAgreement: Agreement = Agreement(
-    id = agreementId,
-    eserviceId = UUID.randomUUID(),
-    producerId = UUID.randomUUID(),
-    consumerId = UUID.randomUUID(),
-    status = AgreementEnums.Status.Suspended,
-    verifiedAttributes = Seq.empty
+    name = "Service name",
+    description = "Service description",
+    audience = Seq.empty,
+    technology = "REST",
+    voucherLifespan = 10,
+    attributes = Attributes(Seq.empty, Seq.empty, Seq.empty),
+    descriptors = Seq.empty
   )
 
   val createdClient: AuthManagementClient =
     AuthManagementClient(
       id = UUID.randomUUID(),
-      agreementId = agreementId,
+      eServiceId = eServiceId,
       clientSeed.name,
       clientSeed.description,
       operators = Set.empty

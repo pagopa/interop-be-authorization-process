@@ -21,7 +21,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     mockJwtValidator,
     mockJwtGenerator,
     mockAgreementProcessService,
-    mockAgreementManagementService,
+    mockCatalogProcessService,
     mockAuthorizationManagementService
   )(ExecutionContext.global)
 
