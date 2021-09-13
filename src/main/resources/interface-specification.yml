@@ -232,6 +232,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
   '/clients/{clientId}/operators':
+    get:
+      tags:
+        - auth
+      summary: List client operators
+      description: List client operators
+      operationId: getClientOperators
+      parameters:
+        - name: clientId
+          in: path
+          description: ID of Client the operators belong to
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Request succeed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Operators'
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "404":
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
     post:
       tags:
         - auth
@@ -728,6 +761,33 @@ components:
           format: uuid
       required:
         - operatorId
+    Operator:
+      description: Models a Client Operator
+      type: object
+      properties:
+        taxCode:
+          type: string
+        name:
+          type: string
+        surname:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        platformRole:
+          type: string
+      required:
+        - taxCode
+        - name
+        - surname
+        - email
+        - role
+        - platformRole
+    Operators:
+      type: object
+      items:
+        $ref: '#/components/schemas/Operator'
     Key:
       description: 'Models a JWK'
       type: object
