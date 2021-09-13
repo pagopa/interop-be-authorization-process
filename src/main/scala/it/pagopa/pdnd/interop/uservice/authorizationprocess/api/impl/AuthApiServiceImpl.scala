@@ -14,15 +14,14 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
 }
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
-import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.partymanagement
-import it.pagopa.pdnd.interopuservice.catalogprocess
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
+import it.pagopa.pdnd.interop.uservice.{keymanagement, partymanagement}
+import it.pagopa.pdnd.interopuservice.catalogprocess
 import it.pagopa.pdnd.interopuservice.catalogprocess.client.invoker.{ApiError => CatalogProcessApiError}
 
 import java.text.ParseException
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 class AuthApiServiceImpl(
@@ -84,7 +83,7 @@ class AuthApiServiceImpl(
         clientSeed.name,
         clientSeed.description
       )
-    } yield clientToApi(client)
+    } yield AuthorizationManagementService.clientToApi(client)
 
     onComplete(result) {
       case Success(client)                    => createClient201(client)
@@ -115,8 +114,6 @@ class AuthApiServiceImpl(
       case Failure(ex @ UnauthenticatedError) => getClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClient404(Problem(Some(ex.message), 404, "Client not found"))
-      case Failure(ex: CatalogProcessApiError[_]) if ex.code == 404 =>
-        getClient404(Problem(Some(ex.message), 404, "E-Service not found"))
       case Failure(ex) => getClient500(Problem(Option(ex.getMessage), 500, "Error on client retrieve"))
     }
   }
@@ -188,7 +185,7 @@ class AuthApiServiceImpl(
       _          <- extractBearer(contexts)
       clientUuid <- toUuid(clientId).toFuture
       client     <- authorizationManagementService.addOperator(clientUuid, operatorSeed.operatorId)
-    } yield clientToApi(client)
+    } yield AuthorizationManagementService.clientToApi(client)
 
     onComplete(result) {
       case Success(client)                    => addOperator201(client)
@@ -242,7 +239,7 @@ class AuthApiServiceImpl(
       _          <- extractBearer(contexts)
       clientUuid <- toUuid(clientId).toFuture
       key        <- authorizationManagementService.getKey(clientUuid, keyId)
-    } yield keyToApi(key)
+    } yield AuthorizationManagementService.keyToApi(key)
 
     onComplete(result) {
       case Success(key) => getClientKeyById200(key)
@@ -339,9 +336,9 @@ class AuthApiServiceImpl(
     val result = for {
       _            <- extractBearer(contexts)
       clientUuid   <- toUuid(clientId).toFuture
-      seeds        <- keysSeeds.map(toClientKeySeed).sequence.toFuture
+      seeds        <- keysSeeds.map(AuthorizationManagementService.toClientKeySeed).sequence.toFuture
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)
-    } yield Keys(keysResponse.keys.map(keyToApi))
+    } yield Keys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
       case Success(keys)                      => createKeys201(keys)
@@ -367,7 +364,7 @@ class AuthApiServiceImpl(
       _            <- extractBearer(contexts)
       clientUuid   <- toUuid(clientId).toFuture
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)
-    } yield Keys(keysResponse.keys.map(keyToApi))
+    } yield Keys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
       case Success(keys)                      => getClientKeys200(keys)
@@ -388,15 +385,6 @@ class AuthApiServiceImpl(
     } yield clientDetailToApi(client, eService, organization)
   }
 
-  private[this] def clientToApi(client: keymanagement.client.model.Client): Client =
-    Client(
-      id = client.id,
-      eServiceId = client.eServiceId,
-      name = client.name,
-      description = client.description,
-      operators = client.operators
-    )
-
   private[this] def clientDetailToApi(
     client: keymanagement.client.model.Client,
     eService: catalogprocess.client.model.EService,
@@ -404,54 +392,10 @@ class AuthApiServiceImpl(
   ): ClientDetail =
     ClientDetail(
       id = client.id,
-      eService = eServiceToApi(eService),
-      organization = organizationToApi(organization),
+      eService = CatalogProcessService.eServiceToApi(eService),
+      organization = PartyManagementService.organizationToApi(organization),
       name = client.name,
       description = client.description
     )
-
-  private[this] def eServiceToApi(eService: catalogprocess.client.model.EService): EService =
-    EService(eService.id, eService.name)
-
-  private[this] def organizationToApi(organization: partymanagement.client.model.Organization): Organization =
-    Organization(organization.institutionId, organization.description)
-
-  private[this] def keyToApi(key: keymanagement.client.model.Key): Key =
-    Key(
-      kty = key.kty,
-      key_ops = key.keyOps,
-      use = key.use,
-      alg = key.alg,
-      kid = key.kid,
-      x5u = key.x5u,
-      x5t = key.x5t,
-      x5tS256 = key.x5tS256,
-      x5c = key.x5c,
-      crv = key.crv,
-      x = key.x,
-      y = key.y,
-      d = key.d,
-      k = key.k,
-      n = key.n,
-      e = key.e,
-      p = key.p,
-      q = key.q,
-      dp = key.dp,
-      dq = key.dq,
-      qi = key.qi,
-      oth = key.oth.map(_.map(primeInfoToApi))
-    )
-
-  private[this] def primeInfoToApi(info: keymanagement.client.model.OtherPrimeInfo): OtherPrimeInfo =
-    OtherPrimeInfo(r = info.r, d = info.d, t = info.t)
-
-  private[this] def toClientKeySeed(keySeed: KeySeed): Either[EnumParameterError, keymanagement.client.model.KeySeed] =
-    Try(keymanagement.client.model.KeySeedEnums.Use.withName(keySeed.use)).toEither
-      .map(use =>
-        keymanagement.client.model
-          .KeySeed(operatorId = keySeed.operatorId, key = keySeed.key, use = use, alg = keySeed.alg)
-      )
-      .left
-      .map(_ => EnumParameterError("use", keymanagement.client.model.KeySeedEnums.Use.values.toSeq.map(_.toString)))
 
 }
