@@ -16,7 +16,6 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
-import it.pagopa.pdnd.interopuservice.catalogprocess.client.invoker.{ApiError => CatalogProcessApiError}
 
 import java.text.ParseException
 import scala.concurrent.{ExecutionContext, Future}
@@ -26,8 +25,8 @@ import scala.util.{Failure, Success, Try}
 class AuthApiServiceImpl(
   jwtValidator: JWTValidator,
   jwtGenerator: JWTGenerator,
-  agreementProcessService: AgreementProcessService,
-  catalogProcessService: CatalogProcessService,
+  agreementProcessService: AgreementManagementService,
+  catalogProcessService: CatalogManagementService,
   authorizationManagementService: AuthorizationManagementService
 )(implicit ec: ExecutionContext)
     extends AuthApiService {
@@ -45,10 +44,14 @@ class AuthApiServiceImpl(
 
     val token: Future[String] =
       for {
-        bearerToken  <- extractBearer(contexts)
-        validated    <- jwtValidator.validate(accessTokenRequest)
-        pdndAudience <- agreementProcessService.retrieveAudience(bearerToken, accessTokenRequest.audience.toString)
-        token        <- jwtGenerator.generate(validated, pdndAudience.audience.toList)
+        bearerToken <- extractBearer(contexts)
+        validated   <- jwtValidator.validate(accessTokenRequest)
+        (clientId, assertion) = validated
+        client     <- authorizationManagementService.getClient(clientId)
+        agreements <- agreementProcessService.getAgreements(bearerToken, client.consumerId, client.eServiceId.toString)
+        _          <- if (agreements.size == 1) Future.successful() else Future.failed(new RuntimeException("some error"))
+        eservice   <- catalogProcessService.getEService(bearerToken, client.eServiceId.toString)
+        token      <- jwtGenerator.generate(assertion, eservice.audience.toList)
       } yield token
 
     onComplete(token) {

@@ -25,9 +25,9 @@ object Dependencies {
     lazy val namespace     = "it.pagopa"
     lazy val keyManagement = namespace %% "pdnd-interop-uservice-key-management-client" % keyManagementVersion
     lazy val agreementProcess =
-      namespace %% "pdnd-interop-uservice-agreement-process-client" % agreementProcessVersion
+      namespace %% "pdnd-interop-uservice-agreement-management-client" % agreementManagementVersion
     lazy val catalogProcess =
-      namespace %% "pdnd-interop-uservice-catalog-process-client" % catalogProcessVersion
+      namespace %% "pdnd-interop-uservice-catalog-management-client" % catalogManagementVersion
   }
 
   private[this] object nimbus {

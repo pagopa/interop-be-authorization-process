@@ -1,10 +1,10 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
-import it.pagopa.pdnd.interopuservice.catalogprocess.client.model.EService
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.Agreement
 
 import scala.concurrent.Future
 
-trait CatalogProcessService {
+trait AgreementManagementService {
 
   /** Returns the expected audience defined by the producer of the corresponding agreementId.
     *
@@ -12,5 +12,5 @@ trait CatalogProcessService {
     * @return
     */
 
-  def getEService(bearerToken: String, agreementId: String): Future[EService]
+  def getAgreements(bearerToken: String, consumerId: String, eserviceId: String): Future[Seq[Agreement]]
 }
