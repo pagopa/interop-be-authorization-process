@@ -18,16 +18,18 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   AgreementProcessServiceImpl,
   AuthorizationManagementServiceImpl,
-  CatalogProcessServiceImpl,
+  CatalogManagementServiceImpl,
   JWTGeneratorImpl,
   JWTValidatorImpl,
+  PartyManagementServiceImpl,
   VaultServiceImpl
 }
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.api.{EServiceApi => CatalogManagementApi}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{
   ClientApi => AuthorizationClientApi,
   KeyApi => AuthorizationKeyApi
 }
-import it.pagopa.pdnd.interopuservice.catalogprocess.client.api.{ProcessApi => CatalogProcessApi}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.{PartyApi => PartyManagementApi}
 import kamon.Kamon
 
 import scala.concurrent.Future
@@ -39,10 +41,17 @@ trait AgreementProcessAPI {
   )
 }
 
-trait CatalogProcessAPI {
-  val catalogProcessService = new CatalogProcessServiceImpl(
-    CatalogProcessInvoker(),
-    CatalogProcessApi(ApplicationConfiguration.getCatalogProcessURL)
+trait CatalogManagementAPI {
+  val catalogManagementService = new CatalogManagementServiceImpl(
+    CatalogManagementInvoker(),
+    CatalogManagementApi(ApplicationConfiguration.getCatalogManagementURL)
+  )
+}
+
+trait PartyManagementAPI {
+  val partyManagementService = new PartyManagementServiceImpl(
+    PartyManagementInvoker(),
+    PartyManagementApi(ApplicationConfiguration.getPartyManagementURL)
   )
 }
 
@@ -74,8 +83,9 @@ object Main
     extends App
     with CorsSupport
     with AgreementProcessAPI
-    with CatalogProcessAPI
     with AuthorizationManagementAPI
+    with CatalogManagementAPI
+    with PartyManagementAPI
     with JWTGenerator
     with JWTValidator {
 
@@ -86,8 +96,9 @@ object Main
       jwtValidator,
       jwtGenerator,
       agreementProcessService,
-      catalogProcessService,
-      authorizationManagementService
+      authorizationManagementService,
+      catalogManagementService,
+      partyManagementService
     ),
     new AuthApiMarshallerImpl(),
     SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)

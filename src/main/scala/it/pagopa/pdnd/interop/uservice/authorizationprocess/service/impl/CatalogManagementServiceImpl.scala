@@ -1,15 +1,15 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{CatalogProcessInvoker, CatalogProcessService}
-import it.pagopa.pdnd.interopuservice.catalogprocess.client.api.ProcessApi
-import it.pagopa.pdnd.interopuservice.catalogprocess.client.invoker.{ApiRequest, BearerToken}
-import it.pagopa.pdnd.interopuservice.catalogprocess.client.model.EService
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{CatalogManagementInvoker, CatalogManagementService}
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.api.EServiceApi
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiRequest, BearerToken}
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EService
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class CatalogProcessServiceImpl(invoker: CatalogProcessInvoker, api: ProcessApi)(implicit ec: ExecutionContext)
-    extends CatalogProcessService {
+class CatalogManagementServiceImpl(invoker: CatalogManagementInvoker, api: EServiceApi)(implicit ec: ExecutionContext)
+    extends CatalogManagementService {
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
