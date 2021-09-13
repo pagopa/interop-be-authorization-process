@@ -21,8 +21,9 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     mockJwtValidator,
     mockJwtGenerator,
     mockAgreementProcessService,
+    mockAuthorizationManagementService,
     mockCatalogProcessService,
-    mockAuthorizationManagementService
+    mockPartyManagementService
   )(ExecutionContext.global)
 
   "Retrieve key" should {

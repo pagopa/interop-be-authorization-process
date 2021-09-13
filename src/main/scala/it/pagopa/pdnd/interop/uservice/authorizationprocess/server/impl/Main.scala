@@ -21,12 +21,14 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   CatalogProcessServiceImpl,
   JWTGeneratorImpl,
   JWTValidatorImpl,
+  PartyManagementServiceImpl,
   VaultServiceImpl
 }
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{
   ClientApi => AuthorizationClientApi,
   KeyApi => AuthorizationKeyApi
 }
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.{PartyApi => PartyManagementApi}
 import it.pagopa.pdnd.interopuservice.catalogprocess.client.api.{ProcessApi => CatalogProcessApi}
 import kamon.Kamon
 
@@ -43,6 +45,13 @@ trait CatalogProcessAPI {
   val catalogProcessService = new CatalogProcessServiceImpl(
     CatalogProcessInvoker(),
     CatalogProcessApi(ApplicationConfiguration.getCatalogProcessURL)
+  )
+}
+
+trait PartyManagementAPI {
+  val partyManagementService = new PartyManagementServiceImpl(
+    PartyManagementInvoker(),
+    PartyManagementApi(ApplicationConfiguration.getPartyManagementURL)
   )
 }
 
@@ -74,8 +83,9 @@ object Main
     extends App
     with CorsSupport
     with AgreementProcessAPI
-    with CatalogProcessAPI
     with AuthorizationManagementAPI
+    with CatalogProcessAPI
+    with PartyManagementAPI
     with JWTGenerator
     with JWTValidator {
 
@@ -86,8 +96,9 @@ object Main
       jwtValidator,
       jwtGenerator,
       agreementProcessService,
+      authorizationManagementService,
       catalogProcessService,
-      authorizationManagementService
+      partyManagementService
     ),
     new AuthApiMarshallerImpl(),
     SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)

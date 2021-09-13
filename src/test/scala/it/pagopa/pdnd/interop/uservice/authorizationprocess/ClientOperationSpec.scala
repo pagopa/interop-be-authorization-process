@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, ClientDetail, EService}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, ClientDetail, EService, Organization}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interopuservice.catalogprocess
@@ -20,8 +20,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     mockJwtValidator,
     mockJwtGenerator,
     mockAgreementProcessService,
+    mockAuthorizationManagementService,
     mockCatalogProcessService,
-    mockAuthorizationManagementService
+    mockPartyManagementService
   )(ExecutionContext.global)
 
   "Client creation" should {
@@ -82,10 +83,16 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(eService))
 
+      (mockPartyManagementService.getOrganization _)
+        .expects(eService.producerId)
+        .once()
+        .returns(Future.successful(organization))
+
       val expected =
         ClientDetail(
           id = client.id,
           eService = EService(eService.id, eService.name),
+          organization = Organization(organization.institutionId, organization.description),
           name = client.name,
           description = client.description
         )
@@ -120,10 +127,16 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .expects(*, client.eServiceId.toString)
         .returns(Future.successful(eService))
 
+      (mockPartyManagementService.getOrganization _)
+        .expects(eService.producerId)
+        .once()
+        .returns(Future.successful(organization))
+
       val expected = Seq(
         ClientDetail(
           id = client.id,
           eService = EService(eService.id, eService.name),
+          organization = Organization(organization.institutionId, organization.description),
           name = client.name,
           description = client.description
         )

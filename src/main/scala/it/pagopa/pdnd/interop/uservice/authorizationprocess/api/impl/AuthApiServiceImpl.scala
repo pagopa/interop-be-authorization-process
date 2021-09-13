@@ -15,6 +15,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.keymanagement
+import it.pagopa.pdnd.interop.uservice.partymanagement
 import it.pagopa.pdnd.interopuservice.catalogprocess
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
 import it.pagopa.pdnd.interopuservice.catalogprocess.client.invoker.{ApiError => CatalogProcessApiError}
@@ -28,8 +29,9 @@ class AuthApiServiceImpl(
   jwtValidator: JWTValidator,
   jwtGenerator: JWTGenerator,
   agreementProcessService: AgreementProcessService,
+  authorizationManagementService: AuthorizationManagementService,
   catalogProcessService: CatalogProcessService,
-  authorizationManagementService: AuthorizationManagementService
+  partyManagementService: PartyManagementService
 )(implicit ec: ExecutionContext)
     extends AuthApiService {
 
@@ -103,10 +105,10 @@ class AuthApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      bearerToken <- extractBearer(contexts)
-      client      <- authorizationManagementService.getClient(clientId)
-      eService    <- catalogProcessService.getEService(bearerToken, client.eServiceId.toString)
-    } yield clientDetailToApi(client, eService)
+      bearerToken  <- extractBearer(contexts)
+      client       <- authorizationManagementService.getClient(clientId)
+      clientDetail <- getClientDetail(bearerToken, client)
+    } yield clientDetail
 
     onComplete(result) {
       case Success(client)                    => getClient200(client)
@@ -134,12 +136,13 @@ class AuthApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      bearerToken        <- extractBearer(contexts)
-      eServiceUuid       <- eServiceId.map(toUuid).sequence.toFuture
-      operatorUuid       <- operatorId.map(toUuid).sequence.toFuture
-      clients            <- authorizationManagementService.listClients(offset, limit, eServiceUuid, operatorUuid)
-      clientsAndEService <- clientEServicePair(bearerToken, clients)
-    } yield clientsAndEService.map(pair => clientDetailToApi(pair._1, pair._2))
+      bearerToken  <- extractBearer(contexts)
+      eServiceUuid <- eServiceId.map(toUuid).sequence.toFuture
+      operatorUuid <- operatorId.map(toUuid).sequence.toFuture
+      clients      <- authorizationManagementService.listClients(offset, limit, eServiceUuid, operatorUuid)
+      // TODO Improve multiple requests
+      clientsDetails <- clients.traverse(client => getClientDetail(bearerToken, client))
+    } yield clientsDetails
 
     onComplete(result) {
       case Success(clients)                   => listClients200(clients)
@@ -375,6 +378,16 @@ class AuthApiServiceImpl(
     }
   }
 
+  private[this] def getClientDetail(
+    bearerToken: String,
+    client: keymanagement.client.model.Client
+  ): Future[ClientDetail] = {
+    for {
+      eService     <- catalogProcessService.getEService(bearerToken, client.eServiceId.toString)
+      organization <- partyManagementService.getOrganization(eService.producerId)
+    } yield clientDetailToApi(client, eService, organization)
+  }
+
   private[this] def clientToApi(client: keymanagement.client.model.Client): Client =
     Client(
       id = client.id,
@@ -386,17 +399,22 @@ class AuthApiServiceImpl(
 
   private[this] def clientDetailToApi(
     client: keymanagement.client.model.Client,
-    eService: catalogprocess.client.model.EService
+    eService: catalogprocess.client.model.EService,
+    organization: partymanagement.client.model.Organization
   ): ClientDetail =
     ClientDetail(
       id = client.id,
       eService = eServiceToApi(eService),
+      organization = organizationToApi(organization),
       name = client.name,
       description = client.description
     )
 
   private[this] def eServiceToApi(eService: catalogprocess.client.model.EService): EService =
     EService(eService.id, eService.name)
+
+  private[this] def organizationToApi(organization: partymanagement.client.model.Organization): Organization =
+    Organization(organization.institutionId, organization.description)
 
   private[this] def keyToApi(key: keymanagement.client.model.Key): Key =
     Key(
@@ -435,14 +453,5 @@ class AuthApiServiceImpl(
       )
       .left
       .map(_ => EnumParameterError("use", keymanagement.client.model.KeySeedEnums.Use.values.toSeq.map(_.toString)))
-
-  private[this] def clientEServicePair(
-    token: String,
-    clients: Seq[keymanagement.client.model.Client]
-  ): Future[Seq[(keymanagement.client.model.Client, catalogprocess.client.model.EService)]] =
-    // TODO Improve multiple requests
-    clients.traverse(client =>
-      catalogProcessService.getEService(token, client.eServiceId.toString).map(eService => (client, eService))
-    )
 
 }

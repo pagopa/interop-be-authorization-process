@@ -692,6 +692,8 @@ components:
           format: uuid
         eService:
           $ref: '#/components/schemas/EService'
+        organization:
+          $ref: '#/components/schemas/Organization'
         name:
           type: string
         description:
@@ -699,6 +701,7 @@ components:
       required:
         - id
         - eService
+        - organization
         - name
     EService:
       description: Models an E-Service
@@ -837,6 +840,17 @@ components:
         - key
         - use
         - alg
+    Organization:
+      description: Models an Organization
+      type: object
+      properties:
+        institutionId:
+          type: string
+        description:
+          type: string
+      required:
+        - institutionId
+        - description
     Problem:
       properties:
         detail:

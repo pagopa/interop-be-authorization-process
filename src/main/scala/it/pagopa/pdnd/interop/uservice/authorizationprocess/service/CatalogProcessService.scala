@@ -6,11 +6,5 @@ import scala.concurrent.Future
 
 trait CatalogProcessService {
 
-  /** Returns the expected audience defined by the producer of the corresponding agreementId.
-    *
-    * @param agreementId
-    * @return
-    */
-
   def getEService(bearerToken: String, eServiceId: String): Future[EService]
 }

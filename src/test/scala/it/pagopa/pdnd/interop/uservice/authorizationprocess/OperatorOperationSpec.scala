@@ -20,8 +20,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     mockJwtValidator,
     mockJwtGenerator,
     mockAgreementProcessService,
+    mockAuthorizationManagementService,
     mockCatalogProcessService,
-    mockAuthorizationManagementService
+    mockPartyManagementService
   )(ExecutionContext.global)
 
   "Operator addition" should {

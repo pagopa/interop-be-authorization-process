@@ -21,12 +21,17 @@ object ApplicationConfiguration {
 
   def getCatalogProcessURL: String = {
     val catalogProcessURL: String = config.getString("services.catalog-process")
-    s"$catalogProcessURL/pdnd-interop-uservice-catalog-process/0.0.1"
+    s"$catalogProcessURL/pdnd-interop-uservice-catalog-process/0.0"
   }
 
   def getAuthorizationManagementURL: String = {
     val authorizationManagementURL: String = config.getString("services.key-management")
     s"$authorizationManagementURL/pdnd-interop-uservice-key-management/0.0.1"
+  }
+
+  def getPartyManagementURL: String = {
+    val partyManagementURL: String = config.getString("services.party-management")
+    s"$partyManagementURL/pdnd-interop-uservice-party-management/0.0.1"
   }
 
   def getPdndIdIssuer: String = {

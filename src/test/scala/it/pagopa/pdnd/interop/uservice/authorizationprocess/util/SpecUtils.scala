@@ -11,6 +11,7 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
   Key => AuthManagementKey
 }
 import it.pagopa.pdnd.interopuservice.catalogprocess.client.model.{Attributes, EService => CatalogProcessEService}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Organization => PartyManagementOrganization}
 import org.scalamock.scalatest.MockFactory
 
 import java.util.UUID
@@ -20,16 +21,18 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockJwtValidator: JWTValidator                                     = mock[JWTValidator]
   val mockJwtGenerator: JWTGenerator                                     = mock[JWTGenerator]
   val mockAgreementProcessService: AgreementProcessService               = mock[AgreementProcessService]
-  val mockCatalogProcessService: CatalogProcessService                   = mock[CatalogProcessService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
+  val mockCatalogProcessService: CatalogProcessService                   = mock[CatalogProcessService]
+  val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
 
   val bearerToken: String    = "token"
   val eServiceId: UUID       = UUID.randomUUID()
+  val organizationId: UUID   = UUID.randomUUID()
   val clientSeed: ClientSeed = ClientSeed(eServiceId, "client name", Some("client description"))
 
   val eService: CatalogProcessEService = CatalogProcessEService(
     id = eServiceId,
-    producerId = UUID.randomUUID(),
+    producerId = organizationId,
     name = "Service name",
     description = "Service description",
     audience = Seq.empty,
@@ -37,6 +40,16 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     voucherLifespan = 10,
     attributes = Attributes(Seq.empty, Seq.empty, Seq.empty),
     descriptors = Seq.empty
+  )
+
+  val organization: PartyManagementOrganization = PartyManagementOrganization(
+    institutionId = "some-external-id",
+    description = "Organization description",
+    managerName = "ManagerName",
+    managerSurname = "ManagerSurname",
+    digitalAddress = "org@test.pec.pagopa.it",
+    partyId = organizationId.toString,
+    attributes = Seq.empty
   )
 
   val client: AuthManagementClient =

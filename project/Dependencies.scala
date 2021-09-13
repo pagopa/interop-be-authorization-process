@@ -28,6 +28,8 @@ object Dependencies {
       namespace %% "pdnd-interop-uservice-agreement-process-client" % agreementProcessVersion
     lazy val catalogProcess =
       namespace %% "pdnd-interop-uservice-catalog-process-client" % catalogProcessVersion
+    lazy val partyManagement =
+      namespace %% "pdnd-interop-uservice-party-management-client" % partyManagementVersion
   }
 
   private[this] object nimbus {
@@ -110,6 +112,7 @@ object Dependencies {
       pagopa.keyManagement    % Compile,
       pagopa.agreementProcess % Compile,
       pagopa.catalogProcess   % Compile,
+      pagopa.partyManagement  % Compile,
       vault.driver            % Compile,
       bouncycastle.provider   % Compile,
       bouncycastle.kix        % Compile,
