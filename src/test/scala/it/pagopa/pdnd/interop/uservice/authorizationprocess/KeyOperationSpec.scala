@@ -22,7 +22,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     mockJwtGenerator,
     mockAgreementProcessService,
     mockAuthorizationManagementService,
-    mockCatalogProcessService,
+    mockCatalogManagementService,
     mockPartyManagementService
   )(ExecutionContext.global)
 

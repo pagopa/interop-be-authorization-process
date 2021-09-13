@@ -18,18 +18,18 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   AgreementProcessServiceImpl,
   AuthorizationManagementServiceImpl,
-  CatalogProcessServiceImpl,
+  CatalogManagementServiceImpl,
   JWTGeneratorImpl,
   JWTValidatorImpl,
   PartyManagementServiceImpl,
   VaultServiceImpl
 }
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.api.{EServiceApi => CatalogManagementApi}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{
   ClientApi => AuthorizationClientApi,
   KeyApi => AuthorizationKeyApi
 }
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.{PartyApi => PartyManagementApi}
-import it.pagopa.pdnd.interopuservice.catalogprocess.client.api.{ProcessApi => CatalogProcessApi}
 import kamon.Kamon
 
 import scala.concurrent.Future
@@ -41,10 +41,10 @@ trait AgreementProcessAPI {
   )
 }
 
-trait CatalogProcessAPI {
-  val catalogProcessService = new CatalogProcessServiceImpl(
-    CatalogProcessInvoker(),
-    CatalogProcessApi(ApplicationConfiguration.getCatalogProcessURL)
+trait CatalogManagementAPI {
+  val catalogManagementService = new CatalogManagementServiceImpl(
+    CatalogManagementInvoker(),
+    CatalogManagementApi(ApplicationConfiguration.getCatalogManagementURL)
   )
 }
 
@@ -84,7 +84,7 @@ object Main
     with CorsSupport
     with AgreementProcessAPI
     with AuthorizationManagementAPI
-    with CatalogProcessAPI
+    with CatalogManagementAPI
     with PartyManagementAPI
     with JWTGenerator
     with JWTValidator {
@@ -97,7 +97,7 @@ object Main
       jwtGenerator,
       agreementProcessService,
       authorizationManagementService,
-      catalogProcessService,
+      catalogManagementService,
       partyManagementService
     ),
     new AuthApiMarshallerImpl(),

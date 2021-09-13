@@ -21,7 +21,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     mockJwtGenerator,
     mockAgreementProcessService,
     mockAuthorizationManagementService,
-    mockCatalogProcessService,
+    mockCatalogManagementService,
     mockPartyManagementService
   )(ExecutionContext.global)
 

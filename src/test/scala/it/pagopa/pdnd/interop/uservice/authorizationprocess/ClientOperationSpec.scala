@@ -6,7 +6,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServ
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, ClientDetail, EService, Organization}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interopuservice.catalogprocess
+import it.pagopa.pdnd.interop.uservice.catalogmanagement
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -21,13 +21,13 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     mockJwtGenerator,
     mockAgreementProcessService,
     mockAuthorizationManagementService,
-    mockCatalogProcessService,
+    mockCatalogManagementService,
     mockPartyManagementService
   )(ExecutionContext.global)
 
   "Client creation" should {
     "succeed" in {
-      (mockCatalogProcessService.getEService _)
+      (mockCatalogManagementService.getEService _)
         .expects(bearerToken, clientSeed.eServiceId.toString)
         .once()
         .returns(Future.successful(eService))
@@ -59,10 +59,10 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
 
     "fail if the E-Service does not exist" in {
-      (mockCatalogProcessService.getEService _)
+      (mockCatalogManagementService.getEService _)
         .expects(bearerToken, clientSeed.eServiceId.toString)
         .once()
-        .returns(Future.failed(catalogprocess.client.invoker.ApiError(404, "Some message", None)))
+        .returns(Future.failed(catalogmanagement.client.invoker.ApiError(404, "Some message", None)))
 
       Get() ~> service.createClient(clientSeed) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -78,7 +78,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(client))
 
-      (mockCatalogProcessService.getEService _)
+      (mockCatalogManagementService.getEService _)
         .expects(*, client.eServiceId.toString)
         .once()
         .returns(Future.successful(eService))
@@ -123,7 +123,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(Seq(client)))
 
-      (mockCatalogProcessService.getEService _)
+      (mockCatalogManagementService.getEService _)
         .expects(*, client.eServiceId.toString)
         .returns(Future.successful(eService))
 

@@ -10,7 +10,10 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
   Client => AuthManagementClient,
   Key => AuthManagementKey
 }
-import it.pagopa.pdnd.interopuservice.catalogprocess.client.model.{Attributes, EService => CatalogProcessEService}
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
+  Attributes,
+  EService => CatalogManagementEService
+}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Organization => PartyManagementOrganization}
 import org.scalamock.scalatest.MockFactory
 
@@ -22,7 +25,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockJwtGenerator: JWTGenerator                                     = mock[JWTGenerator]
   val mockAgreementProcessService: AgreementProcessService               = mock[AgreementProcessService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
-  val mockCatalogProcessService: CatalogProcessService                   = mock[CatalogProcessService]
+  val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
 
   val bearerToken: String    = "token"
@@ -30,7 +33,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val organizationId: UUID   = UUID.randomUUID()
   val clientSeed: ClientSeed = ClientSeed(eServiceId, "client name", Some("client description"))
 
-  val eService: CatalogProcessEService = CatalogProcessEService(
+  val eService: CatalogManagementEService = CatalogManagementEService(
     id = eServiceId,
     producerId = organizationId,
     name = "Service name",

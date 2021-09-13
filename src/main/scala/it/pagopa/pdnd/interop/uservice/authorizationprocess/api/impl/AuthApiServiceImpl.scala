@@ -14,10 +14,9 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
 }
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogManagementApiError}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
-import it.pagopa.pdnd.interop.uservice.{keymanagement, partymanagement}
-import it.pagopa.pdnd.interopuservice.catalogprocess
-import it.pagopa.pdnd.interopuservice.catalogprocess.client.invoker.{ApiError => CatalogProcessApiError}
+import it.pagopa.pdnd.interop.uservice.{catalogmanagement, keymanagement, partymanagement}
 
 import java.text.ParseException
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,7 +28,7 @@ class AuthApiServiceImpl(
   jwtGenerator: JWTGenerator,
   agreementProcessService: AgreementProcessService,
   authorizationManagementService: AuthorizationManagementService,
-  catalogProcessService: CatalogProcessService,
+  catalogManagementService: CatalogManagementService,
   partyManagementService: PartyManagementService
 )(implicit ec: ExecutionContext)
     extends AuthApiService {
@@ -77,7 +76,7 @@ class AuthApiServiceImpl(
   ): Route = {
     val result = for {
       bearerToken <- extractBearer(contexts)
-      _           <- catalogProcessService.getEService(bearerToken, clientSeed.eServiceId.toString)
+      _           <- catalogManagementService.getEService(bearerToken, clientSeed.eServiceId.toString)
       client <- authorizationManagementService.createClient(
         clientSeed.eServiceId,
         clientSeed.name,
@@ -88,7 +87,7 @@ class AuthApiServiceImpl(
     onComplete(result) {
       case Success(client)                    => createClient201(client)
       case Failure(ex @ UnauthenticatedError) => createClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex: CatalogProcessApiError[_]) if ex.code == 404 =>
+      case Failure(ex: CatalogManagementApiError[_]) if ex.code == 404 =>
         createClient404(Problem(Some(s"E-Service id ${clientSeed.eServiceId.toString} not found"), 404, "Not found"))
       case Failure(ex) => createClient500(Problem(Option(ex.getMessage), 500, "Error on client creation"))
     }
@@ -380,19 +379,19 @@ class AuthApiServiceImpl(
     client: keymanagement.client.model.Client
   ): Future[ClientDetail] = {
     for {
-      eService     <- catalogProcessService.getEService(bearerToken, client.eServiceId.toString)
+      eService     <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
       organization <- partyManagementService.getOrganization(eService.producerId)
     } yield clientDetailToApi(client, eService, organization)
   }
 
   private[this] def clientDetailToApi(
     client: keymanagement.client.model.Client,
-    eService: catalogprocess.client.model.EService,
+    eService: catalogmanagement.client.model.EService,
     organization: partymanagement.client.model.Organization
   ): ClientDetail =
     ClientDetail(
       id = client.id,
-      eService = CatalogProcessService.eServiceToApi(eService),
+      eService = CatalogManagementService.eServiceToApi(eService),
       organization = PartyManagementService.organizationToApi(organization),
       name = client.name,
       description = client.description
