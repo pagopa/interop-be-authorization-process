@@ -14,7 +14,13 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
   Attributes,
   EService => CatalogManagementEService
 }
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Organization => PartyManagementOrganization}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
+  Person,
+  Relationship,
+  RelationshipEnums,
+  Relationships,
+  Organization => PartyManagementOrganization
+}
 import org.scalamock.scalatest.MockFactory
 
 import java.util.UUID
@@ -32,7 +38,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val eServiceId: UUID       = UUID.randomUUID()
   val consumerId: UUID       = UUID.randomUUID()
   val organizationId: UUID   = UUID.randomUUID()
+  val personId: UUID         = UUID.randomUUID()
   val clientSeed: ClientSeed = ClientSeed(eServiceId, consumerId, "client name", Some("client description"))
+  val taxCode: String        = "taxCode"
 
   val eService: CatalogManagementEService = CatalogManagementEService(
     id = eServiceId,
@@ -47,12 +55,22 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   )
 
   val organization: PartyManagementOrganization = PartyManagementOrganization(
-    institutionId = "some-external-id",
+    institutionId = "some-external-id1",
     description = "Organization description",
     managerName = "ManagerName",
     managerSurname = "ManagerSurname",
-    digitalAddress = "org@test.pec.pagopa.it",
+    digitalAddress = "or2@test.pec.pagopa.it",
     partyId = organizationId.toString,
+    attributes = Seq.empty
+  )
+
+  val consumer: PartyManagementOrganization = PartyManagementOrganization(
+    institutionId = "some-external-id2",
+    description = "Organization description",
+    managerName = "ManagerName",
+    managerSurname = "ManagerSurname",
+    digitalAddress = "org2@test.pec.pagopa.it",
+    partyId = consumerId.toString,
     attributes = Seq.empty
   )
 
@@ -65,6 +83,29 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       clientSeed.description,
       operators = Set.empty
     )
+
+  val person: Person = Person(taxCode = taxCode, surname = "Surname", name = "Name", partyId = personId.toString)
+
+  val operator: Operator =
+    Operator(
+      taxCode = person.taxCode,
+      name = person.name,
+      surname = person.surname,
+      role = "Operator",
+      platformRole = "aPlatformRole"
+    )
+
+  val relationships: Relationships = Relationships(
+    Seq(
+      Relationship(
+        from = person.taxCode,
+        to = organization.institutionId,
+        role = RelationshipEnums.Role.Operator,
+        platformRole = "aPlatformRole",
+        status = Some(RelationshipEnums.Status.Active)
+      )
+    )
+  )
 
   val createdKey: AuthManagementKey = AuthManagementKey(
     kty = "1",
@@ -98,11 +139,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   implicit def fromResponseUnmarshallerClientRequest: FromEntityUnmarshaller[Client] =
     sprayJsonUnmarshaller[Client]
 
-  implicit def fromResponseUnmarshallerClientDetailRequest: FromEntityUnmarshaller[ClientDetail] =
-    sprayJsonUnmarshaller[ClientDetail]
-
-  implicit def fromResponseUnmarshallerClientDetailSeqRequest: FromEntityUnmarshaller[Seq[ClientDetail]] =
-    sprayJsonUnmarshaller[Seq[ClientDetail]]
+  implicit def fromResponseUnmarshallerClientSeqRequest: FromEntityUnmarshaller[Seq[Client]] =
+    sprayJsonUnmarshaller[Seq[Client]]
 
   implicit def fromResponseUnmarshallerKeyRequest: FromEntityUnmarshaller[Key] =
     sprayJsonUnmarshaller[Key]

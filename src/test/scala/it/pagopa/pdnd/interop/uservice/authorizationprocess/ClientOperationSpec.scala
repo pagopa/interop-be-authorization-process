@@ -3,10 +3,9 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, ClientDetail, EService, Organization}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, EService, Organization}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
-import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.catalogmanagement
+import it.pagopa.pdnd.interop.uservice.{catalogmanagement, keymanagement}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -37,18 +36,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(client))
 
-      val expected = Client(
-        id = client.id,
-        eServiceId = client.eServiceId,
-        consumerId = client.consumerId,
-        name = client.name,
-        description = client.description,
-        operators = client.operators
-      )
-
       Get() ~> service.createClient(clientSeed) ~> check {
         status shouldEqual StatusCodes.Created
-        entityAs[Client] shouldEqual expected
       }
     }
 
@@ -89,18 +78,25 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(organization))
 
+      (mockPartyManagementService.getOrganization _)
+        .expects(client.consumerId)
+        .once()
+        .returns(Future.successful(consumer))
+
       val expected =
-        ClientDetail(
+        Client(
           id = client.id,
           eService = EService(eService.id, eService.name),
           organization = Organization(organization.institutionId, organization.description),
+          consumer = Organization(consumer.institutionId, consumer.description),
           name = client.name,
-          description = client.description
+          description = client.description,
+          operators = Some(Seq.empty)
         )
 
       Get() ~> service.getClient(client.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[ClientDetail] shouldEqual expected
+        entityAs[Client] shouldEqual expected
       }
     }
 
@@ -133,19 +129,26 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(organization))
 
+      (mockPartyManagementService.getOrganization _)
+        .expects(client.consumerId)
+        .once()
+        .returns(Future.successful(consumer))
+
       val expected = Seq(
-        ClientDetail(
+        Client(
           id = client.id,
           eService = EService(eService.id, eService.name),
           organization = Organization(organization.institutionId, organization.description),
+          consumer = Organization(consumer.institutionId, consumer.description),
           name = client.name,
-          description = client.description
+          description = client.description,
+          operators = Some(Seq.empty)
         )
       )
 
       Get() ~> service.listClients(Some(0), Some(10), Some(eServiceId.toString), None) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[Seq[ClientDetail]] shouldEqual expected
+        entityAs[Seq[Client]] shouldEqual expected
       }
     }
   }

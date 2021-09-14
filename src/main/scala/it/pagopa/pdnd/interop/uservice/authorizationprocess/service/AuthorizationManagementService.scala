@@ -2,7 +2,6 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.EnumParameterError
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
-  Client => ApiClient,
   Key => ApiKey,
   KeySeed => ApiKeySeed,
   OtherPrimeInfo => ApiOtherPrimeInfo
@@ -15,17 +14,22 @@ import scala.util.Try
 
 trait AuthorizationManagementService {
 
-  def createClient(eServiceId: UUID, consumerId: UUID, name: String, description: Option[String]): Future[Client]
-  def getClient(clientId: String): Future[Client]
+  def createClient(
+    eServiceId: UUID,
+    consumerId: UUID,
+    name: String,
+    description: Option[String]
+  ): Future[ClientManagement]
+  def getClient(clientId: String): Future[ClientManagement]
   def listClients(
     offset: Option[Int],
     limit: Option[Int],
     eServiceId: Option[UUID],
     operatorId: Option[UUID]
-  ): Future[Seq[Client]]
+  ): Future[Seq[ClientManagement]]
   def deleteClient(clientId: String): Future[Unit]
 
-  def addOperator(clientId: UUID, operatorId: UUID): Future[Client]
+  def addOperator(clientId: UUID, operatorId: UUID): Future[ClientManagement]
   def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit]
 
   def getKey(clientId: UUID, kid: String): Future[Key]
@@ -37,15 +41,6 @@ trait AuthorizationManagementService {
 }
 
 object AuthorizationManagementService {
-  def clientToApi(client: Client): ApiClient =
-    ApiClient(
-      id = client.id,
-      eServiceId = client.eServiceId,
-      consumerId = client.consumerId,
-      name = client.name,
-      description = client.description,
-      operators = client.operators
-    )
 
   def keyToApi(key: Key): ApiKey =
     ApiKey(

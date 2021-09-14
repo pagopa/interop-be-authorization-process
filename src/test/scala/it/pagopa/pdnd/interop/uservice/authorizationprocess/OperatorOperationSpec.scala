@@ -3,7 +3,13 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, Operator, OperatorSeed}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
+  Client,
+  EService,
+  Operator,
+  OperatorSeed,
+  Organization
+}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.partymanagement
@@ -35,13 +41,38 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.successful(client.copy(operators = Set(operatorId))))
 
+      (mockCatalogManagementService.getEService _)
+        .expects(*, client.eServiceId.toString)
+        .returns(Future.successful(eService))
+
+      (mockPartyManagementService.getOrganization _)
+        .expects(eService.producerId)
+        .once()
+        .returns(Future.successful(organization))
+
+      (mockPartyManagementService.getOrganization _)
+        .expects(client.consumerId)
+        .once()
+        .returns(Future.successful(consumer))
+
+      (mockPartyManagementService.getPerson _)
+        .expects(operatorId)
+        .once()
+        .returns(Future.successful(person))
+
+      (mockPartyManagementService.getRelationships _)
+        .expects(organization.partyId, person.partyId)
+        .once()
+        .returns(Future.successful(relationships))
+
       val expected = Client(
         id = client.id,
-        eServiceId = client.eServiceId,
-        consumerId = client.consumerId,
+        eService = EService(eService.id, eService.name),
+        organization = Organization(organization.institutionId, organization.description),
+        consumer = Organization(consumer.institutionId, consumer.description),
         name = client.name,
         description = client.description,
-        operators = Set(operatorId)
+        operators = Some(Seq(operator))
       )
 
       Get() ~> service.addOperator(client.id.toString, OperatorSeed(operatorId)) ~> check {
