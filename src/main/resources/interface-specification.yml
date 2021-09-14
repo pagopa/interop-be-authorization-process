@@ -725,10 +725,27 @@ components:
           type: string
         provider:
           $ref: '#/components/schemas/Organization'
+        activeDescriptor:
+          $ref: '#/components/schemas/Descriptor'
       required:
         - id
         - name
         - provider
+    Descriptor:
+      description: Models an E-Service Descriptor
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        version:
+          type: string
+      required:
+        - id
+        - status
+        - version
     Clients:
       type: object
       items:

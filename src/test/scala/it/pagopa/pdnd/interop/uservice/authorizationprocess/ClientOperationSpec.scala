@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, EService, Organization}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, Descriptor, EService, Organization}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.{catalogmanagement, keymanagement}
 import org.scalamock.scalatest.MockFactory
@@ -112,8 +112,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expected =
         Client(
           id = client.id,
-          eService =
-            EService(eService.id, eService.name, Organization(organization.institutionId, organization.description)),
+          eService = EService(
+            eService.id,
+            eService.name,
+            Organization(organization.institutionId, organization.description),
+            Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+          ),
           consumer = Organization(consumer.institutionId, consumer.description),
           name = client.name,
           description = client.description,
@@ -163,8 +167,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expected = Seq(
         Client(
           id = client.id,
-          eService =
-            EService(eService.id, eService.name, Organization(organization.institutionId, organization.description)),
+          eService = EService(
+            eService.id,
+            eService.name,
+            Organization(organization.institutionId, organization.description),
+            Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+          ),
           consumer = Organization(consumer.institutionId, consumer.description),
           name = client.name,
           description = client.description,

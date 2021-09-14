@@ -12,7 +12,9 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
 }
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
   Attributes,
-  EService => CatalogManagementEService
+  EServiceDescriptorEnums,
+  EService => CatalogManagementEService,
+  EServiceDescriptor => CatalogManagementDescriptor
 }
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
   Person,
@@ -42,6 +44,15 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val clientSeed: ClientSeed = ClientSeed(eServiceId, consumerId, "client name", Some("client description"))
   val taxCode: String        = "taxCode"
 
+  val activeDescriptor: CatalogManagementDescriptor = CatalogManagementDescriptor(
+    id = UUID.randomUUID(),
+    version = "1",
+    description = None,
+    interface = None,
+    docs = Seq.empty,
+    status = EServiceDescriptorEnums.Status.Published
+  )
+
   val eService: CatalogManagementEService = CatalogManagementEService(
     id = eServiceId,
     producerId = organizationId,
@@ -51,7 +62,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     technology = "REST",
     voucherLifespan = 10,
     attributes = Attributes(Seq.empty, Seq.empty, Seq.empty),
-    descriptors = Seq.empty
+    descriptors = Seq(activeDescriptor)
   )
 
   val organization: PartyManagementOrganization = PartyManagementOrganization(

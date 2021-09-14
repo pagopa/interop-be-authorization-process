@@ -462,11 +462,12 @@ class AuthApiServiceImpl(
     consumer: partymanagement.client.model.Organization,
     operator: Seq[Operator]
   ): Client = {
-    val apiProvider = PartyManagementService.organizationToApi(provider)
+    val apiProvider      = PartyManagementService.organizationToApi(provider)
+    val activeDescriptor = CatalogManagementService.getActiveDescriptor(eService)
 
     Client(
       id = client.id,
-      eService = CatalogManagementService.eServiceToApi(eService, apiProvider),
+      eService = CatalogManagementService.eServiceToApi(eService, apiProvider, activeDescriptor),
       consumer = PartyManagementService.organizationToApi(consumer),
       name = client.name,
       description = client.description,

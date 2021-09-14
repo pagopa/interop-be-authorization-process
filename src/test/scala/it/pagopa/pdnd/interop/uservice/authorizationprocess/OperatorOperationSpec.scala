@@ -5,6 +5,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
   Client,
+  Descriptor,
   EService,
   Operator,
   OperatorSeed,
@@ -67,8 +68,12 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
       val expected = Client(
         id = client.id,
-        eService =
-          EService(eService.id, eService.name, Organization(organization.institutionId, organization.description)),
+        eService = EService(
+          eService.id,
+          eService.name,
+          Organization(organization.institutionId, organization.description),
+          Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+        ),
         consumer = Organization(consumer.institutionId, consumer.description),
         name = client.name,
         description = client.description,
