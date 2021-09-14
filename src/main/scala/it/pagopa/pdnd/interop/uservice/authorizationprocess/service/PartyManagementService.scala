@@ -26,7 +26,6 @@ object PartyManagementService {
       taxCode = person.taxCode,
       name = person.name,
       surname = person.surname,
-      email = "email", // TODO populate this
       role = relationship.role.toString,
       platformRole = relationship.platformRole
     )

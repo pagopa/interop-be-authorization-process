@@ -160,7 +160,6 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
           taxCode = person.taxCode,
           name = person.name,
           surname = person.surname,
-          email = "email",
           role = relationship.role.toString,
           platformRole = relationship.platformRole
         )
