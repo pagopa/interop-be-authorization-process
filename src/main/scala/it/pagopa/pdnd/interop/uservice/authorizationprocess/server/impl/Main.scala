@@ -34,7 +34,7 @@ import kamon.Kamon
 
 import scala.concurrent.Future
 
-trait AgreementProcessAPI {
+trait AgreementManagementAPI {
   val agreementManagementService = new AgreementManagementServiceImpl(
     AgreementManagementInvoker(),
     AgreementManagementApi(ApplicationConfiguration.getAgreementProcessURL)
@@ -82,7 +82,7 @@ trait JWTValidator { self: AuthorizationManagementAPI =>
 object Main
     extends App
     with CorsSupport
-    with AgreementProcessAPI
+    with AgreementManagementAPI
     with AuthorizationManagementAPI
     with CatalogManagementAPI
     with PartyManagementAPI
