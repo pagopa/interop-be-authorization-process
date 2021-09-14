@@ -172,5 +172,23 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       }
     }
 
+    "fail if missing authorization header" in {
+      implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
+
+      Get() ~> service.getClientOperators(client.id.toString) ~> check {
+        status shouldEqual StatusCodes.Unauthorized
+      }
+    }
+
+    "fail if client does not exist" in {
+      (mockAuthorizationManagementService.getClient _)
+        .expects(client.id.toString)
+        .once()
+        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
+
+      Get() ~> service.getClientOperators(client.id.toString) ~> check {
+        status shouldEqual StatusCodes.NotFound
+      }
+    }
   }
 }
