@@ -78,7 +78,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ClientSeed'
       responses:
-        "201":
+        "204":
           description: Client created
         "401":
           description: Unauthorized

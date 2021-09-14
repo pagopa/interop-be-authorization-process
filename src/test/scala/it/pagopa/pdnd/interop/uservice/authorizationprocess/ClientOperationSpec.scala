@@ -37,7 +37,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returns(Future.successful(client))
 
       Get() ~> service.createClient(clientSeed) ~> check {
-        status shouldEqual StatusCodes.Created
+        status shouldEqual StatusCodes.NoContent
       }
     }
 

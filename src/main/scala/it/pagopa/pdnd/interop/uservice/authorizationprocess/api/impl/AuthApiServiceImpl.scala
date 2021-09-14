@@ -114,7 +114,7 @@ class AuthApiServiceImpl(
     } yield client
 
     onComplete(result) {
-      case Success(_)                         => createClient201
+      case Success(_)                         => createClient204
       case Failure(ex @ UnauthenticatedError) => createClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: CatalogManagementApiError[_]) if ex.code == 404 =>
         createClient404(Problem(Some(s"E-Service id ${clientSeed.eServiceId.toString} not found"), 404, "Not found"))
