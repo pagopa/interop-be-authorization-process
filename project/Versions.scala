@@ -3,6 +3,7 @@ object Versions {
   lazy val keyManagementVersion       = "0.1.0-SNAPSHOT"
   lazy val agreementManagementVersion = "0.1.0-SNAPSHOT"
   lazy val catalogManagementVersion   = "0.1.0-SNAPSHOT"
+  lazy val partyManagementVersion     = "0.1.0-SNAPSHOT"
   lazy val vaultDriverVersion         = "5.1.0"
   lazy val scalaMockVersion           = "5.1.0"
   lazy val stateMonitoringVersion     = "0.0.3-SNAPSHOT"

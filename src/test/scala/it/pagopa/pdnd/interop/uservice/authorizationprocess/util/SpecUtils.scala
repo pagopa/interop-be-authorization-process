@@ -2,15 +2,19 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.util
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
-import it.pagopa.pdnd.interopuservice.catalogprocess.client.model.{Attributes, EService}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{AuthApiMarshallerImpl, _}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, ClientSeed, Key, Keys}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
   OtherPrimeInfo,
   Client => AuthManagementClient,
   Key => AuthManagementKey
 }
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
+  Attributes,
+  EService => CatalogManagementEService
+}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Organization => PartyManagementOrganization}
 import org.scalamock.scalatest.MockFactory
 
 import java.util.UUID
@@ -19,17 +23,20 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val mockJwtValidator: JWTValidator                                     = mock[JWTValidator]
   val mockJwtGenerator: JWTGenerator                                     = mock[JWTGenerator]
-  val mockAgreementProcessService: AgreementManagementService            = mock[AgreementManagementService]
-  val mockCatalogProcessService: CatalogManagementService                = mock[CatalogManagementService]
+  val mockAgreementManagementService: AgreementManagementService         = mock[AgreementManagementService]
+  val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
+  val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
 
   val bearerToken: String    = "token"
   val eServiceId: UUID       = UUID.randomUUID()
-  val clientSeed: ClientSeed = ClientSeed(eServiceId, "client name", Some("client description"))
+  val consumerId: UUID       = UUID.randomUUID()
+  val organizationId: UUID   = UUID.randomUUID()
+  val clientSeed: ClientSeed = ClientSeed(eServiceId, consumerId, "client name", Some("client description"))
 
-  val eService: EService = EService(
+  val eService: CatalogManagementEService = CatalogManagementEService(
     id = eServiceId,
-    producerId = UUID.randomUUID(),
+    producerId = organizationId,
     name = "Service name",
     description = "Service description",
     audience = Seq.empty,
@@ -39,10 +46,21 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     descriptors = Seq.empty
   )
 
-  val createdClient: AuthManagementClient =
+  val organization: PartyManagementOrganization = PartyManagementOrganization(
+    institutionId = "some-external-id",
+    description = "Organization description",
+    managerName = "ManagerName",
+    managerSurname = "ManagerSurname",
+    digitalAddress = "org@test.pec.pagopa.it",
+    partyId = organizationId.toString,
+    attributes = Seq.empty
+  )
+
+  val client: AuthManagementClient =
     AuthManagementClient(
       id = UUID.randomUUID(),
       eServiceId = eServiceId,
+      consumerId = consumerId,
       clientSeed.name,
       clientSeed.description,
       operators = Set.empty
@@ -80,8 +98,11 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   implicit def fromResponseUnmarshallerClientRequest: FromEntityUnmarshaller[Client] =
     sprayJsonUnmarshaller[Client]
 
-  implicit def fromResponseUnmarshallerClientSeqRequest: FromEntityUnmarshaller[Seq[Client]] =
-    sprayJsonUnmarshaller[Seq[Client]]
+  implicit def fromResponseUnmarshallerClientDetailRequest: FromEntityUnmarshaller[ClientDetail] =
+    sprayJsonUnmarshaller[ClientDetail]
+
+  implicit def fromResponseUnmarshallerClientDetailSeqRequest: FromEntityUnmarshaller[Seq[ClientDetail]] =
+    sprayJsonUnmarshaller[Seq[ClientDetail]]
 
   implicit def fromResponseUnmarshallerKeyRequest: FromEntityUnmarshaller[Key] =
     sprayJsonUnmarshaller[Key]

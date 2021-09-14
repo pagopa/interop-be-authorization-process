@@ -21,6 +21,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   CatalogManagementServiceImpl,
   JWTGeneratorImpl,
   JWTValidatorImpl,
+  PartyManagementServiceImpl,
   VaultServiceImpl
 }
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.api.{EServiceApi => CatalogManagementApi}
@@ -28,11 +29,12 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{
   ClientApi => AuthorizationClientApi,
   KeyApi => AuthorizationKeyApi
 }
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.{PartyApi => PartyManagementApi}
 import kamon.Kamon
 
 import scala.concurrent.Future
 
-trait AgreementManagementAPI {
+trait AgreementProcessAPI {
   val agreementManagementService = new AgreementManagementServiceImpl(
     AgreementManagementInvoker(),
     AgreementManagementApi(ApplicationConfiguration.getAgreementProcessURL)
@@ -42,7 +44,14 @@ trait AgreementManagementAPI {
 trait CatalogManagementAPI {
   val catalogManagementService = new CatalogManagementServiceImpl(
     CatalogManagementInvoker(),
-    CatalogManagementApi(ApplicationConfiguration.getCatalogProcessURL)
+    CatalogManagementApi(ApplicationConfiguration.getCatalogManagementURL)
+  )
+}
+
+trait PartyManagementAPI {
+  val partyManagementService = new PartyManagementServiceImpl(
+    PartyManagementInvoker(),
+    PartyManagementApi(ApplicationConfiguration.getPartyManagementURL)
   )
 }
 
@@ -73,9 +82,10 @@ trait JWTValidator { self: AuthorizationManagementAPI =>
 object Main
     extends App
     with CorsSupport
-    with AgreementManagementAPI
-    with CatalogManagementAPI
+    with AgreementProcessAPI
     with AuthorizationManagementAPI
+    with CatalogManagementAPI
+    with PartyManagementAPI
     with JWTGenerator
     with JWTValidator {
 
@@ -85,9 +95,10 @@ object Main
     new AuthApiServiceImpl(
       jwtValidator,
       jwtGenerator,
+      authorizationManagementService,
       agreementManagementService,
       catalogManagementService,
-      authorizationManagementService
+      partyManagementService
     ),
     new AuthApiMarshallerImpl(),
     SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)

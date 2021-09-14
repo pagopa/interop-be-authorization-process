@@ -2,7 +2,8 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.AgreementApi
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.invoker.{ApiRequest, BearerToken}
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement, AgreementEnums}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.Agreement
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums.Status
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
   AgreementManagementInvoker,
   AgreementManagementService
@@ -17,12 +18,16 @@ class AgreementManagementServiceImpl(invoker: AgreementManagementInvoker, api: A
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  override def getAgreements(bearerToken: String, consumerId: String, eserviceId: String): Future[Seq[Agreement]] = {
-    val request: ApiRequest[Seq[Agreement]] = api.getAgreements(
-      consumerId = Some(consumerId),
-      eserviceId = Some(eserviceId),
-      status = Some(AgreementEnums.Status.Active.toString)
-    )(BearerToken(bearerToken))
+  override def getAgreements(
+    bearerToken: String,
+    consumerId: String,
+    eserviceId: String,
+    status: Status
+  ): Future[Seq[Agreement]] = {
+    val request: ApiRequest[Seq[Agreement]] =
+      api.getAgreements(consumerId = Some(consumerId), eserviceId = Some(eserviceId), status = Some(status.toString))(
+        BearerToken(bearerToken)
+      )
     invoker
       .execute[Seq[Agreement]](request)
       .map { x =>

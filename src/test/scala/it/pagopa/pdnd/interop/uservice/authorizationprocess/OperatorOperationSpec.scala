@@ -19,28 +19,30 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
   val service = new AuthApiServiceImpl(
     mockJwtValidator,
     mockJwtGenerator,
-    mockAgreementProcessService,
-    mockCatalogProcessService,
-    mockAuthorizationManagementService
+    mockAuthorizationManagementService,
+    mockAgreementManagementService,
+    mockCatalogManagementService,
+    mockPartyManagementService
   )(ExecutionContext.global)
 
   "Operator addition" should {
     "succeed" in {
       val operatorId = UUID.randomUUID()
       (mockAuthorizationManagementService.addOperator _)
-        .expects(createdClient.id, operatorId)
+        .expects(client.id, operatorId)
         .once()
-        .returns(Future.successful(createdClient.copy(operators = Set(operatorId))))
+        .returns(Future.successful(client.copy(operators = Set(operatorId))))
 
       val expected = Client(
-        id = createdClient.id,
-        eServiceId = createdClient.eServiceId,
-        name = createdClient.name,
-        description = createdClient.description,
+        id = client.id,
+        eServiceId = client.eServiceId,
+        consumerId = client.consumerId,
+        name = client.name,
+        description = client.description,
         operators = Set(operatorId)
       )
 
-      Get() ~> service.addOperator(createdClient.id.toString, OperatorSeed(operatorId)) ~> check {
+      Get() ~> service.addOperator(client.id.toString, OperatorSeed(operatorId)) ~> check {
         status shouldEqual StatusCodes.Created
         entityAs[Client] shouldEqual expected
       }
@@ -50,7 +52,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val seed                                     = OperatorSeed(UUID.randomUUID())
 
-      Get() ~> service.addOperator(createdClient.id.toString, seed) ~> check {
+      Get() ~> service.addOperator(client.id.toString, seed) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
@@ -63,7 +65,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
-      Get() ~> service.addOperator(createdClient.id.toString, seed) ~> check {
+      Get() ~> service.addOperator(client.id.toString, seed) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -73,11 +75,11 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "succeed" in {
       val operatorId = UUID.randomUUID()
       (mockAuthorizationManagementService.removeClientOperator _)
-        .expects(createdClient.id, operatorId)
+        .expects(client.id, operatorId)
         .once()
         .returns(Future.successful(()))
 
-      Get() ~> service.removeClientOperator(createdClient.id.toString, operatorId.toString) ~> check {
+      Get() ~> service.removeClientOperator(client.id.toString, operatorId.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
@@ -86,7 +88,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val operatorId                               = UUID.randomUUID()
 
-      Get() ~> service.removeClientOperator(createdClient.id.toString, operatorId.toString) ~> check {
+      Get() ~> service.removeClientOperator(client.id.toString, operatorId.toString) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
@@ -99,7 +101,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
-      Get() ~> service.removeClientOperator(createdClient.id.toString, operatorId.toString) ~> check {
+      Get() ~> service.removeClientOperator(client.id.toString, operatorId.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }

@@ -5,29 +5,34 @@ import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
 import cats.implicits.toTraverseOps
 import com.nimbusds.jose.JOSEException
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement, AgreementEnums}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, expireIn, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
+  AgreementNotFoundError,
   EnumParameterError,
+  TooManyActiveAgreementsError,
   UnauthenticatedError,
   UuidConversionError
 }
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
-import it.pagopa.pdnd.interop.uservice.keymanagement
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogManagementApiError}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
+import it.pagopa.pdnd.interop.uservice.{catalogmanagement, keymanagement, partymanagement}
 
 import java.text.ParseException
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 class AuthApiServiceImpl(
   jwtValidator: JWTValidator,
   jwtGenerator: JWTGenerator,
-  agreementProcessService: AgreementManagementService,
-  catalogProcessService: CatalogManagementService,
-  authorizationManagementService: AuthorizationManagementService
+  authorizationManagementService: AuthorizationManagementService,
+  agreementManagementService: AgreementManagementService,
+  catalogManagementService: CatalogManagementService,
+  partyManagementService: PartyManagementService
 )(implicit ec: ExecutionContext)
     extends AuthApiService {
 
@@ -47,16 +52,37 @@ class AuthApiServiceImpl(
         bearerToken <- extractBearer(contexts)
         validated   <- jwtValidator.validate(accessTokenRequest)
         (clientId, assertion) = validated
-        client     <- authorizationManagementService.getClient(clientId)
-        agreements <- agreementProcessService.getAgreements(bearerToken, client.consumerId, client.eServiceId.toString)
-        _          <- if (agreements.size == 1) Future.successful() else Future.failed(new RuntimeException("some error"))
-        eservice   <- catalogProcessService.getEService(bearerToken, client.eServiceId.toString)
-        token      <- jwtGenerator.generate(assertion, eservice.audience.toList)
+        client <- authorizationManagementService.getClient(clientId)
+        agreements <- agreementManagementService.getAgreements(
+          bearerToken,
+          client.consumerId.toString,
+          client.eServiceId.toString,
+          AgreementEnums.Status.Active
+        )
+        _        <- validateActiveAgreement(agreements, client.eServiceId.toString, client.consumerId.toString)
+        eservice <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
+        token    <- jwtGenerator.generate(assertion, eservice.audience.toList)
       } yield token
 
     onComplete(token) {
       case Success(tk) => createToken200(ClientCredentialsResponse(tk, "tokenType", expireIn))
       case Failure(ex) => manageError(ex)
+    }
+  }
+
+  private def validateActiveAgreement(
+    agreements: Seq[Agreement],
+    eserviceId: String,
+    consumerId: String
+  ): Future[Unit] = {
+    val errorFunc: (String, String) => Throwable =
+      if (agreements.isEmpty) AgreementNotFoundError
+      else TooManyActiveAgreementsError
+
+    Future.fromTry {
+      Either
+        .cond(agreements.size == 1, (), errorFunc(eserviceId, consumerId))
+        .toTry
     }
   }
 
@@ -78,18 +104,19 @@ class AuthApiServiceImpl(
   ): Route = {
     val result = for {
       bearerToken <- extractBearer(contexts)
-      _           <- catalogProcessService.getEService(bearerToken, clientSeed.eServiceId.toString)
+      _           <- catalogManagementService.getEService(bearerToken, clientSeed.eServiceId.toString)
       client <- authorizationManagementService.createClient(
         clientSeed.eServiceId,
+        clientSeed.consumerId,
         clientSeed.name,
         clientSeed.description
       )
-    } yield clientToApi(client)
+    } yield AuthorizationManagementService.clientToApi(client)
 
     onComplete(result) {
       case Success(client)                    => createClient201(client)
       case Failure(ex @ UnauthenticatedError) => createClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex: CatalogProcessApiError[_]) if ex.code == 404 =>
+      case Failure(ex: CatalogManagementApiError[_]) if ex.code == 404 =>
         createClient404(Problem(Some(s"E-Service id ${clientSeed.eServiceId.toString} not found"), 404, "Not found"))
       case Failure(ex) => createClient500(Problem(Option(ex.getMessage), 500, "Error on client creation"))
     }
@@ -101,13 +128,14 @@ class AuthApiServiceImpl(
     */
   override def getClient(clientId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerClient: ToEntityMarshaller[Client]
+    toEntityMarshallerClient: ToEntityMarshaller[ClientDetail],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _      <- extractBearer(contexts)
-      client <- authorizationManagementService.getClient(clientId)
-    } yield clientToApi(client)
+      bearerToken  <- extractBearer(contexts)
+      client       <- authorizationManagementService.getClient(clientId)
+      clientDetail <- getClientDetail(bearerToken, client)
+    } yield clientDetail
 
     onComplete(result) {
       case Success(client)                    => getClient200(client)
@@ -129,15 +157,17 @@ class AuthApiServiceImpl(
     operatorId: Option[String]
   )(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerClientarray: ToEntityMarshaller[Seq[Client]]
+    toEntityMarshallerClientDetailarray: ToEntityMarshaller[Seq[ClientDetail]],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _            <- extractBearer(contexts)
+      bearerToken  <- extractBearer(contexts)
       eServiceUuid <- eServiceId.map(toUuid).sequence.toFuture
       operatorUuid <- operatorId.map(toUuid).sequence.toFuture
       clients      <- authorizationManagementService.listClients(offset, limit, eServiceUuid, operatorUuid)
-    } yield clients.map(clientToApi)
+      // TODO Improve multiple requests
+      clientsDetails <- clients.traverse(client => getClientDetail(bearerToken, client))
+    } yield clientsDetails
 
     onComplete(result) {
       case Success(clients)                   => listClients200(clients)
@@ -183,7 +213,7 @@ class AuthApiServiceImpl(
       _          <- extractBearer(contexts)
       clientUuid <- toUuid(clientId).toFuture
       client     <- authorizationManagementService.addOperator(clientUuid, operatorSeed.operatorId)
-    } yield clientToApi(client)
+    } yield AuthorizationManagementService.clientToApi(client)
 
     onComplete(result) {
       case Success(client)                    => addOperator201(client)
@@ -237,7 +267,7 @@ class AuthApiServiceImpl(
       _          <- extractBearer(contexts)
       clientUuid <- toUuid(clientId).toFuture
       key        <- authorizationManagementService.getKey(clientUuid, keyId)
-    } yield keyToApi(key)
+    } yield AuthorizationManagementService.keyToApi(key)
 
     onComplete(result) {
       case Success(key) => getClientKeyById200(key)
@@ -334,9 +364,9 @@ class AuthApiServiceImpl(
     val result = for {
       _            <- extractBearer(contexts)
       clientUuid   <- toUuid(clientId).toFuture
-      seeds        <- keysSeeds.map(toClientKeySeed).sequence.toFuture
+      seeds        <- keysSeeds.map(AuthorizationManagementService.toClientKeySeed).sequence.toFuture
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)
-    } yield Keys(keysResponse.keys.map(keyToApi))
+    } yield Keys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
       case Success(keys)                      => createKeys201(keys)
@@ -362,7 +392,7 @@ class AuthApiServiceImpl(
       _            <- extractBearer(contexts)
       clientUuid   <- toUuid(clientId).toFuture
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)
-    } yield Keys(keysResponse.keys.map(keyToApi))
+    } yield Keys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
       case Success(keys)                      => getClientKeys200(keys)
@@ -373,50 +403,27 @@ class AuthApiServiceImpl(
     }
   }
 
-  private[this] def clientToApi(client: keymanagement.client.model.Client): Client =
-    Client(
+  private[this] def getClientDetail(
+    bearerToken: String,
+    client: keymanagement.client.model.Client
+  ): Future[ClientDetail] = {
+    for {
+      eService     <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
+      organization <- partyManagementService.getOrganization(eService.producerId)
+    } yield clientDetailToApi(client, eService, organization)
+  }
+
+  private[this] def clientDetailToApi(
+    client: keymanagement.client.model.Client,
+    eService: catalogmanagement.client.model.EService,
+    organization: partymanagement.client.model.Organization
+  ): ClientDetail =
+    ClientDetail(
       id = client.id,
-      eServiceId = client.eServiceId,
+      eService = CatalogManagementService.eServiceToApi(eService),
+      organization = PartyManagementService.organizationToApi(organization),
       name = client.name,
-      description = client.description,
-      operators = client.operators
+      description = client.description
     )
 
-  private[this] def keyToApi(key: keymanagement.client.model.Key): Key =
-    Key(
-      kty = key.kty,
-      key_ops = key.keyOps,
-      use = key.use,
-      alg = key.alg,
-      kid = key.kid,
-      x5u = key.x5u,
-      x5t = key.x5t,
-      x5tS256 = key.x5tS256,
-      x5c = key.x5c,
-      crv = key.crv,
-      x = key.x,
-      y = key.y,
-      d = key.d,
-      k = key.k,
-      n = key.n,
-      e = key.e,
-      p = key.p,
-      q = key.q,
-      dp = key.dp,
-      dq = key.dq,
-      qi = key.qi,
-      oth = key.oth.map(_.map(primeInfoToApi))
-    )
-
-  private[this] def primeInfoToApi(info: keymanagement.client.model.OtherPrimeInfo): OtherPrimeInfo =
-    OtherPrimeInfo(r = info.r, d = info.d, t = info.t)
-
-  private[this] def toClientKeySeed(keySeed: KeySeed): Either[EnumParameterError, keymanagement.client.model.KeySeed] =
-    Try(keymanagement.client.model.KeySeedEnums.Use.withName(keySeed.use)).toEither
-      .map(use =>
-        keymanagement.client.model
-          .KeySeed(operatorId = keySeed.operatorId, key = keySeed.key, use = use, alg = keySeed.alg)
-      )
-      .left
-      .map(_ => EnumParameterError("use", keymanagement.client.model.KeySeedEnums.Use.values.toSeq.map(_.toString)))
 }

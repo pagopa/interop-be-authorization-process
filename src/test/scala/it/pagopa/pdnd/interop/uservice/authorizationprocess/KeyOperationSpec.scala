@@ -20,16 +20,17 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
   val service = new AuthApiServiceImpl(
     mockJwtValidator,
     mockJwtGenerator,
-    mockAgreementProcessService,
-    mockCatalogProcessService,
-    mockAuthorizationManagementService
+    mockAuthorizationManagementService,
+    mockAgreementManagementService,
+    mockCatalogManagementService,
+    mockPartyManagementService
   )(ExecutionContext.global)
 
   "Retrieve key" should {
     "succeed" in {
       val kid = "some-kid"
       (mockAuthorizationManagementService.getKey _)
-        .expects(createdClient.id, kid)
+        .expects(client.id, kid)
         .once()
         .returns(Future.successful(createdKey))
 
@@ -58,7 +59,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         oth = createdKey.oth.map(_.map(info => OtherPrimeInfo(r = info.r, d = info.d, t = info.t)))
       )
 
-      Get() ~> service.getClientKeyById(createdClient.id.toString, kid) ~> check {
+      Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Key] shouldEqual expected
       }
@@ -67,7 +68,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val kid                                      = "some-kid"
-      Get() ~> service.getClientKeyById(createdClient.id.toString, kid) ~> check {
+      Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
@@ -79,7 +80,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
-      Get() ~> service.getClientKeyById(createdClient.id.toString, kid) ~> check {
+      Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -88,7 +89,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
   "Retrieve all client keys" should {
     "succeed" in {
       (mockAuthorizationManagementService.getClientKeys _)
-        .expects(createdClient.id)
+        .expects(client.id)
         .once()
         .returns(Future.successful(KeysResponse(Seq(createdKey))))
 
@@ -117,7 +118,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         oth = createdKey.oth.map(_.map(info => OtherPrimeInfo(r = info.r, d = info.d, t = info.t)))
       )
 
-      Get() ~> service.getClientKeys(createdClient.id.toString) ~> check {
+      Get() ~> service.getClientKeys(client.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Keys] shouldEqual Keys(Seq(expected))
       }
@@ -125,7 +126,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      Get() ~> service.getClientKeys(createdClient.id.toString) ~> check {
+      Get() ~> service.getClientKeys(client.id.toString) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
@@ -136,7 +137,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
-      Get() ~> service.getClientKeys(createdClient.id.toString) ~> check {
+      Get() ~> service.getClientKeys(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -144,7 +145,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
 
   "Create client keys" should {
     "succeed" in {
-      val clientSeeds: Seq[KeySeed] = Seq(
+      val keySeeds: Seq[KeySeed] = Seq(
         KeySeed(
           operatorId = UUID.randomUUID(),
           key = "key",
@@ -154,7 +155,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
       )
 
       (mockAuthorizationManagementService.createKeys _)
-        .expects(createdClient.id, *)
+        .expects(client.id, *)
         .once()
         .returns(Future.successful(KeysResponse(Seq(createdKey))))
 
@@ -183,24 +184,24 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         oth = createdKey.oth.map(_.map(info => OtherPrimeInfo(r = info.r, d = info.d, t = info.t)))
       )
 
-      Get() ~> service.createKeys(createdClient.id.toString, clientSeeds) ~> check {
+      Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.Created
         entityAs[Keys] shouldEqual Keys(Seq(expected))
       }
     }
 
     "fail on wrong enum parameters" in {
-      val clientSeeds: Seq[KeySeed] =
+      val keySeeds: Seq[KeySeed] =
         Seq(KeySeed(operatorId = UUID.randomUUID(), key = "key", use = "non-existing-use-value", alg = "123"))
 
-      Get() ~> service.createKeys(createdClient.id.toString, clientSeeds) ~> check {
+      Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.BadRequest
       }
     }
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      Get() ~> service.createKeys(createdClient.id.toString, Seq.empty) ~> check {
+      Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
@@ -211,7 +212,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
-      Get() ~> service.createKeys(createdClient.id.toString, Seq.empty) ~> check {
+      Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -221,11 +222,11 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     "succeed" in {
       val kid = "some-kid"
       (mockAuthorizationManagementService.deleteKey _)
-        .expects(createdClient.id, kid)
+        .expects(client.id, kid)
         .once()
         .returns(Future.successful(()))
 
-      Get() ~> service.deleteClientKeyById(createdClient.id.toString, kid) ~> check {
+      Get() ~> service.deleteClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
@@ -233,7 +234,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val kid                                      = "some-kid"
-      Get() ~> service.deleteClientKeyById(createdClient.id.toString, kid) ~> check {
+      Get() ~> service.deleteClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
@@ -245,7 +246,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
-      Get() ~> service.deleteClientKeyById(createdClient.id.toString, kid) ~> check {
+      Get() ~> service.deleteClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -255,11 +256,11 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     "succeed" in {
       val kid = "some-kid"
       (mockAuthorizationManagementService.enableKey _)
-        .expects(createdClient.id, kid)
+        .expects(client.id, kid)
         .once()
         .returns(Future.successful(()))
 
-      Get() ~> service.enableKeyById(createdClient.id.toString, kid) ~> check {
+      Get() ~> service.enableKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
@@ -267,7 +268,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val kid                                      = "some-kid"
-      Get() ~> service.enableKeyById(createdClient.id.toString, kid) ~> check {
+      Get() ~> service.enableKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
@@ -279,7 +280,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
-      Get() ~> service.enableKeyById(createdClient.id.toString, kid) ~> check {
+      Get() ~> service.enableKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -289,11 +290,11 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     "succeed" in {
       val kid = "some-kid"
       (mockAuthorizationManagementService.disableKey _)
-        .expects(createdClient.id, kid)
+        .expects(client.id, kid)
         .once()
         .returns(Future.successful(()))
 
-      Get() ~> service.disableKeyById(createdClient.id.toString, kid) ~> check {
+      Get() ~> service.disableKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
@@ -301,7 +302,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val kid                                      = "some-kid"
-      Get() ~> service.disableKeyById(createdClient.id.toString, kid) ~> check {
+      Get() ~> service.disableKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
@@ -313,7 +314,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
-      Get() ~> service.disableKeyById(createdClient.id.toString, kid) ~> check {
+      Get() ~> service.disableKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
