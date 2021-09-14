@@ -110,4 +110,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   implicit def fromResponseUnmarshallerKeysRequest: FromEntityUnmarshaller[Keys] =
     sprayJsonUnmarshaller[Keys]
 
+  implicit def fromResponseUnmarshallerOperatorRequest: FromEntityUnmarshaller[Seq[Operator]] =
+    sprayJsonUnmarshaller[Seq[Operator]]
+
 }

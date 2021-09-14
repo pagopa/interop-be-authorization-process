@@ -1,9 +1,9 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl
 
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.server.Directives.onComplete
+import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
-import cats.implicits.toTraverseOps
+import cats.implicits._
 import com.nimbusds.jose.JOSEException
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement, AgreementEnums}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
@@ -22,6 +22,7 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError =>
 import it.pagopa.pdnd.interop.uservice.{catalogmanagement, keymanagement, partymanagement}
 
 import java.text.ParseException
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -403,6 +404,33 @@ class AuthApiServiceImpl(
     }
   }
 
+  /** Code: 200, Message: Request succeed, DataType: Seq[Operator]
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Not Found, DataType: Problem
+    */
+  override def getClientOperators(clientId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerOperatorarray: ToEntityMarshaller[Seq[Operator]],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result = for {
+      bearerToken  <- extractBearer(contexts)
+      client       <- authorizationManagementService.getClient(clientId)
+      eService     <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
+      organization <- partyManagementService.getOrganization(eService.producerId)
+      operators    <- client.operators.toSeq.traverse(op => getClientOperator(op, organization))
+    } yield operators.flatten
+
+    onComplete(result) {
+      case Success(keys) => getClientOperators200(keys)
+      case Failure(ex @ UnauthenticatedError) =>
+        getClientOperators401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        getClientOperators404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(ex) => complete((500, Problem(Option(ex.getMessage), 500, "Error on client keys retrieve")))
+    }
+  }
+
   private[this] def getClientDetail(
     bearerToken: String,
     client: keymanagement.client.model.Client
@@ -412,6 +440,16 @@ class AuthApiServiceImpl(
       organization <- partyManagementService.getOrganization(eService.producerId)
     } yield clientDetailToApi(client, eService, organization)
   }
+
+  private[this] def getClientOperator(
+    operatorId: UUID,
+    organization: partymanagement.client.model.Organization
+  ): Future[Seq[Operator]] =
+    for {
+      person        <- partyManagementService.getPerson(operatorId)
+      relationships <- partyManagementService.getRelationships(organization.partyId, person.partyId)
+      operators = relationships.items.map(r => PartyManagementService.operatorToApi(person, r))
+    } yield operators
 
   private[this] def clientDetailToApi(
     client: keymanagement.client.model.Client,
