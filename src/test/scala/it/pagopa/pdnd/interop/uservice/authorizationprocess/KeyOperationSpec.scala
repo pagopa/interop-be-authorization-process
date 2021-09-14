@@ -20,8 +20,8 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
   val service = new AuthApiServiceImpl(
     mockJwtValidator,
     mockJwtGenerator,
-    mockAgreementProcessService,
     mockAuthorizationManagementService,
+    mockAgreementManagementService,
     mockCatalogManagementService,
     mockPartyManagementService
   )(ExecutionContext.global)
@@ -145,7 +145,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
 
   "Create client keys" should {
     "succeed" in {
-      val clientSeeds: Seq[KeySeed] = Seq(
+      val keySeeds: Seq[KeySeed] = Seq(
         KeySeed(
           operatorId = UUID.randomUUID(),
           key = "key",
@@ -184,17 +184,17 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         oth = createdKey.oth.map(_.map(info => OtherPrimeInfo(r = info.r, d = info.d, t = info.t)))
       )
 
-      Get() ~> service.createKeys(client.id.toString, clientSeeds) ~> check {
+      Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.Created
         entityAs[Keys] shouldEqual Keys(Seq(expected))
       }
     }
 
     "fail on wrong enum parameters" in {
-      val clientSeeds: Seq[KeySeed] =
+      val keySeeds: Seq[KeySeed] =
         Seq(KeySeed(operatorId = UUID.randomUUID(), key = "key", use = "non-existing-use-value", alg = "123"))
 
-      Get() ~> service.createKeys(client.id.toString, clientSeeds) ~> check {
+      Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.BadRequest
       }
     }

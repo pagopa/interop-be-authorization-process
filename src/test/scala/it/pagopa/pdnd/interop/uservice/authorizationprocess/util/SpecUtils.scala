@@ -23,15 +23,16 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val mockJwtValidator: JWTValidator                                     = mock[JWTValidator]
   val mockJwtGenerator: JWTGenerator                                     = mock[JWTGenerator]
-  val mockAgreementProcessService: AgreementProcessService               = mock[AgreementProcessService]
-  val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
+  val mockAgreementManagementService: AgreementManagementService         = mock[AgreementManagementService]
   val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
+  val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
 
   val bearerToken: String    = "token"
   val eServiceId: UUID       = UUID.randomUUID()
+  val consumerId: UUID       = UUID.randomUUID()
   val organizationId: UUID   = UUID.randomUUID()
-  val clientSeed: ClientSeed = ClientSeed(eServiceId, "client name", Some("client description"))
+  val clientSeed: ClientSeed = ClientSeed(eServiceId, consumerId, "client name", Some("client description"))
 
   val eService: CatalogManagementEService = CatalogManagementEService(
     id = eServiceId,
@@ -59,6 +60,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     AuthManagementClient(
       id = UUID.randomUUID(),
       eServiceId = eServiceId,
+      consumerId = consumerId,
       clientSeed.name,
       clientSeed.description,
       operators = Set.empty

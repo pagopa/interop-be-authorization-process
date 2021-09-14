@@ -21,8 +21,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
   val service = new AuthApiServiceImpl(
     mockJwtValidator,
     mockJwtGenerator,
-    mockAgreementProcessService,
     mockAuthorizationManagementService,
+    mockAgreementManagementService,
     mockCatalogManagementService,
     mockPartyManagementService
   )(ExecutionContext.global)
@@ -38,6 +38,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       val expected = Client(
         id = client.id,
         eServiceId = client.eServiceId,
+        consumerId = client.consumerId,
         name = client.name,
         description = client.description,
         operators = Set(operatorId)

@@ -12,7 +12,7 @@ final case class JWTValidatorImpl(keyManager: AuthorizationManagementService)(im
     extends JWTValidator {
   private val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  override def validate(accessTokenRequest: AccessTokenRequest): Future[SignedJWT] =
+  override def validate(accessTokenRequest: AccessTokenRequest): Future[(String, SignedJWT)] =
     for {
       info <- extractJwtInfo(accessTokenRequest)
       (jwt, kid, clientId) = info
@@ -22,6 +22,6 @@ final case class JWTValidatorImpl(keyManager: AuthorizationManagementService)(im
       _ = logger.info("Verify signature")
       verified <- verify(verifier, jwt)
       _ = logger.info("Signature verified")
-    } yield verified
+    } yield clientId -> verified
 
 }

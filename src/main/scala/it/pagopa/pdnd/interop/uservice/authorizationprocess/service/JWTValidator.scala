@@ -6,5 +6,5 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.AccessTokenReq
 import scala.concurrent.Future
 
 trait JWTValidator {
-  def validate(accessTokenRequest: AccessTokenRequest): Future[SignedJWT]
+  def validate(accessTokenRequest: AccessTokenRequest): Future[(String, SignedJWT)]
 }

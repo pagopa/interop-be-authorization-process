@@ -5,10 +5,13 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
 import com.nimbusds.jose.JOSEException
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement, AgreementEnums}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, expireIn, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
+  AgreementNotFoundError,
   EnumParameterError,
+  TooManyActiveAgreementsError,
   UnauthenticatedError,
   UuidConversionError
 }
@@ -27,8 +30,8 @@ import scala.util.{Failure, Success}
 class AuthApiServiceImpl(
   jwtValidator: JWTValidator,
   jwtGenerator: JWTGenerator,
-  agreementProcessService: AgreementProcessService,
   authorizationManagementService: AuthorizationManagementService,
+  agreementManagementService: AgreementManagementService,
   catalogManagementService: CatalogManagementService,
   partyManagementService: PartyManagementService
 )(implicit ec: ExecutionContext)
@@ -47,15 +50,40 @@ class AuthApiServiceImpl(
 
     val token: Future[String] =
       for {
-        bearerToken  <- extractBearer(contexts)
-        validated    <- jwtValidator.validate(accessTokenRequest)
-        pdndAudience <- agreementProcessService.retrieveAudience(bearerToken, accessTokenRequest.audience.toString)
-        token        <- jwtGenerator.generate(validated, pdndAudience.audience.toList)
+        bearerToken <- extractBearer(contexts)
+        validated   <- jwtValidator.validate(accessTokenRequest)
+        (clientId, assertion) = validated
+        client <- authorizationManagementService.getClient(clientId)
+        agreements <- agreementManagementService.getAgreements(
+          bearerToken,
+          client.consumerId.toString,
+          client.eServiceId.toString,
+          AgreementEnums.Status.Active
+        )
+        _        <- validateActiveAgreement(agreements, client.eServiceId.toString, client.consumerId.toString)
+        eservice <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
+        token    <- jwtGenerator.generate(assertion, eservice.audience.toList)
       } yield token
 
     onComplete(token) {
       case Success(tk) => createToken200(ClientCredentialsResponse(tk, "tokenType", expireIn))
       case Failure(ex) => manageError(ex)
+    }
+  }
+
+  private def validateActiveAgreement(
+    agreements: Seq[Agreement],
+    eserviceId: String,
+    consumerId: String
+  ): Future[Unit] = {
+    val errorFunc: (String, String) => Throwable =
+      if (agreements.isEmpty) AgreementNotFoundError
+      else TooManyActiveAgreementsError
+
+    Future.fromTry {
+      Either
+        .cond(agreements.size == 1, (), errorFunc(eserviceId, consumerId))
+        .toTry
     }
   }
 
@@ -80,6 +108,7 @@ class AuthApiServiceImpl(
       _           <- catalogManagementService.getEService(bearerToken, clientSeed.eServiceId.toString)
       client <- authorizationManagementService.createClient(
         clientSeed.eServiceId,
+        clientSeed.consumerId,
         clientSeed.name,
         clientSeed.description
       )

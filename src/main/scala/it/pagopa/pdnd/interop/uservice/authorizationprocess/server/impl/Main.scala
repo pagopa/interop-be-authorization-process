@@ -4,7 +4,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
 import com.bettercloud.vault.Vault
-import it.pagopa.pdnd.interop.uservice.agreementprocess.client.api.{AgreementApi => AgreementProcessApi}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApi
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{AuthApiMarshallerImpl, AuthApiServiceImpl}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{
@@ -16,7 +16,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.{ApplicationC
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.server.Controller
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
-  AgreementProcessServiceImpl,
+  AgreementManagementServiceImpl,
   AuthorizationManagementServiceImpl,
   CatalogManagementServiceImpl,
   JWTGeneratorImpl,
@@ -34,10 +34,10 @@ import kamon.Kamon
 
 import scala.concurrent.Future
 
-trait AgreementProcessAPI {
-  val agreementProcessService = new AgreementProcessServiceImpl(
-    AgreementProcessInvoker(),
-    AgreementProcessApi(ApplicationConfiguration.getAgreementProcessURL)
+trait AgreementManagementAPI {
+  val agreementManagementService = new AgreementManagementServiceImpl(
+    AgreementManagementInvoker(),
+    AgreementManagementApi(ApplicationConfiguration.getAgreementProcessURL)
   )
 }
 
@@ -82,7 +82,7 @@ trait JWTValidator { self: AuthorizationManagementAPI =>
 object Main
     extends App
     with CorsSupport
-    with AgreementProcessAPI
+    with AgreementManagementAPI
     with AuthorizationManagementAPI
     with CatalogManagementAPI
     with PartyManagementAPI
@@ -95,8 +95,8 @@ object Main
     new AuthApiServiceImpl(
       jwtValidator,
       jwtGenerator,
-      agreementProcessService,
       authorizationManagementService,
+      agreementManagementService,
       catalogManagementService,
       partyManagementService
     ),

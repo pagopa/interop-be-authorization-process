@@ -28,11 +28,17 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
   /** Returns the expected audience defined by the producer of the corresponding agreementId.
     *
     * @param eServiceId
+    * @param consumerId
     * @param description
     * @return
     */
-  override def createClient(eServiceId: UUID, name: String, description: Option[String]): Future[Client] = {
-    val request: ApiRequest[Client] = clientApi.createClient(ClientSeed(eServiceId, name, description))
+  override def createClient(
+    eServiceId: UUID,
+    consumerId: UUID,
+    name: String,
+    description: Option[String]
+  ): Future[Client] = {
+    val request: ApiRequest[Client] = clientApi.createClient(ClientSeed(eServiceId, consumerId, name, description))
     invoke(request, "Client creation")
   }
 

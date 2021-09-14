@@ -12,14 +12,14 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val problemFormat: RootJsonFormat[Problem] = jsonFormat3(Problem)
 
-  implicit val accessTokenRequestFormat: RootJsonFormat[AccessTokenRequest] = jsonFormat5(AccessTokenRequest)
+  implicit val accessTokenRequestFormat: RootJsonFormat[AccessTokenRequest] = jsonFormat4(AccessTokenRequest)
 
   implicit val clientCredentialsResponseFormat: RootJsonFormat[ClientCredentialsResponse] = jsonFormat3(
     ClientCredentialsResponse
   )
 
-  implicit val clientFormat: RootJsonFormat[Client]         = jsonFormat5(Client)
-  implicit val clientSeedFormat: RootJsonFormat[ClientSeed] = jsonFormat3(ClientSeed)
+  implicit val clientFormat: RootJsonFormat[Client]         = jsonFormat6(Client)
+  implicit val clientSeedFormat: RootJsonFormat[ClientSeed] = jsonFormat4(ClientSeed)
 
   implicit val eServiceFormat: RootJsonFormat[EService]         = jsonFormat2(EService)
   implicit val organizationFormat: RootJsonFormat[Organization] = jsonFormat2(Organization)

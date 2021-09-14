@@ -638,7 +638,6 @@ components:
         - client_assertion
         - client_assertion_type
         - grant_type
-        - audience
       properties:
         client_id:
           type: string
@@ -654,10 +653,6 @@ components:
           type: string
           enum:
             - client_credentials
-        audience:
-          type: string
-          format: uuid
-          example: e58035ce-c753-4f72-b613-46f8a17b71cc
     ClientCredentialsResponse:
       type: object
       required:
@@ -684,12 +679,16 @@ components:
         eServiceId:
           type: string
           format: uuid
+        consumerId:
+          type: string
+          format: uuid
         name:
           type: string
         description:
           type: string
       required:
         - eServiceId
+        - consumerId
         - name
     Client:
       description: Models a Client
@@ -699,6 +698,9 @@ components:
           type: string
           format: uuid
         eServiceId:
+          type: string
+          format: uuid
+        consumerId:
           type: string
           format: uuid
         name:
@@ -714,6 +716,7 @@ components:
       required:
         - id
         - eServiceId
+        - consumerId
         - name
         - operators
     ClientDetail:

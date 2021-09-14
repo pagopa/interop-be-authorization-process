@@ -19,8 +19,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
   val service = new AuthApiServiceImpl(
     mockJwtValidator,
     mockJwtGenerator,
-    mockAgreementProcessService,
     mockAuthorizationManagementService,
+    mockAgreementManagementService,
     mockCatalogManagementService,
     mockPartyManagementService
   )(ExecutionContext.global)
@@ -33,13 +33,14 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returns(Future.successful(eService))
 
       (mockAuthorizationManagementService.createClient _)
-        .expects(clientSeed.eServiceId, clientSeed.name, clientSeed.description)
+        .expects(clientSeed.eServiceId, clientSeed.consumerId, clientSeed.name, clientSeed.description)
         .once()
         .returns(Future.successful(client))
 
       val expected = Client(
         id = client.id,
         eServiceId = client.eServiceId,
+        consumerId = client.consumerId,
         name = client.name,
         description = client.description,
         operators = client.operators

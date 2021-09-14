@@ -15,7 +15,7 @@ import scala.util.Try
 
 trait AuthorizationManagementService {
 
-  def createClient(eServiceId: UUID, name: String, description: Option[String]): Future[Client]
+  def createClient(eServiceId: UUID, consumerId: UUID, name: String, description: Option[String]): Future[Client]
   def getClient(clientId: String): Future[Client]
   def listClients(
     offset: Option[Int],
@@ -41,6 +41,7 @@ object AuthorizationManagementService {
     ApiClient(
       id = client.id,
       eServiceId = client.eServiceId,
+      consumerId = client.consumerId,
       name = client.name,
       description = client.description,
       operators = client.operators
