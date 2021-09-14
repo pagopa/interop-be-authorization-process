@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{PartyManagementInvoker, PartyManagementService}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.PartyApi
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.ApiRequest
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Organization
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Organization, Person, Relationships}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -16,17 +16,29 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
 
   override def getOrganization(organizationId: UUID): Future[Organization] = {
     val request: ApiRequest[Organization] = api.getPartyOrganizationByUUID(organizationId)
-    invoker
-      .execute[Organization](request)
-      .map { x =>
-        logger.info(s"Retrieving Organization status code > ${x.code.toString}")
-        logger.info(s"Retrieving Organization content > ${x.content.toString}")
-        x.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Retrieving Organization, error > ${ex.getMessage}")
-        Future.failed[Organization](ex)
-      }
+    invoke(request, "Retrieve Organization")
   }
 
+  override def getPerson(personId: UUID): Future[Person] = {
+    val request: ApiRequest[Person] = api.getPartyPersonByUUID(personId)
+    invoke(request, "Retrieve Person")
+  }
+
+  override def getRelationships(organizationId: String, personId: String): Future[Relationships] = {
+    val request: ApiRequest[Relationships] =
+      api.getRelationships(Some(personId), Some(organizationId))
+    invoke(request, "Retrieve Relationships")
+  }
+
+  private def invoke[T](request: ApiRequest[T], logMessage: String)(implicit m: Manifest[T]): Future[T] =
+    invoker
+      .execute[T](request)
+      .map { response =>
+        logger.debug(s"$logMessage. Status code: ${response.code.toString}. Content: ${response.content.toString}")
+        response.content
+      }
+      .recoverWith { case ex =>
+        logger.error(s"$logMessage. Error: ${ex.getMessage}")
+        Future.failed[T](ex)
+      }
 }
