@@ -699,8 +699,6 @@ components:
           format: uuid
         eService:
           $ref: '#/components/schemas/EService'
-        organization:
-          $ref: '#/components/schemas/Organization'
         consumer:
           $ref: '#/components/schemas/Organization'
         name:
@@ -725,9 +723,12 @@ components:
           format: uuid
         name:
           type: string
+        provider:
+          $ref: '#/components/schemas/Organization'
       required:
         - id
         - name
+        - provider
     Clients:
       type: object
       items:

@@ -419,11 +419,11 @@ class AuthApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      bearerToken  <- extractBearer(contexts)
-      client       <- authorizationManagementService.getClient(clientId)
-      eService     <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
-      organization <- partyManagementService.getOrganization(eService.producerId)
-      operators    <- client.operators.toSeq.traverse(op => getClientOperator(op, organization))
+      bearerToken <- extractBearer(contexts)
+      client      <- authorizationManagementService.getClient(clientId)
+      eService    <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
+      producer    <- partyManagementService.getOrganization(eService.producerId)
+      operators   <- client.operators.toSeq.traverse(op => getClientOperator(op, producer))
     } yield operators.flatten
 
     onComplete(result) {
@@ -438,11 +438,11 @@ class AuthApiServiceImpl(
 
   private[this] def getClient(bearerToken: String, client: keymanagement.client.model.Client): Future[Client] = {
     for {
-      eService     <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
-      organization <- partyManagementService.getOrganization(eService.producerId)
-      consumer     <- partyManagementService.getOrganization(client.consumerId)
-      operators    <- client.operators.toSeq.flatTraverse(operatorId => getClientOperator(operatorId, organization))
-    } yield clientToApi(client, eService, organization, consumer, operators)
+      eService  <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
+      producer  <- partyManagementService.getOrganization(eService.producerId)
+      consumer  <- partyManagementService.getOrganization(client.consumerId)
+      operators <- client.operators.toSeq.flatTraverse(operatorId => getClientOperator(operatorId, producer))
+    } yield clientToApi(client, eService, producer, consumer, operators)
   }
 
   private[this] def getClientOperator(
@@ -458,18 +458,20 @@ class AuthApiServiceImpl(
   private[this] def clientToApi(
     client: keymanagement.client.model.Client,
     eService: catalogmanagement.client.model.EService,
-    organization: partymanagement.client.model.Organization,
+    provider: partymanagement.client.model.Organization,
     consumer: partymanagement.client.model.Organization,
     operator: Seq[Operator]
-  ): Client =
+  ): Client = {
+    val apiProvider = PartyManagementService.organizationToApi(provider)
+
     Client(
       id = client.id,
-      eService = CatalogManagementService.eServiceToApi(eService),
-      organization = PartyManagementService.organizationToApi(organization),
+      eService = CatalogManagementService.eServiceToApi(eService, apiProvider),
       consumer = PartyManagementService.organizationToApi(consumer),
       name = client.name,
       description = client.description,
       operators = Some(operator)
     )
+  }
 
 }
