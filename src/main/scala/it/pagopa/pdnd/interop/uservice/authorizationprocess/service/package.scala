@@ -13,7 +13,7 @@ package object service {
   type AgreementManagementInvoker     = agreementmanagement.client.invoker.ApiInvoker
   type AuthorizationManagementInvoker = keymanagement.client.invoker.ApiInvoker
 
-  type ClientManagement = Client
+  type ManagementClient = Client
 
   @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
   object AgreementManagementInvoker {

@@ -19,17 +19,17 @@ trait AuthorizationManagementService {
     consumerId: UUID,
     name: String,
     description: Option[String]
-  ): Future[ClientManagement]
-  def getClient(clientId: String): Future[ClientManagement]
+  ): Future[ManagementClient]
+  def getClient(clientId: String): Future[ManagementClient]
   def listClients(
     offset: Option[Int],
     limit: Option[Int],
     eServiceId: Option[UUID],
     operatorId: Option[UUID]
-  ): Future[Seq[ClientManagement]]
+  ): Future[Seq[ManagementClient]]
   def deleteClient(clientId: String): Future[Unit]
 
-  def addOperator(clientId: UUID, operatorId: UUID): Future[ClientManagement]
+  def addOperator(clientId: UUID, operatorId: UUID): Future[ManagementClient]
   def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit]
 
   def getKey(clientId: UUID, kid: String): Future[Key]
