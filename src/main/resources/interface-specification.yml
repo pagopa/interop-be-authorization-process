@@ -13,7 +13,7 @@ info:
   x-summary: an x-summary
 servers:
   - url: 'https://gateway.interop.pdnd.dev/pdnd-interop-uservice-authorization-process/0.0.1'
-#  - url: http://localhost:8088/pdnd-interop-uservice-authorization-process/0.0.1
+    #  - url: http://localhost:8088/pdnd-interop-uservice-authorization-process/0.0.1
     description: This service is the security supplier
 #security:
 #  - bearerAuth: [ ]
@@ -81,7 +81,7 @@ paths:
         "201":
           description: Client created
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Client'
         "401":
@@ -139,7 +139,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClientsDetails'
+                $ref: '#/components/schemas/Clients'
         "400":
           description: Bad Request
           content:
@@ -178,7 +178,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClientDetail'
+                $ref: '#/components/schemas/Client'
         "401":
           description: Unauthorized
           content:
@@ -691,35 +691,6 @@ components:
         - consumerId
         - name
     Client:
-      description: Models a Client
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        eServiceId:
-          type: string
-          format: uuid
-        consumerId:
-          type: string
-          format: uuid
-        name:
-          type: string
-        description:
-          type: string
-        operators:
-          type: array
-          items:
-            type: string
-            format: uuid
-          uniqueItems: true
-      required:
-        - id
-        - eServiceId
-        - consumerId
-        - name
-        - operators
-    ClientDetail:
       description: Models Client details
       type: object
       properties:
@@ -730,14 +701,20 @@ components:
           $ref: '#/components/schemas/EService'
         organization:
           $ref: '#/components/schemas/Organization'
+        consumer:
+          $ref: '#/components/schemas/Organization'
         name:
           type: string
         description:
           type: string
+        operators:
+          $ref: '#/components/schemas/Operators'
+          uniqueItems: true
       required:
         - id
         - eService
         - organization
+        - consumer
         - name
     EService:
       description: Models an E-Service
@@ -751,10 +728,10 @@ components:
       required:
         - id
         - name
-    ClientsDetails:
+    Clients:
       type: object
       items:
-        $ref: '#/components/schemas/ClientDetail'
+        $ref: '#/components/schemas/Client'
     OperatorSeed:
       description: Models the seed for an Operator-Client relationship to be persisted
       type: object

@@ -37,7 +37,7 @@ import scala.concurrent.Future
 trait AgreementManagementAPI {
   val agreementManagementService = new AgreementManagementServiceImpl(
     AgreementManagementInvoker(),
-    AgreementManagementApi(ApplicationConfiguration.getAgreementProcessURL)
+    AgreementManagementApi(ApplicationConfiguration.getAgreementManagementURL)
   )
 }
 

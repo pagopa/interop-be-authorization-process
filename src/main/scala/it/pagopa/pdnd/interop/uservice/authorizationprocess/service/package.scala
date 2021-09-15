@@ -3,6 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 import akka.actor.ActorSystem
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.EnumsSerializers
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.ApiInvoker
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.Client
 import it.pagopa.pdnd.interop.uservice.{agreementmanagement, catalogmanagement, keymanagement, partymanagement}
 
 package object service {
@@ -11,6 +12,8 @@ package object service {
   type PartyManagementInvoker         = partymanagement.client.invoker.ApiInvoker
   type AgreementManagementInvoker     = agreementmanagement.client.invoker.ApiInvoker
   type AuthorizationManagementInvoker = keymanagement.client.invoker.ApiInvoker
+
+  type ManagementClient = Client
 
   @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
   object AgreementManagementInvoker {

@@ -94,7 +94,8 @@ class AuthApiServiceImpl(
     case ex                        => createToken400(Problem(Option(ex.getMessage), 400, "Something goes wrong during access token request"))
   }
 
-  /** Code: 200, Message: Client created, DataType: Client
+  /** Code: 201, Message: Client created, DataType: Client
+    * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Not Found, DataType: Problem
     * Code: 500, Message: Internal Server Error, DataType: Problem
     */
@@ -112,7 +113,8 @@ class AuthApiServiceImpl(
         clientSeed.name,
         clientSeed.description
       )
-    } yield AuthorizationManagementService.clientToApi(client)
+      apiClient <- getClient(bearerToken, client)
+    } yield apiClient
 
     onComplete(result) {
       case Success(client)                    => createClient201(client)
@@ -124,19 +126,20 @@ class AuthApiServiceImpl(
   }
 
   /** Code: 200, Message: Client retrieved, DataType: Client
+    * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Client not found, DataType: Problem
     * Code: 500, Message: Internal server error, DataType: Problem
     */
   override def getClient(clientId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerClient: ToEntityMarshaller[ClientDetail],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
     val result = for {
-      bearerToken  <- extractBearer(contexts)
-      client       <- authorizationManagementService.getClient(clientId)
-      clientDetail <- getClientDetail(bearerToken, client)
-    } yield clientDetail
+      bearerToken <- extractBearer(contexts)
+      client      <- authorizationManagementService.getClient(clientId)
+      apiClient   <- getClient(bearerToken, client)
+    } yield apiClient
 
     onComplete(result) {
       case Success(client)                    => getClient200(client)
@@ -148,6 +151,7 @@ class AuthApiServiceImpl(
   }
 
   /** Code: 200, Message: Request succeed, DataType: Seq[Client]
+    * Code: 400, Message: Bad Request, DataType: Problem
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 500, Message: Internal Server Error, DataType: Problem
     */
@@ -158,8 +162,8 @@ class AuthApiServiceImpl(
     operatorId: Option[String]
   )(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerClientDetailarray: ToEntityMarshaller[Seq[ClientDetail]],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerClientarray: ToEntityMarshaller[Seq[Client]]
   ): Route = {
     val result = for {
       bearerToken  <- extractBearer(contexts)
@@ -167,7 +171,7 @@ class AuthApiServiceImpl(
       operatorUuid <- operatorId.map(toUuid).sequence.toFuture
       clients      <- authorizationManagementService.listClients(offset, limit, eServiceUuid, operatorUuid)
       // TODO Improve multiple requests
-      clientsDetails <- clients.traverse(client => getClientDetail(bearerToken, client))
+      clientsDetails <- clients.traverse(client => getClient(bearerToken, client))
     } yield clientsDetails
 
     onComplete(result) {
@@ -211,10 +215,11 @@ class AuthApiServiceImpl(
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
     val result = for {
-      _          <- extractBearer(contexts)
-      clientUuid <- toUuid(clientId).toFuture
-      client     <- authorizationManagementService.addOperator(clientUuid, operatorSeed.operatorId)
-    } yield AuthorizationManagementService.clientToApi(client)
+      bearerToken <- extractBearer(contexts)
+      clientUuid  <- toUuid(clientId).toFuture
+      client      <- authorizationManagementService.addOperator(clientUuid, operatorSeed.operatorId)
+      apiClient   <- getClient(bearerToken, client)
+    } yield apiClient
 
     onComplete(result) {
       case Success(client)                    => addOperator201(client)
@@ -431,14 +436,13 @@ class AuthApiServiceImpl(
     }
   }
 
-  private[this] def getClientDetail(
-    bearerToken: String,
-    client: keymanagement.client.model.Client
-  ): Future[ClientDetail] = {
+  private[this] def getClient(bearerToken: String, client: keymanagement.client.model.Client): Future[Client] = {
     for {
       eService     <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
       organization <- partyManagementService.getOrganization(eService.producerId)
-    } yield clientDetailToApi(client, eService, organization)
+      consumer     <- partyManagementService.getOrganization(client.consumerId)
+      operators    <- client.operators.toSeq.flatTraverse(operatorId => getClientOperator(operatorId, organization))
+    } yield clientToApi(client, eService, organization, consumer, operators)
   }
 
   private[this] def getClientOperator(
@@ -451,17 +455,21 @@ class AuthApiServiceImpl(
       operators = relationships.items.map(r => PartyManagementService.operatorToApi(person, r))
     } yield operators
 
-  private[this] def clientDetailToApi(
+  private[this] def clientToApi(
     client: keymanagement.client.model.Client,
     eService: catalogmanagement.client.model.EService,
-    organization: partymanagement.client.model.Organization
-  ): ClientDetail =
-    ClientDetail(
+    organization: partymanagement.client.model.Organization,
+    consumer: partymanagement.client.model.Organization,
+    operator: Seq[Operator]
+  ): Client =
+    Client(
       id = client.id,
       eService = CatalogManagementService.eServiceToApi(eService),
       organization = PartyManagementService.organizationToApi(organization),
+      consumer = PartyManagementService.organizationToApi(consumer),
       name = client.name,
-      description = client.description
+      description = client.description,
+      operators = Some(operator)
     )
 
 }
