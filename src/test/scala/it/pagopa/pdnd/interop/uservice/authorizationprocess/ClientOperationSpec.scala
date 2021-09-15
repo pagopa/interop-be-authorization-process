@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, Descriptor, EService, Organization}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.{catalogmanagement, keymanagement}
 import org.scalamock.scalatest.MockFactory
@@ -109,6 +109,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(consumer))
 
+      (mockAgreementManagementService.getAgreements _)
+        .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
+        .once()
+        .returns(Future.successful(Seq(agreement)))
+
       val expected =
         Client(
           id = client.id,
@@ -119,6 +124,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
             Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
           ),
           consumer = Organization(consumer.institutionId, consumer.description),
+          agreement = Agreement(
+            agreement.id,
+            agreement.status.toString,
+            Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
+          ),
           name = client.name,
           description = client.description,
           operators = Some(Seq.empty)
@@ -164,6 +174,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(consumer))
 
+      (mockAgreementManagementService.getAgreements _)
+        .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
+        .once()
+        .returns(Future.successful(Seq(agreement)))
+
       val expected = Seq(
         Client(
           id = client.id,
@@ -174,6 +189,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
             Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
           ),
           consumer = Organization(consumer.institutionId, consumer.description),
+          agreement = Agreement(
+            agreement.id,
+            agreement.status.toString,
+            Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
+          ),
           name = client.name,
           description = client.description,
           operators = Some(Seq.empty)

@@ -701,6 +701,8 @@ components:
           $ref: '#/components/schemas/EService'
         consumer:
           $ref: '#/components/schemas/Organization'
+        agreement:
+          $ref: '#/components/schemas/Agreement'
         name:
           type: string
         description:
@@ -713,6 +715,7 @@ components:
         - eService
         - organization
         - consumer
+        - agreement
         - name
     EService:
       description: Models an E-Service
@@ -746,6 +749,21 @@ components:
         - id
         - status
         - version
+    Agreement:
+      description: Models an Agreement
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        descriptor:
+          $ref: '#/components/schemas/Descriptor'
+      required:
+        - id
+        - status
+        - descriptor
     Clients:
       type: object
       items:

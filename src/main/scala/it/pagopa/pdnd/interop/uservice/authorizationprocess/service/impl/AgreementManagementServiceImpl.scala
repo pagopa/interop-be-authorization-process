@@ -22,10 +22,10 @@ class AgreementManagementServiceImpl(invoker: AgreementManagementInvoker, api: A
     bearerToken: String,
     consumerId: String,
     eserviceId: String,
-    status: Status
+    status: Option[Status]
   ): Future[Seq[Agreement]] = {
     val request: ApiRequest[Seq[Agreement]] =
-      api.getAgreements(consumerId = Some(consumerId), eserviceId = Some(eserviceId), status = Some(status.toString))(
+      api.getAgreements(consumerId = Some(consumerId), eserviceId = Some(eserviceId), status = status.map(_.toString))(
         BearerToken(bearerToken)
       )
     invoker

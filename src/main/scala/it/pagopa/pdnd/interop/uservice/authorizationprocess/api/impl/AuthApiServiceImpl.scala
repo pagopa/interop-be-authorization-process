@@ -5,21 +5,16 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
 import com.nimbusds.jose.JOSEException
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement, AgreementEnums}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, expireIn, toUuid}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
-  AgreementNotFoundError,
-  EnumParameterError,
-  TooManyActiveAgreementsError,
-  UnauthenticatedError,
-  UuidConversionError
-}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogManagementApiError}
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EServiceDescriptor
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
-import it.pagopa.pdnd.interop.uservice.{catalogmanagement, keymanagement, partymanagement}
+import it.pagopa.pdnd.interop.uservice.{agreementmanagement, catalogmanagement, keymanagement, partymanagement}
 
 import java.text.ParseException
 import java.util.UUID
@@ -58,7 +53,7 @@ class AuthApiServiceImpl(
           bearerToken,
           client.consumerId.toString,
           client.eServiceId.toString,
-          AgreementEnums.Status.Active
+          Some(AgreementEnums.Status.Active)
         )
         _        <- validateActiveAgreement(agreements, client.eServiceId.toString, client.consumerId.toString)
         eservice <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
@@ -72,7 +67,7 @@ class AuthApiServiceImpl(
   }
 
   private def validateActiveAgreement(
-    agreements: Seq[Agreement],
+    agreements: Seq[agreementmanagement.client.model.Agreement],
     eserviceId: String,
     consumerId: String
   ): Future[Unit] = {
@@ -438,11 +433,14 @@ class AuthApiServiceImpl(
 
   private[this] def getClient(bearerToken: String, client: keymanagement.client.model.Client): Future[Client] = {
     for {
-      eService  <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
-      producer  <- partyManagementService.getOrganization(eService.producerId)
-      consumer  <- partyManagementService.getOrganization(client.consumerId)
-      operators <- client.operators.toSeq.flatTraverse(operatorId => getClientOperator(operatorId, producer))
-    } yield clientToApi(client, eService, producer, consumer, operators)
+      eService   <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
+      producer   <- partyManagementService.getOrganization(eService.producerId)
+      consumer   <- partyManagementService.getOrganization(client.consumerId)
+      operators  <- client.operators.toSeq.flatTraverse(operatorId => getClientOperator(operatorId, producer))
+      agreements <- agreementManagementService.getAgreements(bearerToken, consumer.partyId, eService.id.toString, None)
+      agreement  <- getLatestAgreement(agreements, eService)
+      client     <- clientToApi(client, eService, producer, consumer, agreement, operators)
+    } yield client
   }
 
   private[this] def getClientOperator(
@@ -455,20 +453,75 @@ class AuthApiServiceImpl(
       operators = relationships.items.map(r => PartyManagementService.operatorToApi(person, r))
     } yield operators
 
+  def compareDescriptorVersion(descriptor1: EServiceDescriptor, descriptor2: EServiceDescriptor): Boolean =
+    descriptor1.version.toInt > descriptor2.version.toInt
+
+  private[this] def getLatestAgreement(
+    agreements: Seq[agreementmanagement.client.model.Agreement],
+    eService: catalogmanagement.client.model.EService
+  ): Future[agreementmanagement.client.model.Agreement] = {
+    val activeAgreement = agreements.find(_.status == AgreementEnums.Status.Active)
+    lazy val latestAgreement =
+      agreements
+        .map(agreement => (agreement, eService.descriptors.find(_.id == agreement.descriptorId)))
+        .collect { case (agreement, Some(descriptor)) =>
+          (agreement, descriptor)
+        }
+        .sortWith((elem1, elem2) => compareDescriptorVersion(elem1._2, elem2._2))
+        .map(_._1)
+        .headOption
+
+    // TODO Create custom error
+    activeAgreement.orElse(latestAgreement).toRight(new RuntimeException("Unable to find agreement")).toFuture
+  }
+
   private[this] def clientToApi(
     client: keymanagement.client.model.Client,
     eService: catalogmanagement.client.model.EService,
     provider: partymanagement.client.model.Organization,
     consumer: partymanagement.client.model.Organization,
+    agreement: agreementmanagement.client.model.Agreement,
     operator: Seq[Operator]
-  ): Client = {
-    val apiProvider      = PartyManagementService.organizationToApi(provider)
-    val activeDescriptor = CatalogManagementService.getActiveDescriptor(eService)
+  ): Future[Client] = {
+//    val apiAgreement: Option[Agreement] = for {
+//      a <- agreement
+//      agreementDescriptor <- eService.descriptors
+//        .find(_.id == a.descriptorId)
+//      apiAgreementDescriptor = CatalogManagementService.descriptorToApi(agreementDescriptor)
+//    } yield AgreementManagementService.agreementToApi(a, apiAgreementDescriptor)
+//
+//    val apiProvider      = PartyManagementService.organizationToApi(provider)
+//    val activeDescriptor = CatalogManagementService.getActiveDescriptor(eService)
+//
+//    Client(
+//      id = client.id,
+//      eService = CatalogManagementService.eServiceToApi(eService, apiProvider, activeDescriptor),
+//      consumer = PartyManagementService.organizationToApi(consumer),
+//      agreement = apiAgreement,
+//      name = client.name,
+//      description = client.description,
+//      operators = Some(operator)
+//    )
 
-    Client(
+    for {
+      agreementDescriptor <- eService.descriptors
+        .find(_.id == agreement.descriptorId)
+        .toRight(
+          UnknownAgreementDescriptor(
+            agreement.id.toString,
+            agreement.eserviceId.toString,
+            agreement.descriptorId.toString
+          )
+        )
+        .toFuture
+      apiAgreementDescriptor = CatalogManagementService.descriptorToApi(agreementDescriptor)
+      apiProvider            = PartyManagementService.organizationToApi(provider)
+      activeDescriptor       = CatalogManagementService.getActiveDescriptor(eService)
+    } yield Client(
       id = client.id,
       eService = CatalogManagementService.eServiceToApi(eService, apiProvider, activeDescriptor),
       consumer = PartyManagementService.organizationToApi(consumer),
+      agreement = AgreementManagementService.agreementToApi(agreement, apiAgreementDescriptor),
       name = client.name,
       description = client.description,
       operators = Some(operator)
