@@ -78,4 +78,9 @@ package object utils {
   implicit class EitherOps[A](val either: Either[Throwable, A]) extends AnyVal {
     def toFuture: Future[A] = either.fold(e => Future.failed(e), a => Future.successful(a))
   }
+
+  implicit class OptionOps[A](val option: Option[A]) extends AnyVal {
+    def toFuture[E <: Throwable](error: E): Future[A] =
+      option.fold[Future[A]](Future.failed(error))(Future.successful)
+  }
 }

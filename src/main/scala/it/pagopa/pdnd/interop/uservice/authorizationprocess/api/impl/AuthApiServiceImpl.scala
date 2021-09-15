@@ -7,7 +7,7 @@ import cats.implicits._
 import com.nimbusds.jose.JOSEException
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, expireIn, toUuid}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, OptionOps, expireIn, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
@@ -438,7 +438,7 @@ class AuthApiServiceImpl(
       consumer   <- partyManagementService.getOrganization(client.consumerId)
       operators  <- client.operators.toSeq.flatTraverse(operatorId => getClientOperator(operatorId, producer))
       agreements <- agreementManagementService.getAgreements(bearerToken, consumer.partyId, eService.id.toString, None)
-      agreement  <- getLatestAgreement(agreements, eService)
+      agreement  <- getLatestAgreement(agreements, eService).toFuture(ClientAgreementNotFoundError(client.id.toString))
       client     <- clientToApi(client, eService, producer, consumer, agreement, operators)
     } yield client
   }
@@ -453,15 +453,18 @@ class AuthApiServiceImpl(
       operators = relationships.items.map(r => PartyManagementService.operatorToApi(person, r))
     } yield operators
 
-  def compareDescriptorVersion(descriptor1: EServiceDescriptor, descriptor2: EServiceDescriptor): Boolean =
+  private[this] def compareDescriptorVersion(
+    descriptor1: EServiceDescriptor,
+    descriptor2: EServiceDescriptor
+  ): Boolean =
     descriptor1.version.toInt > descriptor2.version.toInt
 
   private[this] def getLatestAgreement(
     agreements: Seq[agreementmanagement.client.model.Agreement],
     eService: catalogmanagement.client.model.EService
-  ): Future[agreementmanagement.client.model.Agreement] = {
+  ): Option[agreementmanagement.client.model.Agreement] = {
     val activeAgreement = agreements.find(_.status == AgreementEnums.Status.Active)
-    lazy val latestAgreement =
+    lazy val latestAgreementByDescriptor =
       agreements
         .map(agreement => (agreement, eService.descriptors.find(_.id == agreement.descriptorId)))
         .collect { case (agreement, Some(descriptor)) =>
@@ -471,8 +474,7 @@ class AuthApiServiceImpl(
         .map(_._1)
         .headOption
 
-    // TODO Create custom error
-    activeAgreement.orElse(latestAgreement).toRight(new RuntimeException("Unable to find agreement")).toFuture
+    activeAgreement.orElse(latestAgreementByDescriptor)
   }
 
   private[this] def clientToApi(
@@ -483,26 +485,6 @@ class AuthApiServiceImpl(
     agreement: agreementmanagement.client.model.Agreement,
     operator: Seq[Operator]
   ): Future[Client] = {
-//    val apiAgreement: Option[Agreement] = for {
-//      a <- agreement
-//      agreementDescriptor <- eService.descriptors
-//        .find(_.id == a.descriptorId)
-//      apiAgreementDescriptor = CatalogManagementService.descriptorToApi(agreementDescriptor)
-//    } yield AgreementManagementService.agreementToApi(a, apiAgreementDescriptor)
-//
-//    val apiProvider      = PartyManagementService.organizationToApi(provider)
-//    val activeDescriptor = CatalogManagementService.getActiveDescriptor(eService)
-//
-//    Client(
-//      id = client.id,
-//      eService = CatalogManagementService.eServiceToApi(eService, apiProvider, activeDescriptor),
-//      consumer = PartyManagementService.organizationToApi(consumer),
-//      agreement = apiAgreement,
-//      name = client.name,
-//      description = client.description,
-//      operators = Some(operator)
-//    )
-
     for {
       agreementDescriptor <- eService.descriptors
         .find(_.id == agreement.descriptorId)
