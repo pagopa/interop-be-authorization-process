@@ -502,7 +502,7 @@ class AuthApiServiceImpl(
       activeDescriptor       = CatalogManagementService.getActiveDescriptor(eService)
     } yield Client(
       id = client.id,
-      eService = CatalogManagementService.eServiceToApi(eService, apiProvider, activeDescriptor),
+      eservice = CatalogManagementService.eServiceToApi(eService, apiProvider, activeDescriptor),
       consumer = PartyManagementService.organizationToApi(consumer),
       agreement = AgreementManagementService.agreementToApi(agreement, apiAgreementDescriptor),
       name = client.name,

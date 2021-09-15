@@ -61,7 +61,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       val expected = Client(
         id = client.id,
-        eService = EService(
+        eservice = EService(
           eService.id,
           eService.name,
           Organization(organization.institutionId, organization.description),
@@ -134,7 +134,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expected =
         Client(
           id = client.id,
-          eService = EService(
+          eservice = EService(
             eService.id,
             eService.name,
             Organization(organization.institutionId, organization.description),
@@ -200,7 +200,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expected =
         Client(
           id = client.id,
-          eService = EService(
+          eservice = EService(
             eService1.id,
             eService1.name,
             Organization(organization.institutionId, organization.description),
@@ -265,7 +265,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expected = Seq(
         Client(
           id = client.id,
-          eService = EService(
+          eservice = EService(
             eService.id,
             eService.name,
             Organization(organization.institutionId, organization.description),

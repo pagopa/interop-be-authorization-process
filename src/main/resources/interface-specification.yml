@@ -697,7 +697,7 @@ components:
         id:
           type: string
           format: uuid
-        eService:
+        eservice:
           $ref: '#/components/schemas/EService'
         consumer:
           $ref: '#/components/schemas/Organization'
@@ -712,7 +712,7 @@ components:
           uniqueItems: true
       required:
         - id
-        - eService
+        - eservice
         - organization
         - consumer
         - agreement
