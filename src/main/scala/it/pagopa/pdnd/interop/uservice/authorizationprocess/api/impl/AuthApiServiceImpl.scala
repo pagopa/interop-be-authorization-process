@@ -457,6 +457,7 @@ class AuthApiServiceImpl(
     descriptor1: EServiceDescriptor,
     descriptor2: EServiceDescriptor
   ): Boolean =
+    // TODO Use createdAt timestamp once available
     descriptor1.version.toInt > descriptor2.version.toInt
 
   private[this] def getLatestAgreement(
