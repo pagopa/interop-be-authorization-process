@@ -453,7 +453,7 @@ class AuthApiServiceImpl(
       operators = relationships.items.map(r => PartyManagementService.operatorToApi(person, r))
     } yield operators
 
-  private[this] def compareDescriptorVersion(
+  private[this] def compareDescriptorsVersion(
     descriptor1: EServiceDescriptor,
     descriptor2: EServiceDescriptor
   ): Boolean =
@@ -471,7 +471,7 @@ class AuthApiServiceImpl(
         .collect { case (agreement, Some(descriptor)) =>
           (agreement, descriptor)
         }
-        .sortWith((elem1, elem2) => compareDescriptorVersion(elem1._2, elem2._2))
+        .sortWith((elem1, elem2) => compareDescriptorsVersion(elem1._2, elem2._2))
         .map(_._1)
         .headOption
 
