@@ -54,11 +54,25 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(consumer))
 
+      (mockAgreementManagementService.getAgreements _)
+        .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
+        .once()
+        .returns(Future.successful(Seq(agreement)))
+
       val expected = Client(
         id = client.id,
-        eService = EService(eService.id, eService.name),
-        organization = Organization(organization.institutionId, organization.description),
+        eService = EService(
+          eService.id,
+          eService.name,
+          Organization(organization.institutionId, organization.description),
+          Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+        ),
         consumer = Organization(consumer.institutionId, consumer.description),
+        agreement = Agreement(
+          agreement.id,
+          agreement.status.toString,
+          Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
+        ),
         name = client.name,
         description = client.description,
         operators = Some(Seq.empty)
