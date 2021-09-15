@@ -78,8 +78,12 @@ paths:
             schema:
               $ref: '#/components/schemas/ClientSeed'
       responses:
-        "204":
+        "201":
           description: Client created
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Client'
         "401":
           description: Unauthorized
           content:

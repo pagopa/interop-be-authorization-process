@@ -36,8 +36,34 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(client))
 
+      (mockCatalogManagementService.getEService _)
+        .expects(*, client.eServiceId.toString)
+        .once()
+        .returns(Future.successful(eService))
+
+      (mockPartyManagementService.getOrganization _)
+        .expects(eService.producerId)
+        .once()
+        .returns(Future.successful(organization))
+
+      (mockPartyManagementService.getOrganization _)
+        .expects(client.consumerId)
+        .once()
+        .returns(Future.successful(consumer))
+
+      val expected = Client(
+        id = client.id,
+        eService = EService(eService.id, eService.name),
+        organization = Organization(organization.institutionId, organization.description),
+        consumer = Organization(consumer.institutionId, consumer.description),
+        name = client.name,
+        description = client.description,
+        operators = Some(Seq.empty)
+      )
+
       Get() ~> service.createClient(clientSeed) ~> check {
-        status shouldEqual StatusCodes.NoContent
+        status shouldEqual StatusCodes.Created
+        entityAs[Client] shouldEqual expected
       }
     }
 
