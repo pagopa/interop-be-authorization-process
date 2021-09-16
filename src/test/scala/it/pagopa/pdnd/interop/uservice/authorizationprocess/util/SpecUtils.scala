@@ -12,7 +12,9 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
 }
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
   Attributes,
-  EService => CatalogManagementEService
+  EServiceDescriptorEnums,
+  EService => CatalogManagementEService,
+  EServiceDescriptor => CatalogManagementDescriptor
 }
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
   Person,
@@ -20,6 +22,10 @@ import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
   RelationshipEnums,
   Relationships,
   Organization => PartyManagementOrganization
+}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{
+  AgreementEnums,
+  Agreement => AgreementManagerAgreement
 }
 import org.scalamock.scalatest.MockFactory
 
@@ -37,10 +43,20 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val bearerToken: String    = "token"
   val eServiceId: UUID       = UUID.randomUUID()
   val consumerId: UUID       = UUID.randomUUID()
+  val agreementId: UUID      = UUID.randomUUID()
   val organizationId: UUID   = UUID.randomUUID()
   val personId: UUID         = UUID.randomUUID()
   val clientSeed: ClientSeed = ClientSeed(eServiceId, consumerId, "client name", Some("client description"))
   val taxCode: String        = "taxCode"
+
+  val activeDescriptor: CatalogManagementDescriptor = CatalogManagementDescriptor(
+    id = UUID.randomUUID(),
+    version = "1",
+    description = None,
+    interface = None,
+    docs = Seq.empty,
+    status = EServiceDescriptorEnums.Status.Published
+  )
 
   val eService: CatalogManagementEService = CatalogManagementEService(
     id = eServiceId,
@@ -51,7 +67,17 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     technology = "REST",
     voucherLifespan = 10,
     attributes = Attributes(Seq.empty, Seq.empty, Seq.empty),
-    descriptors = Seq.empty
+    descriptors = Seq(activeDescriptor)
+  )
+
+  val agreement: AgreementManagerAgreement = AgreementManagerAgreement(
+    id = agreementId,
+    eserviceId = eServiceId,
+    descriptorId = activeDescriptor.id,
+    producerId = organizationId,
+    consumerId = consumerId,
+    status = AgreementEnums.Status.Active,
+    verifiedAttributes = Seq.empty
   )
 
   val organization: PartyManagementOrganization = PartyManagementOrganization(

@@ -697,12 +697,12 @@ components:
         id:
           type: string
           format: uuid
-        eService:
+        eservice:
           $ref: '#/components/schemas/EService'
-        organization:
-          $ref: '#/components/schemas/Organization'
         consumer:
           $ref: '#/components/schemas/Organization'
+        agreement:
+          $ref: '#/components/schemas/Agreement'
         name:
           type: string
         description:
@@ -712,9 +712,10 @@ components:
           uniqueItems: true
       required:
         - id
-        - eService
+        - eservice
         - organization
         - consumer
+        - agreement
         - name
     EService:
       description: Models an E-Service
@@ -725,9 +726,44 @@ components:
           format: uuid
         name:
           type: string
+        provider:
+          $ref: '#/components/schemas/Organization'
+        activeDescriptor:
+          $ref: '#/components/schemas/Descriptor'
       required:
         - id
         - name
+        - provider
+    Descriptor:
+      description: Models an E-Service Descriptor
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        version:
+          type: string
+      required:
+        - id
+        - status
+        - version
+    Agreement:
+      description: Models an Agreement
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        descriptor:
+          $ref: '#/components/schemas/Descriptor'
+      required:
+        - id
+        - status
+        - descriptor
     Clients:
       type: object
       items:

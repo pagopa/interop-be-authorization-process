@@ -3,16 +3,9 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
-  Client,
-  EService,
-  Operator,
-  OperatorSeed,
-  Organization
-}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
-import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.partymanagement
+import it.pagopa.pdnd.interop.uservice.{keymanagement, partymanagement}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.RelationshipEnums
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
@@ -65,11 +58,25 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.successful(relationships))
 
+      (mockAgreementManagementService.getAgreements _)
+        .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
+        .once()
+        .returns(Future.successful(Seq(agreement)))
+
       val expected = Client(
         id = client.id,
-        eService = EService(eService.id, eService.name),
-        organization = Organization(organization.institutionId, organization.description),
+        eservice = EService(
+          eService.id,
+          eService.name,
+          Organization(organization.institutionId, organization.description),
+          Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+        ),
         consumer = Organization(consumer.institutionId, consumer.description),
+        agreement = Agreement(
+          agreement.id,
+          agreement.status.toString,
+          Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
+        ),
         name = client.name,
         description = client.description,
         operators = Some(Seq(operator))

@@ -2,14 +2,17 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Client, EService, Organization}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EServiceDescriptorEnums
 import it.pagopa.pdnd.interop.uservice.{catalogmanagement, keymanagement}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
@@ -51,11 +54,25 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(consumer))
 
+      (mockAgreementManagementService.getAgreements _)
+        .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
+        .once()
+        .returns(Future.successful(Seq(agreement)))
+
       val expected = Client(
         id = client.id,
-        eService = EService(eService.id, eService.name),
-        organization = Organization(organization.institutionId, organization.description),
+        eservice = EService(
+          eService.id,
+          eService.name,
+          Organization(organization.institutionId, organization.description),
+          Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+        ),
         consumer = Organization(consumer.institutionId, consumer.description),
+        agreement = Agreement(
+          agreement.id,
+          agreement.status.toString,
+          Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
+        ),
         name = client.name,
         description = client.description,
         operators = Some(Seq.empty)
@@ -109,12 +126,92 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(consumer))
 
+      (mockAgreementManagementService.getAgreements _)
+        .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
+        .once()
+        .returns(Future.successful(Seq(agreement)))
+
       val expected =
         Client(
           id = client.id,
-          eService = EService(eService.id, eService.name),
-          organization = Organization(organization.institutionId, organization.description),
+          eservice = EService(
+            eService.id,
+            eService.name,
+            Organization(organization.institutionId, organization.description),
+            Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+          ),
           consumer = Organization(consumer.institutionId, consumer.description),
+          agreement = Agreement(
+            agreement.id,
+            agreement.status.toString,
+            Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
+          ),
+          name = client.name,
+          description = client.description,
+          operators = Some(Seq.empty)
+        )
+
+      Get() ~> service.getClient(client.id.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+        entityAs[Client] shouldEqual expected
+      }
+    }
+
+    "succeed on multiple agreements" in {
+      val descriptorId1 = UUID.randomUUID()
+      val descriptorId2 = UUID.randomUUID()
+      val descriptor1 =
+        activeDescriptor.copy(id = descriptorId1, version = "1", status = EServiceDescriptorEnums.Status.Deprecated)
+      val descriptor2 =
+        activeDescriptor.copy(id = descriptorId2, version = "2", status = EServiceDescriptorEnums.Status.Deprecated)
+
+      val eService1 = eService.copy(descriptors = Seq(descriptor1, descriptor2))
+
+      val agreement1 =
+        agreement.copy(id = UUID.randomUUID(), descriptorId = descriptorId1, status = AgreementEnums.Status.Suspended)
+      val agreement2 =
+        agreement.copy(id = UUID.randomUUID(), descriptorId = descriptorId2, status = AgreementEnums.Status.Suspended)
+
+      (mockAuthorizationManagementService.getClient _)
+        .expects(*)
+        .once()
+        .returns(Future.successful(client))
+
+      (mockCatalogManagementService.getEService _)
+        .expects(*, client.eServiceId.toString)
+        .once()
+        .returns(Future.successful(eService1))
+
+      (mockPartyManagementService.getOrganization _)
+        .expects(eService1.producerId)
+        .once()
+        .returns(Future.successful(organization))
+
+      (mockPartyManagementService.getOrganization _)
+        .expects(client.consumerId)
+        .once()
+        .returns(Future.successful(consumer))
+
+      (mockAgreementManagementService.getAgreements _)
+        .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
+        .once()
+        .returns(Future.successful(Seq(agreement1, agreement2)))
+
+      val expected =
+        Client(
+          id = client.id,
+          eservice = EService(
+            eService1.id,
+            eService1.name,
+            Organization(organization.institutionId, organization.description),
+            activeDescriptor = None
+          ),
+          consumer = Organization(consumer.institutionId, consumer.description),
+          agreement = Agreement(
+            agreement2.id,
+            agreement2.status.toString,
+            Descriptor(descriptor2.id, descriptor2.status.toString, descriptor2.version)
+          ),
           name = client.name,
           description = client.description,
           operators = Some(Seq.empty)
@@ -160,12 +257,26 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(consumer))
 
+      (mockAgreementManagementService.getAgreements _)
+        .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
+        .once()
+        .returns(Future.successful(Seq(agreement)))
+
       val expected = Seq(
         Client(
           id = client.id,
-          eService = EService(eService.id, eService.name),
-          organization = Organization(organization.institutionId, organization.description),
+          eservice = EService(
+            eService.id,
+            eService.name,
+            Organization(organization.institutionId, organization.description),
+            Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+          ),
           consumer = Organization(consumer.institutionId, consumer.description),
+          agreement = Agreement(
+            agreement.id,
+            agreement.status.toString,
+            Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
+          ),
           name = client.name,
           description = client.description,
           operators = Some(Seq.empty)
