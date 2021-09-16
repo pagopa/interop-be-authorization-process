@@ -16,24 +16,4 @@ class AuthApiMarshallerImpl extends AuthApiMarshaller with SprayJsonSupport {
 
   override implicit def toEntityMarshallerProblem: ToEntityMarshaller[Problem] = sprayJsonMarshaller[Problem]
 
-  override implicit def fromEntityUnmarshallerClientSeed: FromEntityUnmarshaller[ClientSeed] =
-    sprayJsonUnmarshaller[ClientSeed]
-
-  override implicit def fromEntityUnmarshallerOperatorSeed: FromEntityUnmarshaller[OperatorSeed] =
-    sprayJsonUnmarshaller[OperatorSeed]
-
-  override implicit def toEntityMarshallerKey: ToEntityMarshaller[Key] = sprayJsonMarshaller[Key]
-
-  override implicit def fromEntityUnmarshallerKeySeedList: FromEntityUnmarshaller[Seq[KeySeed]] =
-    sprayJsonUnmarshaller[Seq[KeySeed]]
-
-  override implicit def toEntityMarshallerKeys: ToEntityMarshaller[Keys] = sprayJsonMarshaller[Keys]
-
-  override implicit def toEntityMarshallerClient: ToEntityMarshaller[Client] = sprayJsonMarshaller[Client]
-
-  override implicit def toEntityMarshallerClientarray: ToEntityMarshaller[Seq[Client]] =
-    sprayJsonMarshaller[Seq[Client]]
-
-  override implicit def toEntityMarshallerOperatorarray: ToEntityMarshaller[Seq[Operator]] =
-    sprayJsonMarshaller[Seq[Operator]]
 }

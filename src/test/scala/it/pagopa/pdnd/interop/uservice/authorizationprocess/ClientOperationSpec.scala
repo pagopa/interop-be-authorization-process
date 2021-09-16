@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.AuthApiServiceImpl
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EServiceDescriptorEnums
@@ -16,11 +16,9 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
-  import authApiMarshaller._
+  import clientApiMarshaller._
 
-  val service = new AuthApiServiceImpl(
-    mockJwtValidator,
-    mockJwtGenerator,
+  val service = new ClientApiServiceImpl(
     mockAuthorizationManagementService,
     mockAgreementManagementService,
     mockCatalogManagementService,

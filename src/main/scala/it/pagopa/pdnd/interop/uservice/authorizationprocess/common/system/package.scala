@@ -33,4 +33,19 @@ package object system {
       }
     }
   }
+
+  object PassThroughAuthenticator extends Authenticator[Seq[(String, String)]] {
+    override def apply(credentials: Credentials): Option[Seq[(String, String)]] = Some(Seq.empty)
+  }
+
+//  object PassThroughAuthenticator extends Authenticator[Seq[(String, String)]] {
+//
+//    override def apply(credentials: Credentials): Option[Seq[(String, String)]] = {
+//      credentials match {
+//        case Provided(identifier) => Some(Seq("bearer" -> identifier))
+//        case Missing              => Some(Seq.empty[(String, String)])
+//      }
+//    }
+//
+//  }
 }

@@ -2,19 +2,23 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.util
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{AuthApiMarshallerImpl, _}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{
+  AgreementEnums,
+  Agreement => AgreementManagerAgreement
+}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
-  OtherPrimeInfo,
-  Client => AuthManagementClient,
-  Key => AuthManagementKey
-}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
   Attributes,
   EServiceDescriptorEnums,
   EService => CatalogManagementEService,
   EServiceDescriptor => CatalogManagementDescriptor
+}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
+  OtherPrimeInfo,
+  Client => AuthManagementClient,
+  Key => AuthManagementKey
 }
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
   Person,
@@ -22,10 +26,6 @@ import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
   RelationshipEnums,
   Relationships,
   Organization => PartyManagementOrganization
-}
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{
-  AgreementEnums,
-  Agreement => AgreementManagerAgreement
 }
 import org.scalamock.scalatest.MockFactory
 
@@ -158,7 +158,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     oth = Some(Seq(OtherPrimeInfo("22", "23", "24")))
   )
 
-  val authApiMarshaller: AuthApiMarshallerImpl = new AuthApiMarshallerImpl()
+  val clientApiMarshaller: ClientApiMarshallerImpl = new ClientApiMarshallerImpl()
 
   implicit val contexts: Seq[(String, String)] = Seq("bearer" -> bearerToken)
 
