@@ -21,6 +21,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   CatalogManagementServiceImpl,
   JWTGeneratorImpl,
   JWTValidatorImpl,
+  M2MAuthorizationServiceImpl,
   PartyManagementServiceImpl,
   VaultServiceImpl
 }
@@ -55,6 +56,10 @@ trait PartyManagementAPI {
   )
 }
 
+trait M2MAuthorizationService {
+  val m2mAuthorizationService: M2MAuthorizationServiceImpl = M2MAuthorizationServiceImpl()
+}
+
 trait AuthorizationManagementAPI {
   val authorizationManagementClientApi: AuthorizationClientApi = AuthorizationClientApi(
     ApplicationConfiguration.getAuthorizationManagementURL
@@ -87,7 +92,8 @@ object Main
     with CatalogManagementAPI
     with PartyManagementAPI
     with JWTGenerator
-    with JWTValidator {
+    with JWTValidator
+    with M2MAuthorizationService {
 
   Kamon.init()
 
@@ -98,7 +104,8 @@ object Main
       authorizationManagementService,
       agreementManagementService,
       catalogManagementService,
-      partyManagementService
+      partyManagementService,
+      m2mAuthorizationService
     ),
     new AuthApiMarshallerImpl(),
     SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)

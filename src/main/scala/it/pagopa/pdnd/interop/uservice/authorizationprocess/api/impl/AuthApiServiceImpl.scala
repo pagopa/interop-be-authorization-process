@@ -28,7 +28,8 @@ class AuthApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
   agreementManagementService: AgreementManagementService,
   catalogManagementService: CatalogManagementService,
-  partyManagementService: PartyManagementService
+  partyManagementService: PartyManagementService,
+  m2mAuthorizationService: M2MAuthorizationService
 )(implicit ec: ExecutionContext)
     extends AuthApiService {
 
@@ -45,18 +46,18 @@ class AuthApiServiceImpl(
 
     val token: Future[String] =
       for {
-        bearerToken <- extractBearer(contexts)
-        validated   <- jwtValidator.validate(accessTokenRequest)
+        m2mToken  <- m2mAuthorizationService.token
+        validated <- jwtValidator.validate(accessTokenRequest)
         (clientId, assertion) = validated
         client <- authorizationManagementService.getClient(clientId)
         agreements <- agreementManagementService.getAgreements(
-          bearerToken,
+          m2mToken,
           client.consumerId.toString,
           client.eServiceId.toString,
           Some(AgreementEnums.Status.Active)
         )
         _        <- validateActiveAgreement(agreements, client.eServiceId.toString, client.consumerId.toString)
-        eservice <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
+        eservice <- catalogManagementService.getEService(m2mToken, client.eServiceId.toString)
         token    <- jwtGenerator.generate(assertion, eservice.audience.toList)
       } yield token
 

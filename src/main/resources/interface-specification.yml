@@ -13,10 +13,10 @@ info:
   x-summary: an x-summary
 servers:
   - url: 'https://gateway.interop.pdnd.dev/pdnd-interop-uservice-authorization-process/0.0.1'
-    #  - url: http://localhost:8088/pdnd-interop-uservice-authorization-process/0.0.1
+#  - url: http://localhost:8088/pdnd-interop-uservice-authorization-process/0.0.1
     description: This service is the security supplier
-#security:
-#  - bearerAuth: [ ]
+security:
+  - bearerAuth: [ ]
 tags:
   - name: auth
     description: Get security information
@@ -26,6 +26,7 @@ tags:
 paths:
   /as/token.oauth2:
     post:
+      security: []
       tags:
         - auth
       summary: Create a new access token
@@ -955,10 +956,10 @@ components:
       required:
         - status
         - title
-#  securitySchemes:
-#    bearerAuth:
-#      type: http
-#      description: A bearer token in the format of a JWS and comformed to the specifications included in [RFC8725](https://tools.ietf.org/html/RFC8725).
-#      scheme: bearer
-#      bearerFormat: JWTly in the editor.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: A bearer token in the format of a JWS and comformed to the specifications included in [RFC8725](https://tools.ietf.org/html/RFC8725).
+      scheme: bearer
+      bearerFormat: JWT
 
