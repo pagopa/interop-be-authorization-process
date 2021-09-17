@@ -13,7 +13,7 @@ info:
   x-summary: an x-summary
 servers:
   - url: 'https://gateway.interop.pdnd.dev/pdnd-interop-uservice-authorization-process/0.0.1'
-#  - url: http://localhost:8088/pdnd-interop-uservice-authorization-process/0.0.1
+    #  - url: http://localhost:8088/pdnd-interop-uservice-authorization-process/0.0.1
     description: This service is the security supplier
 security:
   - bearerAuth: [ ]
@@ -384,7 +384,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Keys'
+                $ref: '#/components/schemas/ClientKeys'
         "400":
           description: Bad Request
           content:
@@ -445,7 +445,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Keys'
+                $ref: '#/components/schemas/ClientKeys'
         "401":
           description: Unauthorized
           content:
@@ -491,7 +491,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Key'
+                $ref: '#/components/schemas/ClientKey'
         "401":
           description: Unauthorized
           content:
@@ -881,13 +881,25 @@ components:
         - r
         - d
         - t
-    Keys:
+    ClientKey:
+      type: object
+      properties:
+        key:
+          $ref: '#/components/schemas/Key'
+        status:
+          type: string
+          description: 'Key status'
+          enum: [ 'active', 'disabled', 'deleted' ]
+      required:
+        - key
+        - status
+    ClientKeys:
       type: object
       properties:
         keys:
           type: array
           items:
-            $ref: '#/components/schemas/Key'
+            $ref: '#/components/schemas/ClientKey'
       required:
         - keys
     KeysSeed:

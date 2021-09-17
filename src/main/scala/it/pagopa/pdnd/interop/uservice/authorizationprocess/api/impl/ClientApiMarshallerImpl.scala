@@ -16,12 +16,12 @@ class ClientApiMarshallerImpl extends ClientApiMarshaller with SprayJsonSupport 
   override implicit def fromEntityUnmarshallerOperatorSeed: FromEntityUnmarshaller[OperatorSeed] =
     sprayJsonUnmarshaller[OperatorSeed]
 
-  override implicit def toEntityMarshallerKey: ToEntityMarshaller[Key] = sprayJsonMarshaller[Key]
+  override implicit def toEntityMarshallerClientKey: ToEntityMarshaller[ClientKey] = sprayJsonMarshaller[ClientKey]
 
   override implicit def fromEntityUnmarshallerKeySeedList: FromEntityUnmarshaller[Seq[KeySeed]] =
     sprayJsonUnmarshaller[Seq[KeySeed]]
 
-  override implicit def toEntityMarshallerKeys: ToEntityMarshaller[Keys] = sprayJsonMarshaller[Keys]
+  override implicit def toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys] = sprayJsonMarshaller[ClientKeys]
 
   override implicit def toEntityMarshallerClient: ToEntityMarshaller[Client] = sprayJsonMarshaller[Client]
 

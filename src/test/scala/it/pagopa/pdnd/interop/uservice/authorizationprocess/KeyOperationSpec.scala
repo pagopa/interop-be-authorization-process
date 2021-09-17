@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.ClientApiServiceImpl
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Key, KeySeed, Keys, OtherPrimeInfo}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.KeysResponse
@@ -24,6 +24,34 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     mockPartyManagementService
   )(ExecutionContext.global)
 
+  val apiClientKey: ClientKey = ClientKey(
+    status = createdKey.status.toString,
+    key = Key(
+      kty = createdKey.key.kty,
+      key_ops = createdKey.key.keyOps,
+      use = createdKey.key.use,
+      alg = createdKey.key.alg,
+      kid = createdKey.key.kid,
+      x5u = createdKey.key.x5u,
+      x5t = createdKey.key.x5t,
+      x5tS256 = createdKey.key.x5tS256,
+      x5c = createdKey.key.x5c,
+      crv = createdKey.key.crv,
+      x = createdKey.key.x,
+      y = createdKey.key.y,
+      d = createdKey.key.d,
+      k = createdKey.key.k,
+      n = createdKey.key.n,
+      e = createdKey.key.e,
+      p = createdKey.key.p,
+      q = createdKey.key.q,
+      dp = createdKey.key.dp,
+      dq = createdKey.key.dq,
+      qi = createdKey.key.qi,
+      oth = createdKey.key.oth.map(_.map(info => OtherPrimeInfo(r = info.r, d = info.d, t = info.t)))
+    )
+  )
+
   "Retrieve key" should {
     "succeed" in {
       val kid = "some-kid"
@@ -32,34 +60,11 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .once()
         .returns(Future.successful(createdKey))
 
-      val expected = Key(
-        kty = createdKey.kty,
-        key_ops = createdKey.keyOps,
-        use = createdKey.use,
-        alg = createdKey.alg,
-        kid = createdKey.kid,
-        x5u = createdKey.x5u,
-        x5t = createdKey.x5t,
-        x5tS256 = createdKey.x5tS256,
-        x5c = createdKey.x5c,
-        crv = createdKey.crv,
-        x = createdKey.x,
-        y = createdKey.y,
-        d = createdKey.d,
-        k = createdKey.k,
-        n = createdKey.n,
-        e = createdKey.e,
-        p = createdKey.p,
-        q = createdKey.q,
-        dp = createdKey.dp,
-        dq = createdKey.dq,
-        qi = createdKey.qi,
-        oth = createdKey.oth.map(_.map(info => OtherPrimeInfo(r = info.r, d = info.d, t = info.t)))
-      )
+      val expected = apiClientKey
 
       Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[Key] shouldEqual expected
+        entityAs[ClientKey] shouldEqual expected
       }
     }
 
@@ -91,34 +96,11 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .once()
         .returns(Future.successful(KeysResponse(Seq(createdKey))))
 
-      val expected = Key(
-        kty = createdKey.kty,
-        key_ops = createdKey.keyOps,
-        use = createdKey.use,
-        alg = createdKey.alg,
-        kid = createdKey.kid,
-        x5u = createdKey.x5u,
-        x5t = createdKey.x5t,
-        x5tS256 = createdKey.x5tS256,
-        x5c = createdKey.x5c,
-        crv = createdKey.crv,
-        x = createdKey.x,
-        y = createdKey.y,
-        d = createdKey.d,
-        k = createdKey.k,
-        n = createdKey.n,
-        e = createdKey.e,
-        p = createdKey.p,
-        q = createdKey.q,
-        dp = createdKey.dp,
-        dq = createdKey.dq,
-        qi = createdKey.qi,
-        oth = createdKey.oth.map(_.map(info => OtherPrimeInfo(r = info.r, d = info.d, t = info.t)))
-      )
+      val expected = apiClientKey
 
       Get() ~> service.getClientKeys(client.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[Keys] shouldEqual Keys(Seq(expected))
+        entityAs[ClientKeys] shouldEqual ClientKeys(Seq(expected))
       }
     }
 
@@ -157,34 +139,11 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .once()
         .returns(Future.successful(KeysResponse(Seq(createdKey))))
 
-      val expected = Key(
-        kty = createdKey.kty,
-        key_ops = createdKey.keyOps,
-        use = createdKey.use,
-        alg = createdKey.alg,
-        kid = createdKey.kid,
-        x5u = createdKey.x5u,
-        x5t = createdKey.x5t,
-        x5tS256 = createdKey.x5tS256,
-        x5c = createdKey.x5c,
-        crv = createdKey.crv,
-        x = createdKey.x,
-        y = createdKey.y,
-        d = createdKey.d,
-        k = createdKey.k,
-        n = createdKey.n,
-        e = createdKey.e,
-        p = createdKey.p,
-        q = createdKey.q,
-        dp = createdKey.dp,
-        dq = createdKey.dq,
-        qi = createdKey.qi,
-        oth = createdKey.oth.map(_.map(info => OtherPrimeInfo(r = info.r, d = info.d, t = info.t)))
-      )
+      val expected = apiClientKey
 
       Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.Created
-        entityAs[Keys] shouldEqual Keys(Seq(expected))
+        entityAs[ClientKeys] shouldEqual ClientKeys(Seq(expected))
       }
     }
 

@@ -2,6 +2,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.EnumParameterError
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
+  ClientKey => ApiClientKey,
   Key => ApiKey,
   KeySeed => ApiKeySeed,
   OtherPrimeInfo => ApiOtherPrimeInfo
@@ -32,7 +33,7 @@ trait AuthorizationManagementService {
   def addOperator(clientId: UUID, operatorId: UUID): Future[ManagementClient]
   def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit]
 
-  def getKey(clientId: UUID, kid: String): Future[Key]
+  def getKey(clientId: UUID, kid: String): Future[ClientKey]
   def getClientKeys(clientId: UUID): Future[KeysResponse]
   def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed]): Future[KeysResponse]
   def deleteKey(clientId: UUID, kid: String): Future[Unit]
@@ -42,32 +43,36 @@ trait AuthorizationManagementService {
 
 object AuthorizationManagementService {
 
-  def keyToApi(key: Key): ApiKey =
-    ApiKey(
-      kty = key.kty,
-      key_ops = key.keyOps,
-      use = key.use,
-      alg = key.alg,
-      kid = key.kid,
-      x5u = key.x5u,
-      x5t = key.x5t,
-      x5tS256 = key.x5tS256,
-      x5c = key.x5c,
-      crv = key.crv,
-      x = key.x,
-      y = key.y,
-      d = key.d,
-      k = key.k,
-      n = key.n,
-      e = key.e,
-      p = key.p,
-      q = key.q,
-      dp = key.dp,
-      dq = key.dq,
-      qi = key.qi,
-      oth = key.oth.map(_.map(primeInfoToApi))
+  def keyToApi(clientKey: ClientKey): ApiClientKey = {
+    import clientKey.key
+    ApiClientKey(
+      status = clientKey.status.toString,
+      key = ApiKey(
+        kty = key.kty,
+        key_ops = key.keyOps,
+        use = key.use,
+        alg = key.alg,
+        kid = key.kid,
+        x5u = key.x5u,
+        x5t = key.x5t,
+        x5tS256 = key.x5tS256,
+        x5c = key.x5c,
+        crv = key.crv,
+        x = key.x,
+        y = key.y,
+        d = key.d,
+        k = key.k,
+        n = key.n,
+        e = key.e,
+        p = key.p,
+        q = key.q,
+        dp = key.dp,
+        dq = key.dq,
+        qi = key.qi,
+        oth = key.oth.map(_.map(primeInfoToApi))
+      )
     )
-
+  }
   def primeInfoToApi(info: OtherPrimeInfo): ApiOtherPrimeInfo =
     ApiOtherPrimeInfo(r = info.r, d = info.d, t = info.t)
 

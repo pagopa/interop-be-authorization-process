@@ -200,7 +200,7 @@ class ClientApiServiceImpl(
     */
   override def getClientKeyById(clientId: String, keyId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerKey: ToEntityMarshaller[Key],
+    toEntityMarshallerClientKey: ToEntityMarshaller[ClientKey],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
@@ -298,7 +298,7 @@ class ClientApiServiceImpl(
     */
   override def createKeys(clientId: String, keysSeeds: Seq[KeySeed])(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerKeys: ToEntityMarshaller[Keys],
+    toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
@@ -306,7 +306,7 @@ class ClientApiServiceImpl(
       clientUuid   <- toUuid(clientId).toFuture
       seeds        <- keysSeeds.map(AuthorizationManagementService.toClientKeySeed).sequence.toFuture
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)
-    } yield Keys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
+    } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
       case Success(keys)                      => createKeys201(keys)
@@ -325,14 +325,14 @@ class ClientApiServiceImpl(
     */
   override def getClientKeys(clientId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerKeys: ToEntityMarshaller[Keys],
+    toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
       _            <- extractBearer(contexts)
       clientUuid   <- toUuid(clientId).toFuture
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)
-    } yield Keys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
+    } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
       case Success(keys)                      => getClientKeys200(keys)

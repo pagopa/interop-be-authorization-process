@@ -16,8 +16,10 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
   EServiceDescriptor => CatalogManagementDescriptor
 }
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
+  ClientKeyEnums,
   OtherPrimeInfo,
   Client => AuthManagementClient,
+  ClientKey => AuthManagementClientKey,
   Key => AuthManagementKey
 }
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
@@ -133,29 +135,32 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     )
   )
 
-  val createdKey: AuthManagementKey = AuthManagementKey(
-    kty = "1",
-    keyOps = Some(Seq("2")),
-    use = Some("3"),
-    alg = Some("4"),
-    kid = "5",
-    x5u = Some("6"),
-    x5t = Some("7"),
-    x5tS256 = Some("8"),
-    x5c = Some(Seq("9")),
-    crv = Some("10"),
-    x = Some("11"),
-    y = Some("12"),
-    d = Some("13"),
-    k = Some("14"),
-    n = Some("15"),
-    e = Some("16"),
-    p = Some("17"),
-    q = Some("18"),
-    dp = Some("19"),
-    dq = Some("20"),
-    qi = Some("21"),
-    oth = Some(Seq(OtherPrimeInfo("22", "23", "24")))
+  val createdKey: AuthManagementClientKey = AuthManagementClientKey(
+    status = ClientKeyEnums.Status.Active,
+    key = AuthManagementKey(
+      kty = "1",
+      keyOps = Some(Seq("2")),
+      use = Some("3"),
+      alg = Some("4"),
+      kid = "5",
+      x5u = Some("6"),
+      x5t = Some("7"),
+      x5tS256 = Some("8"),
+      x5c = Some(Seq("9")),
+      crv = Some("10"),
+      x = Some("11"),
+      y = Some("12"),
+      d = Some("13"),
+      k = Some("14"),
+      n = Some("15"),
+      e = Some("16"),
+      p = Some("17"),
+      q = Some("18"),
+      dp = Some("19"),
+      dq = Some("20"),
+      qi = Some("21"),
+      oth = Some(Seq(OtherPrimeInfo("22", "23", "24")))
+    )
   )
 
   val clientApiMarshaller: ClientApiMarshallerImpl = new ClientApiMarshallerImpl()
@@ -168,11 +173,11 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   implicit def fromResponseUnmarshallerClientSeqRequest: FromEntityUnmarshaller[Seq[Client]] =
     sprayJsonUnmarshaller[Seq[Client]]
 
-  implicit def fromResponseUnmarshallerKeyRequest: FromEntityUnmarshaller[Key] =
-    sprayJsonUnmarshaller[Key]
+  implicit def fromResponseUnmarshallerClientKeyRequest: FromEntityUnmarshaller[ClientKey] =
+    sprayJsonUnmarshaller[ClientKey]
 
-  implicit def fromResponseUnmarshallerKeysRequest: FromEntityUnmarshaller[Keys] =
-    sprayJsonUnmarshaller[Keys]
+  implicit def fromResponseUnmarshallerClientKeysRequest: FromEntityUnmarshaller[ClientKeys] =
+    sprayJsonUnmarshaller[ClientKeys]
 
   implicit def fromResponseUnmarshallerOperatorRequest: FromEntityUnmarshaller[Seq[Operator]] =
     sprayJsonUnmarshaller[Seq[Operator]]
