@@ -73,6 +73,7 @@ object AuthorizationManagementService {
       )
     )
   }
+
   def primeInfoToApi(info: OtherPrimeInfo): ApiOtherPrimeInfo =
     ApiOtherPrimeInfo(r = info.r, d = info.d, t = info.t)
 
