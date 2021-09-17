@@ -5,10 +5,16 @@ import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
 import com.bettercloud.vault.Vault
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApi
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{AuthApiMarshallerImpl, AuthApiServiceImpl}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.{AuthApi, ClientApi}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{
+  AuthApiMarshallerImpl,
+  AuthApiServiceImpl,
+  ClientApiMarshallerImpl,
+  ClientApiServiceImpl
+}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{
   Authenticator,
+  PassThroughAuthenticator,
   classicActorSystem,
   executionContext
 }
@@ -21,6 +27,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   CatalogManagementServiceImpl,
   JWTGeneratorImpl,
   JWTValidatorImpl,
+  M2MAuthorizationServiceImpl,
   PartyManagementServiceImpl,
   VaultServiceImpl
 }
@@ -55,6 +62,10 @@ trait PartyManagementAPI {
   )
 }
 
+trait M2MAuthorizationService {
+  val m2mAuthorizationService: M2MAuthorizationServiceImpl = M2MAuthorizationServiceImpl()
+}
+
 trait AuthorizationManagementAPI {
   val authorizationManagementClientApi: AuthorizationClientApi = AuthorizationClientApi(
     ApplicationConfiguration.getAuthorizationManagementURL
@@ -87,7 +98,8 @@ object Main
     with CatalogManagementAPI
     with PartyManagementAPI
     with JWTGenerator
-    with JWTValidator {
+    with JWTValidator
+    with M2MAuthorizationService {
 
   Kamon.init()
 
@@ -98,9 +110,20 @@ object Main
       authorizationManagementService,
       agreementManagementService,
       catalogManagementService,
-      partyManagementService
+      m2mAuthorizationService
     ),
     new AuthApiMarshallerImpl(),
+    SecurityDirectives.authenticateOAuth2("SecurityRealm", PassThroughAuthenticator)
+  )
+
+  val clientApi: ClientApi = new ClientApi(
+    new ClientApiServiceImpl(
+      authorizationManagementService,
+      agreementManagementService,
+      catalogManagementService,
+      partyManagementService
+    ),
+    new ClientApiMarshallerImpl(),
     SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
   )
 
@@ -108,7 +131,7 @@ object Main
     val _ = AkkaManagement.get(classicActorSystem).start()
   }
 
-  val controller: Controller = new Controller(authApi)
+  val controller: Controller = new Controller(authApi, clientApi)
 
   val bindingFuture: Future[Http.ServerBinding] =
     Http().newServerAt("0.0.0.0", ApplicationConfiguration.serverPort).bind(corsHandler(controller.routes))

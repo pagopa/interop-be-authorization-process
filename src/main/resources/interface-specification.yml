@@ -13,12 +13,17 @@ info:
   x-summary: an x-summary
 servers:
   - url: 'https://gateway.interop.pdnd.dev/pdnd-interop-uservice-authorization-process/0.0.1'
-    #  - url: http://localhost:8088/pdnd-interop-uservice-authorization-process/0.0.1
+#  - url: http://localhost:8088/pdnd-interop-uservice-authorization-process/0.0.1
     description: This service is the security supplier
-#security:
-#  - bearerAuth: [ ]
+security:
+  - bearerAuth: [ ]
 tags:
   - name: auth
+    description: Get security information
+    externalDocs:
+      description: Find out more
+      url: http://swagger.io
+  - name: client
     description: Get security information
     externalDocs:
       description: Find out more
@@ -26,6 +31,7 @@ tags:
 paths:
   /as/token.oauth2:
     post:
+      security: []
       tags:
         - auth
       summary: Create a new access token
@@ -67,7 +73,7 @@ paths:
   /clients:
     post:
       tags:
-        - auth
+        - client
       summary: Create a new client
       description: Create a new client
       operationId: createClient
@@ -104,7 +110,7 @@ paths:
                 $ref: '#/components/schemas/Problem'
     get:
       tags:
-        - auth
+        - client
       summary: List clients
       description: List clients
       operationId: listClients
@@ -162,7 +168,7 @@ paths:
     get:
       description: Retrieves a Client
       tags:
-        - auth
+        - client
       summary: Get a Client
       operationId: getClient
       parameters:
@@ -200,7 +206,7 @@ paths:
     delete:
       description: Deletes a Client
       tags:
-        - auth
+        - client
       summary: Delete a Client
       operationId: deleteClient
       parameters:
@@ -234,7 +240,7 @@ paths:
   '/clients/{clientId}/operators':
     get:
       tags:
-        - auth
+        - client
       summary: List client operators
       description: List client operators
       operationId: getClientOperators
@@ -267,7 +273,7 @@ paths:
                 $ref: '#/components/schemas/Problem'
     post:
       tags:
-        - auth
+        - client
       summary: Add an Operator to a Client
       operationId: addOperator
       parameters:
@@ -321,7 +327,7 @@ paths:
     delete:
       description: Removes an operator from a Client
       tags:
-        - auth
+        - client
       summary: Remove an operator from a Client
       operationId: removeClientOperator
       parameters:
@@ -369,7 +375,7 @@ paths:
   '/clients/{clientId}/keys':
     post:
       tags:
-        - auth
+        - client
       summary: Create Keys for the specific clientId.
       operationId: createKeys
       responses:
@@ -421,7 +427,7 @@ paths:
             format: uuid
     get:
       tags:
-        - auth
+        - client
       summary: Returns a set of keys by client ID.
       description: 'Given a client identifier it returns its corresponding set of keys, if any'
       operationId: getClientKeys
@@ -458,11 +464,10 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-
   '/clients/{clientId}/keys/{keyId}':
     get:
       tags:
-        - auth
+        - client
       summary: Returns a key by client and key identifier (kid).
       description: 'Given a client and key identifiers it returns the corresponding key, if any'
       operationId: getClientKeyById
@@ -507,7 +512,7 @@ paths:
                 $ref: '#/components/schemas/Problem'
     delete:
       tags:
-        - auth
+        - client
       summary: Deletes a key by client and key identifier (kid).
       description: 'Given a client and key identifiers it deletes the corresponding key, if any'
       operationId: deleteClientKeyById
@@ -549,7 +554,7 @@ paths:
   '/clients/{clientId}/keys/{keyId}/enable':
     patch:
       tags:
-        - auth
+        - client
       summary: Enables a client key by key identifier (kid).
       description: 'Given a client and a disabled key identifier it enables the corresponding key, if any'
       operationId: enableKeyById
@@ -591,7 +596,7 @@ paths:
   '/clients/{clientId}/keys/{keyId}/disable':
     patch:
       tags:
-        - auth
+        - client
       summary: Disable a client key by key identifier (kid).
       description: 'Given a client and an enabled key identifier it disables the corresponding key, if any'
       operationId: disableKeyById
@@ -955,10 +960,10 @@ components:
       required:
         - status
         - title
-#  securitySchemes:
-#    bearerAuth:
-#      type: http
-#      description: A bearer token in the format of a JWS and comformed to the specifications included in [RFC8725](https://tools.ietf.org/html/RFC8725).
-#      scheme: bearer
-#      bearerFormat: JWTly in the editor.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: A bearer token in the format of a JWS and comformed to the specifications included in [RFC8725](https://tools.ietf.org/html/RFC8725).
+      scheme: bearer
+      bearerFormat: JWT
 
