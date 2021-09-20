@@ -93,7 +93,7 @@ class ClientApiServiceImpl(
     offset: Option[Int],
     limit: Option[Int],
     eServiceId: Option[String],
-    operatorId: Option[String]
+    operatorTaxCode: Option[String]
   )(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
@@ -101,8 +101,8 @@ class ClientApiServiceImpl(
   ): Route = {
     val result = for {
       bearerToken  <- extractBearer(contexts)
-      eServiceUuid <- eServiceId.map(toUuid).sequence.toFuture
-      operatorUuid <- operatorId.map(toUuid).sequence.toFuture
+      eServiceUuid <- eServiceId.traverse(toUuid).toFuture
+      operatorUuid <- operatorTaxCode.traverse(partyIdFromTaxCode)
       clients      <- authorizationManagementService.listClients(offset, limit, eServiceUuid, operatorUuid)
       // TODO Improve multiple requests
       clientsDetails <- clients.traverse(client => getClient(bearerToken, client))
@@ -149,10 +149,11 @@ class ClientApiServiceImpl(
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
     val result = for {
-      bearerToken <- extractBearer(contexts)
-      clientUuid  <- toUuid(clientId).toFuture
-      client      <- authorizationManagementService.addOperator(clientUuid, operatorSeed.operatorId)
-      apiClient   <- getClient(bearerToken, client)
+      bearerToken  <- extractBearer(contexts)
+      clientUuid   <- toUuid(clientId).toFuture
+      operatorUuid <- partyIdFromTaxCode(operatorSeed.operatorTaxCode)
+      client       <- authorizationManagementService.addOperator(clientUuid, operatorUuid)
+      apiClient    <- getClient(bearerToken, client)
     } yield apiClient
 
     onComplete(result) {
@@ -170,14 +171,14 @@ class ClientApiServiceImpl(
     * Code: 404, Message: Client or operator not found, DataType: Problem
     * Code: 500, Message: Internal server error, DataType: Problem
     */
-  override def removeClientOperator(clientId: String, operatorId: String)(implicit
+  override def removeClientOperator(clientId: String, operatorTaxCode: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
       _            <- extractBearer(contexts)
       clientUuid   <- toUuid(clientId).toFuture
-      operatorUuid <- toUuid(operatorId).toFuture
+      operatorUuid <- partyIdFromTaxCode(operatorTaxCode)
       _            <- authorizationManagementService.removeClientOperator(clientUuid, operatorUuid)
     } yield ()
 
@@ -302,9 +303,15 @@ class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _            <- extractBearer(contexts)
-      clientUuid   <- toUuid(clientId).toFuture
-      seeds        <- keysSeeds.map(AuthorizationManagementService.toClientKeySeed).sequence.toFuture
+      _           <- extractBearer(contexts)
+      clientUuid  <- toUuid(clientId).toFuture
+      operatorIds <- keysSeeds.traverse(seed => partyIdFromTaxCode(seed.operatorTaxCode))
+      seeds <- keysSeeds
+        .zip(operatorIds)
+        .traverse { case (seed, operatorUuid) =>
+          AuthorizationManagementService.toClientKeySeed(seed, operatorUuid)
+        }
+        .toFuture
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
@@ -357,8 +364,8 @@ class ClientApiServiceImpl(
       client      <- authorizationManagementService.getClient(clientId)
       eService    <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
       producer    <- partyManagementService.getOrganization(eService.producerId)
-      operators   <- client.operators.toSeq.traverse(op => getClientOperator(op, producer))
-    } yield operators.flatten
+      operators   <- getFlatClientOperators(client, producer)
+    } yield operators
 
     onComplete(result) {
       case Success(keys) => getClientOperators200(keys)
@@ -375,14 +382,20 @@ class ClientApiServiceImpl(
       eService   <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
       producer   <- partyManagementService.getOrganization(eService.producerId)
       consumer   <- partyManagementService.getOrganization(client.consumerId)
-      operators  <- client.operators.toSeq.flatTraverse(operatorId => getClientOperator(operatorId, producer))
+      operators  <- getFlatClientOperators(client, producer)
       agreements <- agreementManagementService.getAgreements(bearerToken, consumer.partyId, eService.id.toString, None)
       agreement  <- getLatestAgreement(agreements, eService).toFuture(ClientAgreementNotFoundError(client.id.toString))
       client     <- clientToApi(client, eService, producer, consumer, agreement, operators)
     } yield client
   }
 
-  private[this] def getClientOperator(
+  private[this] def getFlatClientOperators(
+    client: keymanagement.client.model.Client,
+    producer: partymanagement.client.model.Organization
+  ): Future[Seq[Operator]] =
+    client.operators.toSeq.flatTraverse(flatOperatorWithRelationships(_, producer))
+
+  private[this] def flatOperatorWithRelationships(
     operatorId: UUID,
     organization: partymanagement.client.model.Organization
   ): Future[Seq[Operator]] =
@@ -391,6 +404,11 @@ class ClientApiServiceImpl(
       relationships <- partyManagementService.getRelationships(organization.partyId, person.partyId)
       operators = relationships.items.map(r => PartyManagementService.operatorToApi(person, r))
     } yield operators
+
+  private[this] def partyIdFromTaxCode(taxCode: String): Future[UUID] = for {
+    person       <- partyManagementService.getPersonByTaxCode(taxCode)
+    operatorUuid <- toUuid(person.partyId).toFuture
+  } yield operatorUuid
 
   private[this] def compareDescriptorsVersion(
     descriptor1: EServiceDescriptor,

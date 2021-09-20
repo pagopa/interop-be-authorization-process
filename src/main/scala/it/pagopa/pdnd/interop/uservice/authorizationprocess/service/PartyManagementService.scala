@@ -13,6 +13,7 @@ trait PartyManagementService {
 
   def getOrganization(organizationId: UUID): Future[Organization]
   def getPerson(personId: UUID): Future[Person]
+  def getPersonByTaxCode(taxCode: String): Future[Person]
   def getRelationships(organizationId: String, personId: String): Future[Relationships]
 }
 

@@ -77,9 +77,9 @@ object AuthorizationManagementService {
   def primeInfoToApi(info: OtherPrimeInfo): ApiOtherPrimeInfo =
     ApiOtherPrimeInfo(r = info.r, d = info.d, t = info.t)
 
-  def toClientKeySeed(keySeed: ApiKeySeed): Either[EnumParameterError, KeySeed] =
+  def toClientKeySeed(keySeed: ApiKeySeed, operatorUuid: UUID): Either[EnumParameterError, KeySeed] =
     Try(KeySeedEnums.Use.withName(keySeed.use)).toEither
-      .map(use => KeySeed(operatorId = keySeed.operatorId, key = keySeed.key, use = use, alg = keySeed.alg))
+      .map(use => KeySeed(operatorId = operatorUuid, key = keySeed.key, use = use, alg = keySeed.alg))
       .left
       .map(_ => EnumParameterError("use", KeySeedEnums.Use.values.toSeq.map(_.toString)))
 
