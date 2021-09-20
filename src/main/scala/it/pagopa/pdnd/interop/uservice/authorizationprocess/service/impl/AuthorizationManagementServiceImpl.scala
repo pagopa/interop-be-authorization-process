@@ -6,14 +6,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
 }
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{ClientApi, KeyApi}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.ApiRequest
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
-  Client,
-  ClientSeed,
-  Key,
-  KeySeed,
-  KeysResponse,
-  OperatorSeed
-}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model._
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -72,8 +65,8 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     invoke(request, "Operator removal from client")
   }
 
-  override def getKey(clientId: UUID, kid: String): Future[Key] = {
-    val request: ApiRequest[Key] = keyApi.getClientKeyById(clientId, kid)
+  override def getKey(clientId: UUID, kid: String): Future[ClientKey] = {
+    val request: ApiRequest[ClientKey] = keyApi.getClientKeyById(clientId, kid)
     invoke(request, "Key Retrieve")
   }
 
