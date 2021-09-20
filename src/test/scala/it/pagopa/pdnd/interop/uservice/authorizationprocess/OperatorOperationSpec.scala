@@ -5,8 +5,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.RelationshipEnums
-import it.pagopa.pdnd.interop.uservice.{keymanagement, partymanagement}
+import it.pagopa.pdnd.interop.uservice.keymanagement
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -26,7 +25,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
   "Operator addition" should {
     "succeed" in {
-      val operatorId = UUID.randomUUID()
+      val operatorId      = UUID.fromString(person.partyId)
+      val operatorTaxCode = person.taxCode
+
       (mockAuthorizationManagementService.addOperator _)
         .expects(client.id, operatorId)
         .once()
@@ -48,6 +49,11 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
       (mockPartyManagementService.getPerson _)
         .expects(operatorId)
+        .once()
+        .returns(Future.successful(person))
+
+      (mockPartyManagementService.getPersonByTaxCode _)
+        .expects(operatorTaxCode)
         .once()
         .returns(Future.successful(person))
 
@@ -80,7 +86,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         operators = Some(Seq(operator))
       )
 
-      Get() ~> service.addOperator(client.id.toString, OperatorSeed(operatorId)) ~> check {
+      Get() ~> service.addOperator(client.id.toString, OperatorSeed(operatorTaxCode)) ~> check {
         status shouldEqual StatusCodes.Created
         entityAs[Client] shouldEqual expected
       }
@@ -88,7 +94,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      val seed                                     = OperatorSeed(UUID.randomUUID())
+      val seed                                     = OperatorSeed(person.taxCode)
 
       Get() ~> service.addOperator(client.id.toString, seed) ~> check {
         status shouldEqual StatusCodes.Unauthorized
@@ -96,7 +102,12 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     }
 
     "fail if client does not exist" in {
-      val seed = OperatorSeed(UUID.randomUUID())
+      val seed = OperatorSeed(person.taxCode)
+
+      (mockPartyManagementService.getPersonByTaxCode _)
+        .expects(person.taxCode)
+        .once()
+        .returns(Future.successful(person))
 
       (mockAuthorizationManagementService.addOperator _)
         .expects(*, *)
@@ -111,35 +122,47 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
   "Operator removal" should {
     "succeed" in {
-      val operatorId = UUID.randomUUID()
+      val operatorId      = personId
+      val operatorTaxCode = person.taxCode
+
       (mockAuthorizationManagementService.removeClientOperator _)
         .expects(client.id, operatorId)
         .once()
         .returns(Future.successful(()))
 
-      Get() ~> service.removeClientOperator(client.id.toString, operatorId.toString) ~> check {
+      (mockPartyManagementService.getPersonByTaxCode _)
+        .expects(operatorTaxCode)
+        .once()
+        .returns(Future.successful(person))
+
+      Get() ~> service.removeClientOperator(client.id.toString, operatorTaxCode) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      val operatorId                               = UUID.randomUUID()
+      val operatorTaxCode                          = person.taxCode
 
-      Get() ~> service.removeClientOperator(client.id.toString, operatorId.toString) ~> check {
+      Get() ~> service.removeClientOperator(client.id.toString, operatorTaxCode) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
 
     "fail if client does not exist" in {
-      val operatorId = UUID.randomUUID()
+      val operatorTaxCode = person.taxCode
+
+      (mockPartyManagementService.getPersonByTaxCode _)
+        .expects(person.taxCode)
+        .once()
+        .returns(Future.successful(person))
 
       (mockAuthorizationManagementService.removeClientOperator _)
         .expects(*, *)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
-      Get() ~> service.removeClientOperator(client.id.toString, operatorId.toString) ~> check {
+      Get() ~> service.removeClientOperator(client.id.toString, operatorTaxCode) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -147,31 +170,10 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
   "Operator retrieve" should {
     "succeed" in {
-      val operator = UUID.randomUUID()
-
-      val person = partymanagement.client.model.Person(
-        taxCode = "taxCode",
-        surname = "surname",
-        name = "name",
-        partyId = "partiyId"
-      )
-
-      val relationship =
-        partymanagement.client.model.Relationship(
-          from = organization.partyId,
-          to = person.partyId,
-          role = RelationshipEnums.Role.Operator,
-          platformRole = "security",
-          status = None
-        )
-
-      val relationships =
-        partymanagement.client.model.Relationships(items = Seq(relationship))
-
       (mockAuthorizationManagementService.getClient _)
         .expects(client.id.toString)
         .once()
-        .returns(Future.successful(client.copy(operators = Set(operator))))
+        .returns(Future.successful(client.copy(operators = Set(personId))))
 
       (mockCatalogManagementService.getEService _)
         .expects(*, client.eServiceId.toString)
@@ -183,7 +185,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(organization))
 
       (mockPartyManagementService.getPerson _)
-        .expects(operator)
+        .expects(personId)
         .once()
         .returns(Future.successful(person))
 
@@ -197,8 +199,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
           taxCode = person.taxCode,
           name = person.name,
           surname = person.surname,
-          role = relationship.role.toString,
-          platformRole = relationship.platformRole
+          role = relationships.items.head.role.toString,
+          platformRole = relationships.items.head.platformRole
         )
       )
 

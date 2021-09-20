@@ -133,12 +133,11 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: operatorId
+        - name: operatorTaxCode
           in: query
           description: ID of operator that MUST be related to the Client
           schema:
             type: string
-            format: uuid
       responses:
         "200":
           description: Request succeed
@@ -323,7 +322,7 @@ paths:
             schema:
               $ref: '#/components/schemas/OperatorSeed'
       description: Adds an Operator to a Client
-  '/clients/{clientId}/operators/{operatorId}':
+  '/clients/{clientId}/operators/{operatorTaxCode}':
     delete:
       description: Removes an operator from a Client
       tags:
@@ -338,13 +337,12 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: operatorId
+        - name: operatorTaxCode
           in: path
-          description: The Operator Id
+          description: The Operator Tax Code
           required: true
           schema:
             type: string
-            format: uuid
       responses:
         "204":
           description: Operator removed
@@ -777,11 +775,10 @@ components:
       description: Models the seed for an Operator-Client relationship to be persisted
       type: object
       properties:
-        operatorId:
+        operatorTaxCode:
           type: string
-          format: uuid
       required:
-        - operatorId
+        - operatorTaxCode
     Operator:
       description: Models a Client Operator
       type: object
@@ -910,9 +907,8 @@ components:
       description: 'Models the seed for a public key to be persisted'
       type: object
       properties:
-        operatorId:
+        operatorTaxCode:
           type: string
-          format: uuid
           description: 'Represents the identifier of the platform security operator that is uploading the key'
         key:
           type: string
@@ -927,7 +923,7 @@ components:
           type: string
           description: 'The algorithm type of the key.'
       required:
-        - operatorId
+        - operatorTaxCode
         - key
         - use
         - alg

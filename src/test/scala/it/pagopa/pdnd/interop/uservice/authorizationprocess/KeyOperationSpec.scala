@@ -11,7 +11,6 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
@@ -127,12 +126,17 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     "succeed" in {
       val keySeeds: Seq[KeySeed] = Seq(
         KeySeed(
-          operatorId = UUID.randomUUID(),
+          operatorTaxCode = person.taxCode,
           key = "key",
           use = keymanagement.client.model.KeySeedEnums.Use.Sig.toString,
           alg = "123"
         )
       )
+
+      (mockPartyManagementService.getPersonByTaxCode _)
+        .expects(person.taxCode)
+        .once()
+        .returns(Future.successful(person))
 
       (mockAuthorizationManagementService.createKeys _)
         .expects(client.id, *)
@@ -149,7 +153,12 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
 
     "fail on wrong enum parameters" in {
       val keySeeds: Seq[KeySeed] =
-        Seq(KeySeed(operatorId = UUID.randomUUID(), key = "key", use = "non-existing-use-value", alg = "123"))
+        Seq(KeySeed(operatorTaxCode = person.taxCode, key = "key", use = "non-existing-use-value", alg = "123"))
+
+      (mockPartyManagementService.getPersonByTaxCode _)
+        .expects(person.taxCode)
+        .once()
+        .returns(Future.successful(person))
 
       Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.BadRequest
