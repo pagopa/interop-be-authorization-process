@@ -11,8 +11,10 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.expireI
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EService
 
 import java.text.ParseException
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -50,9 +52,10 @@ class AuthApiServiceImpl(
           client.eServiceId.toString,
           Some(AgreementEnums.Status.Active)
         )
-        _        <- validateActiveAgreement(agreements, client.eServiceId.toString, client.consumerId.toString)
-        eservice <- catalogManagementService.getEService(m2mToken, client.eServiceId.toString)
-        token    <- jwtGenerator.generate(assertion, eservice.audience.toList)
+        activeAgreement    <- getActiveAgreement(agreements, client.eServiceId.toString, client.consumerId.toString)
+        eservice           <- catalogManagementService.getEService(m2mToken, client.eServiceId.toString)
+        descriptorAudience <- getDescriptorAudience(eservice, activeAgreement.descriptorId)
+        token              <- jwtGenerator.generate(assertion, descriptorAudience)
       } yield token
 
     onComplete(token) {
@@ -61,19 +64,24 @@ class AuthApiServiceImpl(
     }
   }
 
-  private def validateActiveAgreement(
+  private def getActiveAgreement(
     agreements: Seq[agreementmanagement.client.model.Agreement],
     eserviceId: String,
     consumerId: String
-  ): Future[Unit] = {
-    val errorFunc: (String, String) => Throwable =
-      if (agreements.isEmpty) AgreementNotFoundError
-      else TooManyActiveAgreementsError
+  ): Future[agreementmanagement.client.model.Agreement] = {
+    agreements match {
+      case agreement :: Nil => Future.successful(agreement)
+      case Nil              => Future.failed(AgreementNotFoundError(eserviceId, consumerId))
+      case _                => Future.failed(TooManyActiveAgreementsError(eserviceId, consumerId))
+    }
+  }
 
-    Future.fromTry {
-      Either
-        .cond(agreements.size == 1, (), errorFunc(eserviceId, consumerId))
-        .toTry
+  private def getDescriptorAudience(eservice: EService, descriptorId: UUID): Future[List[String]] = {
+    val audience = eservice.descriptors.find(_.id == descriptorId).map(_.audience)
+    audience match {
+      case Some(aud) => Future.successful[List[String]](aud.toList)
+      case None =>
+        Future.failed[List[String]](DescriptorNotFound(eservice.id.toString, descriptorId.toString))
     }
   }
 

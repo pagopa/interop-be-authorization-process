@@ -57,7 +57,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     description = None,
     interface = None,
     docs = Seq.empty,
-    status = EServiceDescriptorEnums.Status.Published
+    status = EServiceDescriptorEnums.Status.Published,
+    audience = Seq.empty,
+    voucherLifespan = 10
   )
 
   val eService: CatalogManagementEService = CatalogManagementEService(
@@ -65,9 +67,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     producerId = organizationId,
     name = "Service name",
     description = "Service description",
-    audience = Seq.empty,
     technology = "REST",
-    voucherLifespan = 10,
     attributes = Attributes(Seq.empty, Seq.empty, Seq.empty),
     descriptors = Seq(activeDescriptor)
   )
