@@ -4,6 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.KeysResponse
@@ -133,10 +134,20 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         )
       )
 
-      (mockPartyManagementService.getPersonByTaxCode _)
-        .expects(person.taxCode)
+      (mockAuthorizationManagementService.getClient _)
+        .expects(client.id.toString)
         .once()
-        .returns(Future.successful(person))
+        .returns(Future.successful(client))
+
+      (mockPartyManagementService.getOrganization _)
+        .expects(client.consumerId)
+        .once()
+        .returns(Future.successful(organization))
+
+      (mockPartyManagementService.getRelationships _)
+        .expects(organization.institutionId, person.taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .once()
+        .returns(Future.successful(relationships))
 
       (mockAuthorizationManagementService.createKeys _)
         .expects(client.id, *)
@@ -173,10 +184,10 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     }
 
     "fail if client or key do not exist" in {
-      (mockAuthorizationManagementService.createKeys _)
-        .expects(*, *)
+      (mockAuthorizationManagementService.getClient _)
+        .expects(client.id.toString)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
       Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.NotFound

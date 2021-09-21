@@ -123,17 +123,15 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       platformRole = "aPlatformRole"
     )
 
-  val relationships: Relationships = Relationships(
-    Seq(
-      Relationship(
-        from = person.taxCode,
-        to = organization.institutionId,
-        role = RelationshipEnums.Role.Operator,
-        platformRole = "aPlatformRole",
-        status = Some(RelationshipEnums.Status.Active)
-      )
-    )
+  val relationship: Relationship = Relationship(
+    from = person.taxCode,
+    to = organization.institutionId,
+    role = RelationshipEnums.Role.Operator,
+    platformRole = "aPlatformRole",
+    status = Some(RelationshipEnums.Status.Active)
   )
+
+  val relationships: Relationships = Relationships(Seq(relationship))
 
   val createdKey: AuthManagementClientKey = AuthManagementClientKey(
     status = ClientKeyEnums.Status.Active,
