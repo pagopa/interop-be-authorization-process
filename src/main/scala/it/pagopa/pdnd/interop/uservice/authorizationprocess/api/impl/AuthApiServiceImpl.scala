@@ -69,14 +69,10 @@ class AuthApiServiceImpl(
     eserviceId: String,
     consumerId: String
   ): Future[agreementmanagement.client.model.Agreement] = {
-    val errorFunc: (String, String) => Throwable =
-      if (agreements.isEmpty) AgreementNotFoundError
-      else TooManyActiveAgreementsError
-
-    Future.fromTry {
-      Either
-        .cond(agreements.size == 1, agreements(0), errorFunc(eserviceId, consumerId))
-        .toTry
+    agreements match {
+      case agreement :: Nil => Future.successful(agreement)
+      case Nil              => Future.failed(AgreementNotFoundError(eserviceId, consumerId))
+      case _                => Future.failed(TooManyActiveAgreementsError(eserviceId, consumerId))
     }
   }
 
