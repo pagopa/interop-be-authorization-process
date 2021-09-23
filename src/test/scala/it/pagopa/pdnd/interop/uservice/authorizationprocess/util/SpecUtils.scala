@@ -167,7 +167,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   def mockClientComposition(
     withOperators: Boolean,
     client: keymanagement.client.model.Client = client,
-    relationship: Relationship = relationship
+    relationship: Relationship = relationship,
+    eService: CatalogManagementEService = eService,
+    agreements: Seq[AgreementManagerAgreement] = Seq(agreement)
   ): Unit = {
 
     (mockCatalogManagementService.getEService _)
@@ -200,7 +202,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     (mockAgreementManagementService.getAgreements _)
       .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
       .once()
-      .returns(Future.successful(Seq(agreement)))
+      .returns(Future.successful(agreements))
 
     ()
   }
