@@ -13,7 +13,15 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogManagementApiError}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EServiceDescriptor
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.RelationshipEnums
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.ApiError
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
+  Person,
+  PersonSeed,
+  Relationship,
+  RelationshipEnums,
+  RelationshipSeed,
+  RelationshipSeedEnums
+}
 import it.pagopa.pdnd.interop.uservice.{agreementmanagement, catalogmanagement, keymanagement, partymanagement}
 
 import java.util.UUID
@@ -158,17 +166,14 @@ class ClientApiServiceImpl(
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
     val result = for {
-      bearerToken       <- extractBearer(contexts)
-      clientUuid        <- toUuid(clientId).toFuture
-      client            <- authorizationManagementService.getClient(clientId)
-      maybeRelationship <- securityOperatorRelationship(client.consumerId, operatorSeed.operatorTaxCode)
-      relationship <- maybeRelationship.toFuture(
-        new RuntimeException("Missing relationship")
-      ) // TODO Create relationship
+      bearerToken  <- extractBearer(contexts)
+      clientUuid   <- toUuid(clientId).toFuture
+      client       <- authorizationManagementService.getClient(clientId)
+      relationship <- getOrCreateRelationship(client, operatorSeed)
       updatedClient <- client.relationships
         .find(_ === relationship.id)
         .fold(authorizationManagementService.addRelationship(clientUuid, relationship.id))(_ =>
-          Future.failed(SecurityOperatorAlreadyAssigned(client.id.toString, operatorSeed.operatorTaxCode))
+          Future.failed(SecurityOperatorAlreadyAssigned(client.id.toString, operatorSeed.taxCode))
         )
       apiClient <- getClient(bearerToken, updatedClient)
     } yield apiClient
@@ -183,6 +188,40 @@ class ClientApiServiceImpl(
         addOperator404(Problem(Some(ex.message), 404, "Client not found"))
       case Failure(ex) => addOperator500(Problem(Option(ex.getMessage), 500, "Error on operator addition"))
     }
+  }
+  
+  private[this] def getOrCreateRelationship(
+    client: ManagementClient,
+    operatorSeed: OperatorSeed
+  ): Future[Relationship] = {
+    // TODO These could be replaced by a PUT
+    def createPersonIfMissing: Future[Person] = {
+      partyManagementService.getPersonByTaxCode(operatorSeed.taxCode).recoverWith {
+        case ex: ApiError[_] if ex.code == 404 =>
+          partyManagementService.createPerson(PersonSeed(operatorSeed.taxCode, operatorSeed.surname, operatorSeed.name))
+        case ex => Future.failed(ex)
+      }
+    }
+    def createRelationship: Future[Relationship] = for {
+      _        <- createPersonIfMissing
+      consumer <- partyManagementService.getOrganization(client.consumerId)
+      relationship <- partyManagementService.createRelationship(
+        RelationshipSeed(
+          consumer.institutionId,
+          operatorSeed.taxCode,
+          RelationshipSeedEnums.Role.Operator,
+          PartyManagementService.ROLE_SECURITY_OPERATOR
+        )
+      )
+    } yield relationship
+
+    for {
+      maybeRelationship <- securityOperatorRelationship(client.consumerId, operatorSeed.taxCode)
+      relationship <- maybeRelationship match {
+        case Some(relationship) => Future.successful(relationship)
+        case None               => createRelationship
+      }
+    } yield relationship
   }
 
   /** Code: 204, Message: Operator removed
@@ -426,12 +465,15 @@ class ClientApiServiceImpl(
   ): Future[Option[partymanagement.client.model.Relationship]] =
     for {
       consumer <- partyManagementService.getOrganization(consumerId)
-      relationships <- partyManagementService.getRelationships(
-        consumer.institutionId,
-        taxCode,
-        PartyManagementService.ROLE_SECURITY_OPERATOR
-      )
-      activeRelationships = relationships.items.filter(_.status == RelationshipEnums.Status.Active)
+      relationships <- partyManagementService
+        .getRelationships(consumer.institutionId, taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .map(Some(_))
+        .recoverWith {
+          case ex: ApiError[_] if ex.code == 404 =>
+            Future.successful(None)
+          case ex => Future.failed(ex)
+        }
+      activeRelationships = relationships.toSeq.flatMap(_.items.filter(_.status == RelationshipEnums.Status.Active))
       securityOperatorRel = activeRelationships.headOption // Only one expected
     } yield securityOperatorRel
 
