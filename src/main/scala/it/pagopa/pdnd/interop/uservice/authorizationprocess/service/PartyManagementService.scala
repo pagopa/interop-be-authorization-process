@@ -14,10 +14,14 @@ trait PartyManagementService {
   def getOrganization(organizationId: UUID): Future[Organization]
   def getPerson(personId: UUID): Future[Person]
   def getPersonByTaxCode(taxCode: String): Future[Person]
-  def getRelationships(organizationId: String, personId: String): Future[Relationships]
+  def getRelationships(institutionId: String, personTaxCode: String, platformRole: String): Future[Relationships]
+  def getRelationshipsByTaxCode(personTaxCode: String, platformRole: String): Future[Relationships]
+  def getRelationshipById(relationshipId: UUID): Future[Relationship]
 }
 
 object PartyManagementService {
+
+  final val ROLE_SECURITY_OPERATOR = "security"
 
   def organizationToApi(organization: Organization): ApiOrganization =
     ApiOrganization(organization.institutionId, organization.description)

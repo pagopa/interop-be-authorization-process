@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{PartyManagementInvoker, PartyManagementService}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.PartyApi
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.ApiRequest
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Organization, Person, Relationships}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Organization, Person, Relationship, Relationships}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -24,14 +24,29 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
     invoke(request, "Retrieve Person")
   }
 
-  override def getRelationships(organizationId: String, personId: String): Future[Relationships] = {
-    val request: ApiRequest[Relationships] = api.getRelationships(Some(personId), Some(organizationId))
+  override def getRelationships(
+    institutionId: String,
+    personTaxCode: String,
+    platformRole: String
+  ): Future[Relationships] = {
+    val request: ApiRequest[Relationships] =
+      api.getRelationships(Some(personTaxCode), Some(institutionId), Some(platformRole))
     invoke(request, "Retrieve Relationships")
   }
 
   override def getPersonByTaxCode(taxCode: String): Future[Person] = {
     val request: ApiRequest[Person] = api.getPerson(taxCode)
     invoke(request, "Retrieve Person By Tax Code")
+  }
+
+  override def getRelationshipsByTaxCode(personTaxCode: String, platformRole: String): Future[Relationships] = {
+    val request: ApiRequest[Relationships] = api.getRelationships(Some(personTaxCode), None, Some(platformRole))
+    invoke(request, "Retrieve Relationships By Tax Code")
+  }
+
+  override def getRelationshipById(relationshipId: UUID): Future[Relationship] = {
+    val request: ApiRequest[Relationship] = api.getRelationshipById(relationshipId)
+    invoke(request, "Retrieve Relationship By Id")
   }
 
   private def invoke[T](request: ApiRequest[T], logMessage: String)(implicit m: Manifest[T]): Future[T] =

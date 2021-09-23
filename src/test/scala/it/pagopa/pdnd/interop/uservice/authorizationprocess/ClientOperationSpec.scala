@@ -37,25 +37,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(client))
 
-      (mockCatalogManagementService.getEService _)
-        .expects(*, client.eServiceId.toString)
-        .once()
-        .returns(Future.successful(eService))
-
-      (mockPartyManagementService.getOrganization _)
-        .expects(eService.producerId)
-        .once()
-        .returns(Future.successful(organization))
-
-      (mockPartyManagementService.getOrganization _)
-        .expects(client.consumerId)
-        .once()
-        .returns(Future.successful(consumer))
-
-      (mockAgreementManagementService.getAgreements _)
-        .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
-        .once()
-        .returns(Future.successful(Seq(agreement)))
+      mockClientComposition(withOperators = false)
 
       val expected = Client(
         id = client.id,
@@ -109,25 +91,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(client))
 
-      (mockCatalogManagementService.getEService _)
-        .expects(*, client.eServiceId.toString)
-        .once()
-        .returns(Future.successful(eService))
-
-      (mockPartyManagementService.getOrganization _)
-        .expects(eService.producerId)
-        .once()
-        .returns(Future.successful(organization))
-
-      (mockPartyManagementService.getOrganization _)
-        .expects(client.consumerId)
-        .once()
-        .returns(Future.successful(consumer))
-
-      (mockAgreementManagementService.getAgreements _)
-        .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
-        .once()
-        .returns(Future.successful(Seq(agreement)))
+      mockClientComposition(withOperators = false)
 
       val expected =
         Client(
@@ -175,25 +139,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(client))
 
-      (mockCatalogManagementService.getEService _)
-        .expects(*, client.eServiceId.toString)
-        .once()
-        .returns(Future.successful(eService1))
-
-      (mockPartyManagementService.getOrganization _)
-        .expects(eService1.producerId)
-        .once()
-        .returns(Future.successful(organization))
-
-      (mockPartyManagementService.getOrganization _)
-        .expects(client.consumerId)
-        .once()
-        .returns(Future.successful(consumer))
-
-      (mockAgreementManagementService.getAgreements _)
-        .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
-        .once()
-        .returns(Future.successful(Seq(agreement1, agreement2)))
+      mockClientComposition(withOperators = false, eService = eService1, agreements = Seq(agreement1, agreement2))
 
       val expected =
         Client(

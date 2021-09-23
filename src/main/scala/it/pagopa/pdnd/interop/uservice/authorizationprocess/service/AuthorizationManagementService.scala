@@ -26,12 +26,12 @@ trait AuthorizationManagementService {
     offset: Option[Int],
     limit: Option[Int],
     eServiceId: Option[UUID],
-    operatorId: Option[UUID]
+    relationshipId: Option[UUID]
   ): Future[Seq[ManagementClient]]
   def deleteClient(clientId: String): Future[Unit]
 
-  def addOperator(clientId: UUID, operatorId: UUID): Future[ManagementClient]
-  def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit]
+  def addRelationship(clientId: UUID, relationshipId: UUID): Future[ManagementClient]
+  def removeClientRelationship(clientId: UUID, relationshipId: UUID): Future[Unit]
 
   def getKey(clientId: UUID, kid: String): Future[ClientKey]
   def getClientKeys(clientId: UUID): Future[KeysResponse]
@@ -77,9 +77,9 @@ object AuthorizationManagementService {
   def primeInfoToApi(info: OtherPrimeInfo): ApiOtherPrimeInfo =
     ApiOtherPrimeInfo(r = info.r, d = info.d, t = info.t)
 
-  def toClientKeySeed(keySeed: ApiKeySeed, operatorUuid: UUID): Either[EnumParameterError, KeySeed] =
+  def toClientKeySeed(keySeed: ApiKeySeed, relationshipId: UUID): Either[EnumParameterError, KeySeed] =
     Try(KeySeedEnums.Use.withName(keySeed.use)).toEither
-      .map(use => KeySeed(operatorId = operatorUuid, key = keySeed.key, use = use, alg = keySeed.alg))
+      .map(use => KeySeed(relationshipId = relationshipId, key = keySeed.key, use = use, alg = keySeed.alg))
       .left
       .map(_ => EnumParameterError("use", KeySeedEnums.Use.values.toSeq.map(_.toString)))
 

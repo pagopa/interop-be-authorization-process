@@ -18,13 +18,6 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  /** Returns the expected audience defined by the producer of the corresponding agreementId.
-    *
-    * @param eServiceId
-    * @param consumerId
-    * @param description
-    * @return
-    */
   override def createClient(
     eServiceId: UUID,
     consumerId: UUID,
@@ -44,9 +37,9 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     offset: Option[Int],
     limit: Option[Int],
     eServiceId: Option[UUID],
-    operatorId: Option[UUID]
+    relationshipId: Option[UUID]
   ): Future[Seq[Client]] = {
-    val request: ApiRequest[Seq[Client]] = clientApi.listClients(offset, limit, eServiceId, operatorId)
+    val request: ApiRequest[Seq[Client]] = clientApi.listClients(offset, limit, eServiceId, relationshipId)
     invoke(request, "Client list")
   }
 
@@ -55,13 +48,13 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     invoke(request, "Client delete")
   }
 
-  override def addOperator(clientId: UUID, operatorId: UUID): Future[Client] = {
-    val request: ApiRequest[Client] = clientApi.addOperator(clientId, OperatorSeed(operatorId))
+  override def addRelationship(clientId: UUID, relationshipId: UUID): Future[Client] = {
+    val request: ApiRequest[Client] = clientApi.addRelationship(clientId, PartyRelationshipSeed(relationshipId))
     invoke(request, "Operator addition to client")
   }
 
-  override def removeClientOperator(clientId: UUID, operatorId: UUID): Future[Unit] = {
-    val request: ApiRequest[Unit] = clientApi.removeClientOperator(clientId, operatorId)
+  override def removeClientRelationship(clientId: UUID, relationshipId: UUID): Future[Unit] = {
+    val request: ApiRequest[Unit] = clientApi.removeClientRelationship(clientId, relationshipId)
     invoke(request, "Operator removal from client")
   }
 
