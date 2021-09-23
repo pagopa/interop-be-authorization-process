@@ -20,7 +20,7 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-@SuppressWarnings(Array("org.wartremover.warts.Any"))
+@SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Product"))
 class ClientApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
   agreementManagementService: AgreementManagementService,
@@ -166,7 +166,7 @@ class ClientApiServiceImpl(
         new RuntimeException("Missing relationship")
       ) // TODO Create relationship
       updatedClient <- client.relationships
-        .find(_.toString == relationship.id)
+        .find(_ === relationship.id)
         .fold(authorizationManagementService.addRelationship(clientUuid, relationship.id))(_ =>
           Future.failed(SecurityOperatorAlreadyAssigned(client.id.toString, operatorSeed.operatorTaxCode))
         )
@@ -336,8 +336,11 @@ class ClientApiServiceImpl(
       )
       seeds <- keysSeeds
         .zip(relationshipsIds)
-        .traverse { case (seed, Some(relationship)) =>
-          AuthorizationManagementService.toClientKeySeed(seed, relationship.id)
+        .traverse {
+          case (seed, Some(relationship)) =>
+            AuthorizationManagementService.toClientKeySeed(seed, relationship.id)
+          case (seed, None) =>
+            Left(SecurityOperatorRelationshipNotFound(client.consumerId.toString, seed.operatorTaxCode))
         }
         .toFuture
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)
@@ -347,6 +350,8 @@ class ClientApiServiceImpl(
       case Success(keys)                      => createKeys201(keys)
       case Failure(ex @ UnauthenticatedError) => createKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: EnumParameterError)    => createKeys400(Problem(Option(ex.getMessage), 400, "Bad Request"))
+      case Failure(ex: SecurityOperatorRelationshipNotFound) =>
+        createKeys403(Problem(Option(ex.getMessage), 403, "Forbidden"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         createKeys404(Problem(Some(ex.message), 404, "Not found"))
       case Failure(ex) => createKeys500(Problem(Option(ex.getMessage), 500, "Error on key creation"))
@@ -426,7 +431,7 @@ class ClientApiServiceImpl(
         taxCode,
         PartyManagementService.ROLE_SECURITY_OPERATOR
       )
-      activeRelationships = relationships.items.filter(_.status.contains(RelationshipEnums.Status.Active))
+      activeRelationships = relationships.items.filter(_.status == RelationshipEnums.Status.Active)
       securityOperatorRel = activeRelationships.headOption // Only one expected
     } yield securityOperatorRel
 
@@ -435,7 +440,7 @@ class ClientApiServiceImpl(
 
   private[this] def operatorFromRelationship(relationshipId: UUID): Future[Operator] =
     for {
-      relationship <- partyManagementService.getRelationshipById(relationshipId.toString)
+      relationship <- partyManagementService.getRelationshipById(relationshipId)
       person       <- partyManagementService.getPersonByTaxCode(relationship.from)
     } yield Operator(
       taxCode = person.taxCode,

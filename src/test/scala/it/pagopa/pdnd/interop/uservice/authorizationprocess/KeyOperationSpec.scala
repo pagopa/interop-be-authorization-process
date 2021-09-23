@@ -166,10 +166,20 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
       val keySeeds: Seq[KeySeed] =
         Seq(KeySeed(operatorTaxCode = person.taxCode, key = "key", use = "non-existing-use-value", alg = "123"))
 
-      (mockPartyManagementService.getPersonByTaxCode _)
-        .expects(person.taxCode)
+      (mockAuthorizationManagementService.getClient _)
+        .expects(client.id.toString)
         .once()
-        .returns(Future.successful(person))
+        .returns(Future.successful(client))
+
+      (mockPartyManagementService.getOrganization _)
+        .expects(client.consumerId)
+        .once()
+        .returns(Future.successful(organization))
+
+      (mockPartyManagementService.getRelationships _)
+        .expects(organization.institutionId, person.taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .once()
+        .returns(Future.successful(relationships))
 
       Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.BadRequest

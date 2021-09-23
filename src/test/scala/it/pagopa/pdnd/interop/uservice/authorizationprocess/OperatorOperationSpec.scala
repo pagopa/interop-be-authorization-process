@@ -12,7 +12,6 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
@@ -28,10 +27,10 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
   "Operator addition" should {
     "succeed" in {
       val operatorTaxCode = person.taxCode
-      val operatorRelationship: Relationship = relationship.copy(
-        status = Some(RelationshipEnums.Status.Active),
-        platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR
-      )
+//      val operatorRelationship: Relationship = relationship.copy(
+//        status = RelationshipEnums.Status.Active,
+//        platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR
+//      )
 
       (mockAuthorizationManagementService.getClient _)
         .expects(client.id.toString)
@@ -46,12 +45,14 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       (mockPartyManagementService.getRelationships _)
         .expects(organization.institutionId, person.taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
         .once()
-        .returns(Future.successful(Relationships(Seq(operatorRelationship))))
+        .returns(Future.successful(Relationships(Seq(relationship))))
 
       (mockAuthorizationManagementService.addRelationship _)
-        .expects(client.id, operatorRelationship.id)
+        .expects(client.id, relationship.id)
         .once()
-        .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
+        .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
+
+      mockClientComposition(withOperators = true, relationship = relationship)
 
       val expected = Client(
         id = client.id,
@@ -103,7 +104,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "fail if operator is already assigned" in {
       val operatorTaxCode = person.taxCode
       val operatorRelationship: Relationship = relationship.copy(
-        status = Some(RelationshipEnums.Status.Active),
+        status = RelationshipEnums.Status.Active,
         platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR
       )
 
@@ -130,10 +131,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
   "Operator removal" should {
     "succeed" in {
-      val operatorId      = personId
       val operatorTaxCode = person.taxCode
       val operatorRelationship: Relationship = relationship.copy(
-        status = Some(RelationshipEnums.Status.Active),
+        status = RelationshipEnums.Status.Active,
         platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR
       )
 
@@ -153,7 +153,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(Relationships(Seq(operatorRelationship))))
 
       (mockAuthorizationManagementService.removeClientRelationship _)
-        .expects(client.id, operatorId)
+        .expects(client.id, relationship.id)
         .once()
         .returns(Future.successful(()))
 
@@ -188,7 +188,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
   "Operator retrieve" should {
     "succeed" in {
       val operatorRelationship: Relationship = relationship.copy(
-        status = Some(RelationshipEnums.Status.Active),
+        status = RelationshipEnums.Status.Active,
         platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR
       )
 
@@ -198,7 +198,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
       (mockPartyManagementService.getRelationshipById _)
-        .expects(operatorRelationship.id.toString)
+        .expects(operatorRelationship.id)
         .once()
         .returns(Future.successful(operatorRelationship))
 
@@ -212,8 +212,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
           taxCode = person.taxCode,
           name = person.name,
           surname = person.surname,
-          role = relationships.items.head.role.toString,
-          platformRole = relationships.items.head.platformRole
+          role = operatorRelationship.role.toString,
+          platformRole = operatorRelationship.platformRole
         )
       )
 

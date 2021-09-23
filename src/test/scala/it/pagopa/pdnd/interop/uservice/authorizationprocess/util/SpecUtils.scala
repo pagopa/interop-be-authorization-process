@@ -15,6 +15,7 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
   EService => CatalogManagementEService,
   EServiceDescriptor => CatalogManagementDescriptor
 }
+import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
   ClientKeyEnums,
   OtherPrimeInfo,
@@ -32,6 +33,7 @@ import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
 import org.scalamock.scalatest.MockFactory
 
 import java.util.UUID
+import scala.concurrent.Future
 
 trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
@@ -109,7 +111,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       consumerId = consumerId,
       clientSeed.name,
       clientSeed.description,
-      operators = Set.empty
+      relationships = Set.empty
     )
 
   val person: Person = Person(taxCode = taxCode, surname = "Surname", name = "Name", partyId = personId.toString)
@@ -124,11 +126,12 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     )
 
   val relationship: Relationship = Relationship(
+    id = UUID.randomUUID(),
     from = person.taxCode,
     to = organization.institutionId,
     role = RelationshipEnums.Role.Operator,
     platformRole = "aPlatformRole",
-    status = Some(RelationshipEnums.Status.Active)
+    status = RelationshipEnums.Status.Active
   )
 
   val relationships: Relationships = Relationships(Seq(relationship))
@@ -160,6 +163,47 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       oth = Some(Seq(OtherPrimeInfo("22", "23", "24")))
     )
   )
+
+  def mockClientComposition(
+    withOperators: Boolean,
+    client: keymanagement.client.model.Client = client,
+    relationship: Relationship = relationship
+  ): Unit = {
+
+    (mockCatalogManagementService.getEService _)
+      .expects(*, client.eServiceId.toString)
+      .once()
+      .returns(Future.successful(eService))
+
+    (mockPartyManagementService.getOrganization _)
+      .expects(eService.producerId)
+      .once()
+      .returns(Future.successful(organization))
+
+    (mockPartyManagementService.getOrganization _)
+      .expects(client.consumerId)
+      .once()
+      .returns(Future.successful(consumer))
+
+    if (withOperators) {
+      (mockPartyManagementService.getRelationshipById _)
+        .expects(relationship.id)
+        .once()
+        .returns(Future.successful(relationship))
+
+      (mockPartyManagementService.getPersonByTaxCode _)
+        .expects(relationship.from)
+        .once()
+        .returns(Future.successful(person))
+    }
+
+    (mockAgreementManagementService.getAgreements _)
+      .expects(*, client.consumerId.toString, client.eServiceId.toString, None)
+      .once()
+      .returns(Future.successful(Seq(agreement)))
+
+    ()
+  }
 
   val clientApiMarshaller: ClientApiMarshallerImpl = new ClientApiMarshallerImpl()
 
