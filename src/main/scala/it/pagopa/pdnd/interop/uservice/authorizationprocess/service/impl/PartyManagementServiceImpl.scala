@@ -3,7 +3,14 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{PartyManagementInvoker, PartyManagementService}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.PartyApi
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.ApiRequest
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Organization, Person, Relationship, Relationships}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
+  Organization,
+  Person,
+  PersonSeed,
+  Relationship,
+  RelationshipSeed,
+  Relationships
+}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -47,6 +54,16 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
   override def getRelationshipById(relationshipId: UUID): Future[Relationship] = {
     val request: ApiRequest[Relationship] = api.getRelationshipById(relationshipId)
     invoke(request, "Retrieve Relationship By Id")
+  }
+
+  def createPerson(seed: PersonSeed): Future[Person] = {
+    val request: ApiRequest[Person] = api.createPerson(seed)
+    invoke(request, "Creating Person")
+  }
+
+  def createRelationship(seed: RelationshipSeed): Future[Relationship] = {
+    val createRequest: ApiRequest[Relationship] = api.createRelationship(seed)
+    invoke(createRequest, "Creating Relationship")
   }
 
   private def invoke[T](request: ApiRequest[T], logMessage: String)(implicit m: Manifest[T]): Future[T] =

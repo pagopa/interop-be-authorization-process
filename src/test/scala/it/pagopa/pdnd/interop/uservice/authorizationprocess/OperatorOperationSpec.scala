@@ -26,12 +26,6 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
   "Operator addition" should {
     "succeed" in {
-      val operatorTaxCode = person.taxCode
-//      val operatorRelationship: Relationship = relationship.copy(
-//        status = RelationshipEnums.Status.Active,
-//        platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR
-//      )
-
       (mockAuthorizationManagementService.getClient _)
         .expects(client.id.toString)
         .once()
@@ -73,7 +67,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         operators = Some(Seq(operator))
       )
 
-      Get() ~> service.addOperator(client.id.toString, OperatorSeed(operatorTaxCode)) ~> check {
+      Get() ~> service.addOperator(client.id.toString, operatorSeed) ~> check {
         status shouldEqual StatusCodes.Created
         entityAs[Client] shouldEqual expected
       }
@@ -81,7 +75,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      val seed                                     = OperatorSeed(person.taxCode)
+      val seed                                     = operatorSeed
 
       Get() ~> service.addOperator(client.id.toString, seed) ~> check {
         status shouldEqual StatusCodes.Unauthorized
@@ -89,20 +83,17 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     }
 
     "fail if client does not exist" in {
-      val seed = OperatorSeed(person.taxCode)
-
       (mockAuthorizationManagementService.getClient _)
         .expects(*)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
-      Get() ~> service.addOperator(client.id.toString, seed) ~> check {
+      Get() ~> service.addOperator(client.id.toString, operatorSeed) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
 
     "fail if operator is already assigned" in {
-      val operatorTaxCode = person.taxCode
       val operatorRelationship: Relationship = relationship.copy(
         status = RelationshipEnums.Status.Active,
         platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR
@@ -123,7 +114,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.successful(Relationships(Seq(operatorRelationship))))
 
-      Get() ~> service.addOperator(client.id.toString, OperatorSeed(operatorTaxCode)) ~> check {
+      Get() ~> service.addOperator(client.id.toString, operatorSeed) ~> check {
         status shouldEqual StatusCodes.BadRequest
       }
     }

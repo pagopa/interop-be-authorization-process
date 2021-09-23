@@ -1,7 +1,17 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{Operator => ApiOperator, Organization => ApiOrganization}
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Organization, Person, PersonSeed, Relationship, RelationshipSeed, Relationships}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
+  Operator => ApiOperator,
+  Organization => ApiOrganization
+}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
+  Organization,
+  Person,
+  PersonSeed,
+  Relationship,
+  RelationshipSeed,
+  Relationships
+}
 
 import java.util.UUID
 import scala.concurrent.Future
