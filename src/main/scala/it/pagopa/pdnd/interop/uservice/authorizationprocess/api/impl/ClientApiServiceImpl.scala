@@ -189,19 +189,26 @@ class ClientApiServiceImpl(
       case Failure(ex) => addOperator500(Problem(Option(ex.getMessage), 500, "Error on operator addition"))
     }
   }
-  
+
+  private[this] def recoverIfMissing[T](toRecover: Future[T], recoverWith: Future[T]): Future[T] =
+    toRecover.recoverWith {
+      case ex: partymanagement.client.invoker.ApiError[_] if ex.code == 404 =>
+        recoverWith
+      case ex =>
+        Future.failed(ex)
+    }
+
   private[this] def getOrCreateRelationship(
     client: ManagementClient,
     operatorSeed: OperatorSeed
   ): Future[Relationship] = {
     // TODO These could be replaced by a PUT
-    def createPersonIfMissing: Future[Person] = {
-      partyManagementService.getPersonByTaxCode(operatorSeed.taxCode).recoverWith {
-        case ex: ApiError[_] if ex.code == 404 =>
-          partyManagementService.createPerson(PersonSeed(operatorSeed.taxCode, operatorSeed.surname, operatorSeed.name))
-        case ex => Future.failed(ex)
-      }
-    }
+    def createPersonIfMissing: Future[Person] =
+      recoverIfMissing(
+        partyManagementService.getPersonByTaxCode(operatorSeed.taxCode),
+        partyManagementService.createPerson(PersonSeed(operatorSeed.taxCode, operatorSeed.surname, operatorSeed.name))
+      )
+
     def createRelationship: Future[Relationship] = for {
       _        <- createPersonIfMissing
       consumer <- partyManagementService.getOrganization(client.consumerId)
@@ -465,14 +472,12 @@ class ClientApiServiceImpl(
   ): Future[Option[partymanagement.client.model.Relationship]] =
     for {
       consumer <- partyManagementService.getOrganization(consumerId)
-      relationships <- partyManagementService
-        .getRelationships(consumer.institutionId, taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
-        .map(Some(_))
-        .recoverWith {
-          case ex: ApiError[_] if ex.code == 404 =>
-            Future.successful(None)
-          case ex => Future.failed(ex)
-        }
+      relationships <- recoverIfMissing(
+        partyManagementService
+          .getRelationships(consumer.institutionId, taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+          .map(Some(_)),
+        Future.successful(None)
+      )
       activeRelationships = relationships.toSeq.flatMap(_.items.filter(_.status == RelationshipEnums.Status.Active))
       securityOperatorRel = activeRelationships.headOption // Only one expected
     } yield securityOperatorRel
