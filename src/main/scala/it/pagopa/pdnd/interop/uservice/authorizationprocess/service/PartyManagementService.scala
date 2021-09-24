@@ -19,6 +19,7 @@ import scala.concurrent.Future
 trait PartyManagementService {
 
   def getOrganization(organizationId: UUID): Future[Organization]
+  def getOrganizationByInstitutionId(institutionId: String): Future[Organization]
   def getPerson(personId: UUID): Future[Person]
   def getPersonByTaxCode(taxCode: String): Future[Person]
   def getRelationships(institutionId: String, personTaxCode: String, platformRole: String): Future[Relationships]

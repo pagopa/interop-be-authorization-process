@@ -50,8 +50,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val agreementId: UUID          = UUID.randomUUID()
   val organizationId: UUID       = UUID.randomUUID()
   val personId: UUID             = UUID.randomUUID()
-  val clientSeed: ClientSeed     = ClientSeed(eServiceId, consumerId, "client name", Some("client description"))
   val taxCode: String            = "taxCode"
+  val institutionId: String      = "some-external-id1"
+  val clientSeed: ClientSeed     = ClientSeed(eServiceId, institutionId, "client name", Some("client description"))
   val person: Person             = Person(taxCode = taxCode, surname = "Surname", name = "Name", partyId = personId.toString)
   val operatorSeed: OperatorSeed = OperatorSeed(person.taxCode, person.name, person.surname)
 
@@ -87,7 +88,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   )
 
   val organization: PartyManagementOrganization = PartyManagementOrganization(
-    institutionId = "some-external-id1",
+    institutionId = institutionId,
     description = "Organization description",
     managerName = "ManagerName",
     managerSurname = "ManagerSurname",

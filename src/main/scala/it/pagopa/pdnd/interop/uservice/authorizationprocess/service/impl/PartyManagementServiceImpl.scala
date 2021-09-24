@@ -26,6 +26,11 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
     invoke(request, "Retrieve Organization")
   }
 
+  override def getOrganizationByInstitutionId(institutionId: String): Future[Organization] = {
+    val request: ApiRequest[Organization] = api.getOrganization(institutionId)
+    invoke(request, "Retrieve Organization by Institution Id")
+  }
+
   override def getPerson(personId: UUID): Future[Person] = {
     val request: ApiRequest[Person] = api.getPartyPersonByUUID(personId)
     invoke(request, "Retrieve Person")

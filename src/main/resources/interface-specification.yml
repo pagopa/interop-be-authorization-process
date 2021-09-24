@@ -688,16 +688,15 @@ components:
         eServiceId:
           type: string
           format: uuid
-        consumerId:
+        consumerInstitutionId:
           type: string
-          format: uuid
         name:
           type: string
         description:
           type: string
       required:
         - eServiceId
-        - consumerId
+        - consumerInstitutionId
         - name
     Client:
       description: Models Client details

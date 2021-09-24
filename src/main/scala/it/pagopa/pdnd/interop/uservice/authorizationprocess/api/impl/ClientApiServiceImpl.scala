@@ -49,9 +49,11 @@ class ClientApiServiceImpl(
     val result = for {
       bearerToken <- extractBearer(contexts)
       _           <- catalogManagementService.getEService(bearerToken, clientSeed.eServiceId.toString)
+      consumer    <- partyManagementService.getOrganizationByInstitutionId(clientSeed.consumerInstitutionId)
+      consumerId  <- toUuid(consumer.partyId).toFuture
       client <- authorizationManagementService.createClient(
         clientSeed.eServiceId,
-        clientSeed.consumerId,
+        consumerId,
         clientSeed.name,
         clientSeed.description
       )
