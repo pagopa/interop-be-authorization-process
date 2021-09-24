@@ -30,4 +30,6 @@ class ClientApiMarshallerImpl extends ClientApiMarshaller with SprayJsonSupport 
 
   override implicit def toEntityMarshallerOperatorarray: ToEntityMarshaller[Seq[Operator]] =
     sprayJsonMarshaller[Seq[Operator]]
+
+  override implicit def toEntityMarshallerOperator: ToEntityMarshaller[Operator] = sprayJsonMarshaller[Operator]
 }
