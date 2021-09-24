@@ -475,8 +475,8 @@ class ClientApiServiceImpl(
         partyManagementService
           .getRelationships(consumer.institutionId, taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
           .map(Some(_))
-        // TODO This is dangerous because every error is treated as "missing party with given tax code"
-        //  but currently there is no precise way to identify the error
+          // TODO This is dangerous because every error is treated as "missing party with given tax code"
+          //  but currently there is no precise way to identify the error
           .recoverWith(_ => Future.successful(None))
       activeRelationships = relationships.toSeq.flatMap(_.items.filter(_.status == RelationshipEnums.Status.Active))
       securityOperatorRel = activeRelationships.headOption // Only one expected
