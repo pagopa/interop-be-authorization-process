@@ -390,4 +390,67 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       }
     }
   }
+
+  "Operator retrieve by external id" should {
+    "succeed" in {
+      (mockAuthorizationManagementService.getClient _)
+        .expects(client.id.toString)
+        .once()
+        .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
+
+      (mockPartyManagementService.getRelationshipById _)
+        .expects(relationship.id)
+        .once()
+        .returns(Future.successful(relationship))
+
+      (mockPartyManagementService.getPersonByTaxCode _)
+        .expects(relationship.from)
+        .once()
+        .returns(Future.successful(person))
+
+      val expected =
+        Operator(
+          taxCode = person.taxCode,
+          name = person.name,
+          surname = person.surname,
+          role = relationship.role.toString,
+          platformRole = relationship.platformRole
+        )
+
+      Get() ~> service.getClientOperatorByExternalId(client.id.toString, relationship.from) ~> check {
+        status shouldEqual StatusCodes.OK
+        entityAs[Operator] shouldEqual expected
+      }
+    }
+
+    "fail if missing authorization header" in {
+      implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
+
+      Get() ~> service.getClientOperatorByExternalId(client.id.toString, relationship.from) ~> check {
+        status shouldEqual StatusCodes.Unauthorized
+      }
+    }
+
+    "fail if client does not exist" in {
+      (mockAuthorizationManagementService.getClient _)
+        .expects(client.id.toString)
+        .once()
+        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
+
+      Get() ~> service.getClientOperatorByExternalId(client.id.toString, relationship.from) ~> check {
+        status shouldEqual StatusCodes.NotFound
+      }
+    }
+
+    "fail if operator is not found" in {
+      (mockAuthorizationManagementService.getClient _)
+        .expects(client.id.toString)
+        .once()
+        .returns(Future.successful(client))
+
+      Get() ~> service.getClientOperatorByExternalId(client.id.toString, relationship.from) ~> check {
+        status shouldEqual StatusCodes.NotFound
+      }
+    }
+  }
 }

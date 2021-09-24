@@ -13,14 +13,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogManagementApiError}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EServiceDescriptor
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
-  Person,
-  PersonSeed,
-  Relationship,
-  RelationshipEnums,
-  RelationshipSeed,
-  RelationshipSeedEnums
-}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.pdnd.interop.uservice.{agreementmanagement, catalogmanagement, keymanagement, partymanagement}
 
 import java.util.UUID
@@ -451,6 +444,36 @@ class ClientApiServiceImpl(
         getClientOperators401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClientOperators404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(ex) => complete((500, Problem(Option(ex.getMessage), 500, "Error on client keys retrieve")))
+    }
+  }
+
+  /** Code: 200, Message: Client Operator retrieved, DataType: Operator
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Client or Operator not found, DataType: Problem
+    */
+  override def getClientOperatorByExternalId(clientId: String, operatorTaxCode: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerOperator: ToEntityMarshaller[Operator],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result = for {
+      _         <- extractBearer(contexts)
+      client    <- authorizationManagementService.getClient(clientId)
+      operators <- operatorsFromClient(client)
+      operator <- operators
+        .find(_.taxCode == operatorTaxCode)
+        .toFuture(SecurityOperatorRelationshipNotFound(client.consumerId.toString, operatorTaxCode))
+    } yield operator
+
+    onComplete(result) {
+      case Success(operator) => getClientOperatorByExternalId200(operator)
+      case Failure(ex @ UnauthenticatedError) =>
+        getClientOperatorByExternalId401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        getClientOperatorByExternalId404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(ex: SecurityOperatorRelationshipNotFound) =>
+        getClientOperatorByExternalId404(Problem(Option(ex.getMessage), 404, "Not found"))
       case Failure(ex) => complete((500, Problem(Option(ex.getMessage), 500, "Error on client keys retrieve")))
     }
   }
