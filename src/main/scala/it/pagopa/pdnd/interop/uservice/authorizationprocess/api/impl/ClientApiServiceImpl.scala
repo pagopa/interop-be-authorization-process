@@ -96,7 +96,8 @@ class ClientApiServiceImpl(
     offset: Option[Int],
     limit: Option[Int],
     eServiceId: Option[String],
-    operatorTaxCode: Option[String]
+    operatorTaxCode: Option[String],
+    institutionId: Option[String]
   )(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
@@ -109,11 +110,13 @@ class ClientApiServiceImpl(
       relationships <- operatorTaxCode.traverse(
         partyManagementService.getRelationshipsByTaxCode(_, PartyManagementService.ROLE_SECURITY_OPERATOR)
       )
+      consumer   <- institutionId.traverse(partyManagementService.getOrganizationByInstitutionId)
+      consumerId <- consumer.traverse(c => toUuid(c.partyId)).toFuture
       clients <- relationships match {
-        case None => authorizationManagementService.listClients(offset, limit, eServiceUuid, None)
+        case None => authorizationManagementService.listClients(offset, limit, eServiceUuid, None, consumerId)
         case Some(rels) =>
           rels.items.flatTraverse(rel =>
-            authorizationManagementService.listClients(offset, limit, eServiceUuid, Some(rel.id))
+            authorizationManagementService.listClients(offset, limit, eServiceUuid, Some(rel.id), consumerId)
           )
       }
       clientsDetails <- clients.traverse(client => getClient(bearerToken, client))

@@ -26,7 +26,8 @@ trait AuthorizationManagementService {
     offset: Option[Int],
     limit: Option[Int],
     eServiceId: Option[UUID],
-    relationshipId: Option[UUID]
+    relationshipId: Option[UUID],
+    consumerId: Option[UUID]
   ): Future[Seq[ManagementClient]]
   def deleteClient(clientId: String): Future[Unit]
 

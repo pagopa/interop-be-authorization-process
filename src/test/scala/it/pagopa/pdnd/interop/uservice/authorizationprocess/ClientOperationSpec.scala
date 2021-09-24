@@ -5,8 +5,10 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EServiceDescriptorEnums
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Relationships
 import it.pagopa.pdnd.interop.uservice.{catalogmanagement, keymanagement}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
@@ -186,9 +188,28 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
   "Client list" should {
     "succeed" in {
+      val offset           = Some(0)
+      val limit            = Some(10)
+      val eServiceUuid     = Some(eServiceId)
+      val relationshipUuid = Some(relationship.id)
+      val consumerUuid     = Some(client.consumerId)
+
+      val eServiceIdStr   = eServiceUuid.map(_.toString)
+      val operatorTaxCode = operator.taxCode
+      val institutionId   = consumer.institutionId
+
+      (mockPartyManagementService.getRelationshipsByTaxCode _)
+        .expects(operatorTaxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .once()
+        .returns(Future.successful(Relationships(Seq(relationship))))
+
+      (mockPartyManagementService.getOrganizationByInstitutionId _)
+        .expects(institutionId)
+        .once()
+        .returns(Future.successful(consumer))
 
       (mockAuthorizationManagementService.listClients _)
-        .expects(*, *, *, *)
+        .expects(offset, limit, eServiceUuid, relationshipUuid, consumerUuid)
         .once()
         .returns(Future.successful(Seq(client)))
 
@@ -232,7 +253,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         )
       )
 
-      Get() ~> service.listClients(Some(0), Some(10), Some(eServiceId.toString), None) ~> check {
+      Get() ~> service.listClients(offset, limit, eServiceIdStr, Some(operatorTaxCode), Some(institutionId)) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Seq[Client]] shouldEqual expected
       }
