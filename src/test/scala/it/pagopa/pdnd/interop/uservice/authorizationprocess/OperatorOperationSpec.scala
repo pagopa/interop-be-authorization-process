@@ -7,7 +7,15 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Relationship, RelationshipEnums, Relationships}
+import it.pagopa.pdnd.interop.uservice.partymanagement
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
+  PersonSeed,
+  Relationship,
+  RelationshipEnums,
+  RelationshipSeed,
+  RelationshipSeedEnums,
+  Relationships
+}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -25,13 +33,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
   )(ExecutionContext.global)
 
   "Operator addition" should {
-    "succeed" in {
-      val operatorTaxCode = person.taxCode
-//      val operatorRelationship: Relationship = relationship.copy(
-//        status = RelationshipEnums.Status.Active,
-//        platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR
-//      )
-
+    "succeed on existing relationship" in {
       (mockAuthorizationManagementService.getClient _)
         .expects(client.id.toString)
         .once()
@@ -73,7 +75,156 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         operators = Some(Seq(operator))
       )
 
-      Get() ~> service.addOperator(client.id.toString, OperatorSeed(operatorTaxCode)) ~> check {
+      Get() ~> service.addOperator(client.id.toString, operatorSeed) ~> check {
+        status shouldEqual StatusCodes.Created
+        entityAs[Client] shouldEqual expected
+      }
+    }
+
+    "succeed creating relationship" in {
+      (mockAuthorizationManagementService.getClient _)
+        .expects(client.id.toString)
+        .once()
+        .returns(Future.successful(client))
+
+      (mockPartyManagementService.getOrganization _)
+        .expects(client.consumerId)
+        .once()
+        .returns(Future.successful(organization))
+
+      // Missing relationship
+      (mockPartyManagementService.getRelationships _)
+        .expects(organization.institutionId, operatorSeed.taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .once()
+        .returns(Future.failed(partymanagement.client.invoker.ApiError(404, "Some message", None)))
+
+      // Existing person
+      (mockPartyManagementService.getPersonByTaxCode _)
+        .expects(operatorSeed.taxCode)
+        .once()
+        .returns(Future.successful(person))
+
+      (mockPartyManagementService.getOrganization _)
+        .expects(client.consumerId)
+        .once()
+        .returns(Future.successful(organization))
+
+      (mockPartyManagementService.createRelationship _)
+        .expects(
+          RelationshipSeed(
+            operatorSeed.taxCode,
+            organization.institutionId,
+            RelationshipSeedEnums.Role.Operator,
+            PartyManagementService.ROLE_SECURITY_OPERATOR
+          )
+        )
+        .once()
+        .returns(Future.successful(relationship))
+
+      (mockAuthorizationManagementService.addRelationship _)
+        .expects(client.id, relationship.id)
+        .once()
+        .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
+
+      mockClientComposition(withOperators = true, relationship = relationship)
+
+      val expected = Client(
+        id = client.id,
+        eservice = EService(
+          eService.id,
+          eService.name,
+          Organization(organization.institutionId, organization.description),
+          Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+        ),
+        consumer = Organization(consumer.institutionId, consumer.description),
+        agreement = Agreement(
+          agreement.id,
+          agreement.status.toString,
+          Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
+        ),
+        name = client.name,
+        description = client.description,
+        operators = Some(Seq(operator))
+      )
+
+      Get() ~> service.addOperator(client.id.toString, operatorSeed) ~> check {
+        status shouldEqual StatusCodes.Created
+        entityAs[Client] shouldEqual expected
+      }
+    }
+
+    "succeed creating relationship and person" in {
+      (mockAuthorizationManagementService.getClient _)
+        .expects(client.id.toString)
+        .once()
+        .returns(Future.successful(client))
+
+      (mockPartyManagementService.getOrganization _)
+        .expects(client.consumerId)
+        .once()
+        .returns(Future.successful(organization))
+
+      // Missing relationship
+      (mockPartyManagementService.getRelationships _)
+        .expects(organization.institutionId, operatorSeed.taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .once()
+        .returns(Future.failed(partymanagement.client.invoker.ApiError(404, "Some message", None)))
+
+      // Missing person
+      (mockPartyManagementService.getPersonByTaxCode _)
+        .expects(operatorSeed.taxCode)
+        .once()
+        .returns(Future.failed(partymanagement.client.invoker.ApiError(404, "Some message", None)))
+
+      (mockPartyManagementService.createPerson _)
+        .expects(PersonSeed(operatorSeed.taxCode, operatorSeed.surname, operatorSeed.name))
+        .once()
+        .returns(Future.successful(person))
+
+      (mockPartyManagementService.getOrganization _)
+        .expects(client.consumerId)
+        .once()
+        .returns(Future.successful(organization))
+
+      (mockPartyManagementService.createRelationship _)
+        .expects(
+          RelationshipSeed(
+            operatorSeed.taxCode,
+            organization.institutionId,
+            RelationshipSeedEnums.Role.Operator,
+            PartyManagementService.ROLE_SECURITY_OPERATOR
+          )
+        )
+        .once()
+        .returns(Future.successful(relationship))
+
+      (mockAuthorizationManagementService.addRelationship _)
+        .expects(client.id, relationship.id)
+        .once()
+        .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
+
+      mockClientComposition(withOperators = true, relationship = relationship)
+
+      val expected = Client(
+        id = client.id,
+        eservice = EService(
+          eService.id,
+          eService.name,
+          Organization(organization.institutionId, organization.description),
+          Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+        ),
+        consumer = Organization(consumer.institutionId, consumer.description),
+        agreement = Agreement(
+          agreement.id,
+          agreement.status.toString,
+          Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
+        ),
+        name = client.name,
+        description = client.description,
+        operators = Some(Seq(operator))
+      )
+
+      Get() ~> service.addOperator(client.id.toString, operatorSeed) ~> check {
         status shouldEqual StatusCodes.Created
         entityAs[Client] shouldEqual expected
       }
@@ -81,7 +232,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      val seed                                     = OperatorSeed(person.taxCode)
+      val seed                                     = operatorSeed
 
       Get() ~> service.addOperator(client.id.toString, seed) ~> check {
         status shouldEqual StatusCodes.Unauthorized
@@ -89,20 +240,17 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     }
 
     "fail if client does not exist" in {
-      val seed = OperatorSeed(person.taxCode)
-
       (mockAuthorizationManagementService.getClient _)
         .expects(*)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
-      Get() ~> service.addOperator(client.id.toString, seed) ~> check {
+      Get() ~> service.addOperator(client.id.toString, operatorSeed) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
 
     "fail if operator is already assigned" in {
-      val operatorTaxCode = person.taxCode
       val operatorRelationship: Relationship = relationship.copy(
         status = RelationshipEnums.Status.Active,
         platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR
@@ -123,7 +271,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.successful(Relationships(Seq(operatorRelationship))))
 
-      Get() ~> service.addOperator(client.id.toString, OperatorSeed(operatorTaxCode)) ~> check {
+      Get() ~> service.addOperator(client.id.toString, operatorSeed) ~> check {
         status shouldEqual StatusCodes.BadRequest
       }
     }

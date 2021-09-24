@@ -781,10 +781,16 @@ components:
       description: Models the seed for an Operator-Client relationship to be persisted
       type: object
       properties:
-        operatorTaxCode:
+        taxCode:
+          type: string
+        name:
+          type: string
+        surname:
           type: string
       required:
-        - operatorTaxCode
+        - taxCode
+        - name
+        - surname
     Operator:
       description: Models a Client Operator
       type: object

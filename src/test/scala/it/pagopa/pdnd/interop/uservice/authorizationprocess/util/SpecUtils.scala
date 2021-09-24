@@ -44,14 +44,16 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
 
-  val bearerToken: String    = "token"
-  val eServiceId: UUID       = UUID.randomUUID()
-  val consumerId: UUID       = UUID.randomUUID()
-  val agreementId: UUID      = UUID.randomUUID()
-  val organizationId: UUID   = UUID.randomUUID()
-  val personId: UUID         = UUID.randomUUID()
-  val clientSeed: ClientSeed = ClientSeed(eServiceId, consumerId, "client name", Some("client description"))
-  val taxCode: String        = "taxCode"
+  val bearerToken: String        = "token"
+  val eServiceId: UUID           = UUID.randomUUID()
+  val consumerId: UUID           = UUID.randomUUID()
+  val agreementId: UUID          = UUID.randomUUID()
+  val organizationId: UUID       = UUID.randomUUID()
+  val personId: UUID             = UUID.randomUUID()
+  val clientSeed: ClientSeed     = ClientSeed(eServiceId, consumerId, "client name", Some("client description"))
+  val taxCode: String            = "taxCode"
+  val person: Person             = Person(taxCode = taxCode, surname = "Surname", name = "Name", partyId = personId.toString)
+  val operatorSeed: OperatorSeed = OperatorSeed(person.taxCode, person.name, person.surname)
 
   val activeDescriptor: CatalogManagementDescriptor = CatalogManagementDescriptor(
     id = UUID.randomUUID(),
@@ -113,8 +115,6 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       clientSeed.description,
       relationships = Set.empty
     )
-
-  val person: Person = Person(taxCode = taxCode, surname = "Surname", name = "Name", partyId = personId.toString)
 
   val operator: Operator =
     Operator(
