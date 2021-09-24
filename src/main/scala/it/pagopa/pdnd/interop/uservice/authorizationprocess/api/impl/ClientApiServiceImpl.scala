@@ -49,9 +49,11 @@ class ClientApiServiceImpl(
     val result = for {
       bearerToken <- extractBearer(contexts)
       _           <- catalogManagementService.getEService(bearerToken, clientSeed.eServiceId.toString)
+      consumer    <- partyManagementService.getOrganizationByInstitutionId(clientSeed.consumerInstitutionId)
+      consumerId  <- toUuid(consumer.partyId).toFuture
       client <- authorizationManagementService.createClient(
         clientSeed.eServiceId,
-        clientSeed.consumerId,
+        consumerId,
         clientSeed.name,
         clientSeed.description
       )
@@ -471,12 +473,13 @@ class ClientApiServiceImpl(
   ): Future[Option[partymanagement.client.model.Relationship]] =
     for {
       consumer <- partyManagementService.getOrganization(consumerId)
-      relationships <- recoverIfMissing(
+      relationships <-
         partyManagementService
           .getRelationships(consumer.institutionId, taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
-          .map(Some(_)),
-        Future.successful(None)
-      )
+          .map(Some(_))
+          // TODO This is dangerous because every error is treated as "missing party with given tax code"
+          //  but currently there is no precise way to identify the error
+          .recoverWith(_ => Future.successful(None))
       activeRelationships = relationships.toSeq.flatMap(_.items.filter(_.status == RelationshipEnums.Status.Active))
       securityOperatorRel = activeRelationships.headOption // Only one expected
     } yield securityOperatorRel
