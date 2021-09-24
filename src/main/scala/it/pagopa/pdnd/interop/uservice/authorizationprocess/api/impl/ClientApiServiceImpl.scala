@@ -189,7 +189,7 @@ class ClientApiServiceImpl(
     }
   }
 
-  private[this] def recoverIfMissing[T](toRecover: Future[T], recoverWith: Future[T]): Future[T] =
+  private[this] def recoverIfMissing[T](toRecover: Future[T], recoverWith: => Future[T]): Future[T] =
     toRecover.recoverWith {
       case ex: partymanagement.client.invoker.ApiError[_] if ex.code == 404 =>
         recoverWith
@@ -213,8 +213,8 @@ class ClientApiServiceImpl(
       consumer <- partyManagementService.getOrganization(client.consumerId)
       relationship <- partyManagementService.createRelationship(
         RelationshipSeed(
-          consumer.institutionId,
           operatorSeed.taxCode,
+          consumer.institutionId,
           RelationshipSeedEnums.Role.Operator,
           PartyManagementService.ROLE_SECURITY_OPERATOR
         )
