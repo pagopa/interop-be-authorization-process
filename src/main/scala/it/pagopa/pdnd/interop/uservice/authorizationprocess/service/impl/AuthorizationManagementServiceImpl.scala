@@ -37,9 +37,10 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     offset: Option[Int],
     limit: Option[Int],
     eServiceId: Option[UUID],
-    relationshipId: Option[UUID]
+    relationshipId: Option[UUID],
+    consumerId: Option[UUID]
   ): Future[Seq[Client]] = {
-    val request: ApiRequest[Seq[Client]] = clientApi.listClients(offset, limit, eServiceId, relationshipId)
+    val request: ApiRequest[Seq[Client]] = clientApi.listClients(offset, limit, eServiceId, relationshipId, consumerId)
     invoke(request, "Client list")
   }
 

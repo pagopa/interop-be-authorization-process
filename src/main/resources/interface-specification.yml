@@ -137,6 +137,11 @@ paths:
           description: ID of operator that MUST be related to the Client
           schema:
             type: string
+        - name: institutionId
+          in: query
+          description: ID of institution that MUST be related to the Client
+          schema:
+            type: string
       responses:
         "200":
           description: Request succeed
