@@ -22,9 +22,19 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     eServiceId: UUID,
     consumerId: UUID,
     name: String,
+    purposes: String,
     description: Option[String]
   ): Future[Client] = {
-    val request: ApiRequest[Client] = clientApi.createClient(ClientSeed(eServiceId, consumerId, name, description))
+    val request: ApiRequest[Client] =
+      clientApi.createClient(
+        ClientSeed(
+          eServiceId = eServiceId,
+          consumerId = consumerId,
+          name = name,
+          purposes = purposes,
+          description = description
+        )
+      )
     invoke(request, "Client creation")
   }
 

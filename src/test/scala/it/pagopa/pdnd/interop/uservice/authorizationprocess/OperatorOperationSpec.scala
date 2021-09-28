@@ -71,6 +71,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
           Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
         ),
         name = client.name,
+        purposes = client.purposes,
         description = client.description,
         operators = Some(Seq(operator))
       )
@@ -143,6 +144,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
           Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
         ),
         name = client.name,
+        purposes = client.purposes,
         description = client.description,
         operators = Some(Seq(operator))
       )
@@ -220,6 +222,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
           Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
         ),
         name = client.name,
+        purposes = client.purposes,
         description = client.description,
         operators = Some(Seq(operator))
       )

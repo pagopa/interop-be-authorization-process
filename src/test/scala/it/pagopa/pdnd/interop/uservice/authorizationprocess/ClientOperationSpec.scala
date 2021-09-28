@@ -40,7 +40,13 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returns(Future.successful(organization))
 
       (mockAuthorizationManagementService.createClient _)
-        .expects(clientSeed.eServiceId, UUID.fromString(organization.partyId), clientSeed.name, clientSeed.description)
+        .expects(
+          clientSeed.eServiceId,
+          UUID.fromString(organization.partyId),
+          clientSeed.name,
+          clientSeed.purposes,
+          clientSeed.description
+        )
         .once()
         .returns(Future.successful(client))
 
@@ -61,6 +67,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
         ),
         name = client.name,
+        purposes = client.purposes,
         description = client.description,
         operators = Some(Seq.empty)
       )
@@ -116,6 +123,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
             Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
           ),
           name = client.name,
+          purposes = client.purposes,
           description = client.description,
           operators = Some(Seq.empty)
         )
@@ -164,6 +172,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
             Descriptor(descriptor2.id, descriptor2.status.toString, descriptor2.version)
           ),
           name = client.name,
+          purposes = client.purposes,
           description = client.description,
           operators = Some(Seq.empty)
         )
@@ -248,6 +257,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
             Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
           ),
           name = client.name,
+          purposes = client.purposes,
           description = client.description,
           operators = Some(Seq.empty)
         )

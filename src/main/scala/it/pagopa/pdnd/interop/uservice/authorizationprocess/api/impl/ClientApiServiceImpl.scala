@@ -48,6 +48,7 @@ class ClientApiServiceImpl(
         clientSeed.eServiceId,
         consumerId,
         clientSeed.name,
+        clientSeed.purposes,
         clientSeed.description
       )
       apiClient <- getClient(bearerToken, client)
@@ -578,6 +579,7 @@ class ClientApiServiceImpl(
       consumer = PartyManagementService.organizationToApi(consumer),
       agreement = AgreementManagementService.agreementToApi(agreement, apiAgreementDescriptor),
       name = client.name,
+      purposes = client.purposes,
       description = client.description,
       operators = Some(operator)
     )
