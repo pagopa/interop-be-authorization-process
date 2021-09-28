@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.{ClientApiMarshaller, OperatorApiMarshaller}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.OperatorApiMarshaller
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 
 class OperatorApiMarshallerImpl extends OperatorApiMarshaller with SprayJsonSupport {
