@@ -83,7 +83,10 @@ class OperatorApiServiceImpl(
   ): Route = {
     val result = for {
       _ <- extractBearer(contexts)
-      _ <- execForEachOperatorClient(taxCode, client => authorizationManagementService.deleteKey(client.id, keyId))
+      _ <- collectFirstForEachOperatorClient(
+        taxCode,
+        client => authorizationManagementService.deleteKey(client.id, keyId)
+      )
     } yield ()
 
     onComplete(result) {
@@ -107,7 +110,10 @@ class OperatorApiServiceImpl(
   ): Route = {
     val result = for {
       _ <- extractBearer(contexts)
-      _ <- execForEachOperatorClient(taxCode, client => authorizationManagementService.disableKey(client.id, keyId))
+      _ <- collectFirstForEachOperatorClient(
+        taxCode,
+        client => authorizationManagementService.disableKey(client.id, keyId)
+      )
     } yield ()
 
     onComplete(result) {
@@ -131,7 +137,10 @@ class OperatorApiServiceImpl(
   ): Route = {
     val result = for {
       _ <- extractBearer(contexts)
-      _ <- execForEachOperatorClient(taxCode, client => authorizationManagementService.enableKey(client.id, keyId))
+      _ <- collectFirstForEachOperatorClient(
+        taxCode,
+        client => authorizationManagementService.enableKey(client.id, keyId)
+      )
     } yield ()
 
     onComplete(result) {
@@ -155,8 +164,11 @@ class OperatorApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _   <- extractBearer(contexts)
-      key <- execForEachOperatorClient(taxCode, client => authorizationManagementService.getKey(client.id, keyId))
+      _ <- extractBearer(contexts)
+      key <- collectFirstForEachOperatorClient(
+        taxCode,
+        client => authorizationManagementService.getKey(client.id, keyId)
+      )
     } yield AuthorizationManagementService.keyToApi(key)
 
     onComplete(result) {
@@ -202,35 +214,7 @@ class OperatorApiServiceImpl(
     }
   }
 
-  /**
-    * Exec f for each operator client, and returns the first successful operation, failure otherwise
-    */
-  private def execForEachOperatorClient[T](
-    taxCode: String,
-    f: (ManagementClient, Relationships) => Future[T]
-  ): Future[T] = for {
-    relationships <- partyManagementService.getRelationshipsByTaxCode(taxCode, None)
-    clients <- relationships.items.flatTraverse(relationship =>
-      authorizationManagementService.listClients(
-        relationshipId = Some(relationship.id),
-        offset = None,
-        limit = None,
-        eServiceId = None,
-        consumerId = None
-      )
-    )
-    recoverable <- clients.traverse(client => f(client, relationships).transform(Success(_)))
-    success      = recoverable.collectFirst { case Success(result) => result }
-    firstFailure = recoverable.collectFirst { case Failure(ex) => ex }
-    result <- (success, firstFailure) match {
-      case (Some(result), _) => Future.successful(result)
-      case (None, Some(ex))  => Future.failed(ex)
-      case (None, None)      => Future.failed(NoResultsError)
-    }
-  } yield result
-
-  /**
-    * Exec f for each operator client, and returns the all successful operations, failure otherwise
+  /** Exec f for each operator client, and returns the all successful operations, failure otherwise
     */
   private def collectAllForEachOperatorClient[T](
     taxCode: String,
@@ -256,7 +240,20 @@ class OperatorApiServiceImpl(
     }
   } yield result
 
-  private def execForEachOperatorClient[T](taxCode: String, f: ManagementClient => Future[T]): Future[T] =
-    execForEachOperatorClient(taxCode, (client, _) => f(client))
+  /** Exec f for each operator client, and returns the first successful operation, failure otherwise
+    */
+  private def collectFirstForEachOperatorClient[T](
+    taxCode: String,
+    f: (ManagementClient, Relationships) => Future[T]
+  ): Future[T] = for {
+    successes <- collectAllForEachOperatorClient(taxCode, f)
+    result <- successes match {
+      case Nil       => Future.failed(NoResultsError)
+      case head +: _ => Future.successful(head)
+    }
+  } yield result
+
+  private def collectFirstForEachOperatorClient[T](taxCode: String, f: ManagementClient => Future[T]): Future[T] =
+    collectFirstForEachOperatorClient(taxCode, (client, _) => f(client))
 
 }

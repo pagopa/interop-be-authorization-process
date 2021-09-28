@@ -195,7 +195,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
       }
     }
   }
-//
+
 //  "Create client keys" should {
 //    "succeed" in {
 //      val keySeeds: Seq[KeySeed] = Seq(
