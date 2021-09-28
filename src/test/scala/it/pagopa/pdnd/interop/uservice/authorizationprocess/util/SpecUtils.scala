@@ -44,15 +44,16 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
 
-  val bearerToken: String        = "token"
-  val eServiceId: UUID           = UUID.randomUUID()
-  val consumerId: UUID           = UUID.randomUUID()
-  val agreementId: UUID          = UUID.randomUUID()
-  val organizationId: UUID       = UUID.randomUUID()
-  val personId: UUID             = UUID.randomUUID()
-  val taxCode: String            = "taxCode"
-  val institutionId: String      = "some-external-id1"
-  val clientSeed: ClientSeed     = ClientSeed(eServiceId, institutionId, "client name", Some("client description"))
+  val bearerToken: String   = "token"
+  val eServiceId: UUID      = UUID.randomUUID()
+  val consumerId: UUID      = UUID.randomUUID()
+  val agreementId: UUID     = UUID.randomUUID()
+  val organizationId: UUID  = UUID.randomUUID()
+  val personId: UUID        = UUID.randomUUID()
+  val taxCode: String       = "taxCode"
+  val institutionId: String = "some-external-id1"
+  val clientSeed: ClientSeed =
+    ClientSeed(eServiceId, institutionId, "client name", "purposes", Some("client description"))
   val person: Person             = Person(taxCode = taxCode, surname = "Surname", name = "Name", partyId = personId.toString)
   val operatorSeed: OperatorSeed = OperatorSeed(person.taxCode, person.name, person.surname)
 
@@ -112,8 +113,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       id = UUID.randomUUID(),
       eServiceId = eServiceId,
       consumerId = consumerId,
-      clientSeed.name,
-      clientSeed.description,
+      name = clientSeed.name,
+      purposes = clientSeed.purposes,
+      description = clientSeed.description,
       relationships = Set.empty
     )
 

@@ -19,6 +19,7 @@ trait AuthorizationManagementService {
     eServiceId: UUID,
     consumerId: UUID,
     name: String,
+    purposes: String,
     description: Option[String]
   ): Future[ManagementClient]
   def getClient(clientId: String): Future[ManagementClient]

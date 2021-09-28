@@ -987,12 +987,15 @@ components:
           type: string
         name:
           type: string
+        purposes:
+          type: string
         description:
           type: string
       required:
         - eServiceId
         - consumerInstitutionId
         - name
+        - purposes
     Client:
       description: Models Client details
       type: object
@@ -1008,6 +1011,8 @@ components:
           $ref: '#/components/schemas/Agreement'
         name:
           type: string
+        purposes:
+          type: string
         description:
           type: string
         operators:
@@ -1020,6 +1025,7 @@ components:
         - consumer
         - agreement
         - name
+        - purposes
     EService:
       description: Models an E-Service
       type: object
