@@ -51,8 +51,8 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
     invoke(request, "Retrieve Person By Tax Code")
   }
 
-  override def getRelationshipsByTaxCode(personTaxCode: String, platformRole: String): Future[Relationships] = {
-    val request: ApiRequest[Relationships] = api.getRelationships(Some(personTaxCode), None, Some(platformRole))
+  override def getRelationshipsByTaxCode(personTaxCode: String, platformRole: Option[String]): Future[Relationships] = {
+    val request: ApiRequest[Relationships] = api.getRelationships(Some(personTaxCode), None, platformRole)
     invoke(request, "Retrieve Relationships By Tax Code")
   }
 

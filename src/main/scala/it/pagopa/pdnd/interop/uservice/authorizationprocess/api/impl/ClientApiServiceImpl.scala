@@ -108,7 +108,7 @@ class ClientApiServiceImpl(
       bearerToken  <- extractBearer(contexts)
       eServiceUuid <- eServiceId.traverse(toUuid).toFuture
       relationships <- operatorTaxCode.traverse(
-        partyManagementService.getRelationshipsByTaxCode(_, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        partyManagementService.getRelationshipsByTaxCode(_, Some(PartyManagementService.ROLE_SECURITY_OPERATOR))
       )
       consumer   <- institutionId.traverse(partyManagementService.getOrganizationByInstitutionId)
       consumerId <- consumer.traverse(c => toUuid(c.partyId)).toFuture

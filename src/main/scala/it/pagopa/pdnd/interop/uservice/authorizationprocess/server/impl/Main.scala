@@ -5,12 +5,14 @@ import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
 import com.bettercloud.vault.Vault
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.{AuthApi, ClientApi}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.{AuthApi, ClientApi, OperatorApi}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{
   AuthApiMarshallerImpl,
   AuthApiServiceImpl,
   ClientApiMarshallerImpl,
-  ClientApiServiceImpl
+  ClientApiServiceImpl,
+  OperatorApiMarshallerImpl,
+  OperatorApiServiceImpl
 }
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{
   Authenticator,
@@ -127,11 +129,17 @@ object Main
     SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
   )
 
+  val operatorApi: OperatorApi = new OperatorApi(
+    new OperatorApiServiceImpl(authorizationManagementService, partyManagementService),
+    new OperatorApiMarshallerImpl(),
+    SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
+  )
+
   locally {
     val _ = AkkaManagement.get(classicActorSystem).start()
   }
 
-  val controller: Controller = new Controller(authApi, clientApi)
+  val controller: Controller = new Controller(authApi, clientApi, operatorApi)
 
   val bindingFuture: Future[Http.ServerBinding] =
     Http().newServerAt("0.0.0.0", ApplicationConfiguration.serverPort).bind(corsHandler(controller.routes))

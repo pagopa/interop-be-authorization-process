@@ -139,6 +139,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val createdKey: AuthManagementClientKey = AuthManagementClientKey(
     status = ClientKeyEnums.Status.Active,
+    relationshipId = UUID.randomUUID(),
     key = AuthManagementKey(
       kty = "1",
       keyOps = Some(Seq("2")),

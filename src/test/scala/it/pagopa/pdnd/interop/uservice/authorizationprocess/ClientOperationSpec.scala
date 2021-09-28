@@ -199,7 +199,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val institutionId   = consumer.institutionId
 
       (mockPartyManagementService.getRelationshipsByTaxCode _)
-        .expects(operatorTaxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .expects(operatorTaxCode, Some(PartyManagementService.ROLE_SECURITY_OPERATOR))
         .once()
         .returns(Future.successful(Relationships(Seq(relationship))))
 
