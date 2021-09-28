@@ -181,7 +181,7 @@ class OperatorApiServiceImpl(
   ): Route = {
     val result = for {
       _ <- extractBearer(contexts)
-      keysResponse <- execForEachOperatorClient(
+      keysResponse <- collectAllForEachOperatorClient(
         taxCode,
         (client, operatorRelationships) =>
           for {
@@ -189,7 +189,7 @@ class OperatorApiServiceImpl(
             operatorKeys = clientKeys.keys.filter(key => operatorRelationships.items.exists(_.id == key.relationshipId))
           } yield keymanagement.client.model.KeysResponse(operatorKeys)
       )
-    } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
+    } yield ClientKeys(keysResponse.flatMap(_.keys.map(AuthorizationManagementService.keyToApi)))
 
     onComplete(result) {
       case Success(result) => getOperatorKeys200(result)
@@ -202,7 +202,8 @@ class OperatorApiServiceImpl(
     }
   }
 
-  /** Exec f for each operator client, and returns the first successful operation, failure otherwise
+  /**
+    * Exec f for each operator client, and returns the first successful operation, failure otherwise
     */
   private def execForEachOperatorClient[T](
     taxCode: String,
@@ -225,6 +226,33 @@ class OperatorApiServiceImpl(
       case (Some(result), _) => Future.successful(result)
       case (None, Some(ex))  => Future.failed(ex)
       case (None, None)      => Future.failed(NoResultsError)
+    }
+  } yield result
+
+  /**
+    * Exec f for each operator client, and returns the all successful operations, failure otherwise
+    */
+  private def collectAllForEachOperatorClient[T](
+    taxCode: String,
+    f: (ManagementClient, Relationships) => Future[T]
+  ): Future[Seq[T]] = for {
+    relationships <- partyManagementService.getRelationshipsByTaxCode(taxCode, None)
+    clients <- relationships.items.flatTraverse(relationship =>
+      authorizationManagementService.listClients(
+        relationshipId = Some(relationship.id),
+        offset = None,
+        limit = None,
+        eServiceId = None,
+        consumerId = None
+      )
+    )
+    recoverable <- clients.traverse(client => f(client, relationships).transform(Success(_)))
+    success      = recoverable.collect { case Success(result) => result }
+    firstFailure = recoverable.collectFirst { case Failure(ex) => ex }
+    result <- (success, firstFailure) match {
+      case (Nil, Some(ex)) => Future.failed(ex)
+      case (Nil, None)     => Future.failed(NoResultsError)
+      case (result, _)     => Future.successful(result)
     }
   } yield result
 

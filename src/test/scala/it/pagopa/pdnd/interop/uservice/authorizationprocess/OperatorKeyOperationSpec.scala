@@ -7,6 +7,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{ManagementClient, PartyManagementService}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.keymanagement
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.KeysResponse
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Relationship, RelationshipEnums, Relationships}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
@@ -100,25 +101,8 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
   "Retrieve key" should {
     "succeed" in {
-      (mockPartyManagementService.getRelationshipsByTaxCode _)
-        .expects(taxCode, None)
-        .once()
-        .returns(Future.successful(relationships))
 
-      (mockAuthorizationManagementService.listClients _)
-        .expects(None, None, None, Some(relationship1.id), None)
-        .once()
-        .returns(Future.successful(Seq(client1)))
-
-      (mockAuthorizationManagementService.listClients _)
-        .expects(None, None, None, Some(relationship2.id), None)
-        .once()
-        .returns(Future.successful(Seq(client2)))
-
-      (mockAuthorizationManagementService.listClients _)
-        .expects(None, None, None, Some(relationship3.id), None)
-        .once()
-        .returns(Future.successful(Seq()))
+      execForEachOperatorClientExpectations()
 
       (mockAuthorizationManagementService.getKey _)
         .expects(client1.id, kid)
@@ -146,52 +130,71 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
       }
     }
 
-//    "fail if client or key do not exist" in {
-//      val kid = "some-kid"
-//      (mockAuthorizationManagementService.getKey _)
-//        .expects(*, *)
-//        .once()
-//        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
-//
-//      Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
-//        status shouldEqual StatusCodes.NotFound
-//      }
-//    }
+    "fail if client or key do not exist" in {
+      val kid = "some-kid"
+
+      execForEachOperatorClientExpectations()
+
+      (mockAuthorizationManagementService.getKey _)
+        .expects(client1.id, kid)
+        .once()
+        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+
+      (mockAuthorizationManagementService.getKey _)
+        .expects(client2.id, kid)
+        .once()
+        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+
+      Get() ~> service.getOperatorKeyById(taxCode, kid) ~> check {
+        status shouldEqual StatusCodes.NotFound
+      }
+    }
   }
 
-//  "Retrieve all client keys" should {
-//    "succeed" in {
-//      (mockAuthorizationManagementService.getClientKeys _)
-//        .expects(client.id)
-//        .once()
-//        .returns(Future.successful(KeysResponse(Seq(createdKey))))
-//
-//      val expected = apiClientKey
-//
-//      Get() ~> service.getClientKeys(client.id.toString) ~> check {
-//        status shouldEqual StatusCodes.OK
-//        entityAs[ClientKeys] shouldEqual ClientKeys(Seq(expected))
-//      }
-//    }
-//
-//    "fail if missing authorization header" in {
-//      implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-//      Get() ~> service.getClientKeys(client.id.toString) ~> check {
-//        status shouldEqual StatusCodes.Unauthorized
-//      }
-//    }
-//
-//    "fail if client or key do not exist" in {
-//      (mockAuthorizationManagementService.getClientKeys _)
-//        .expects(*)
-//        .once()
-//        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
-//
-//      Get() ~> service.getClientKeys(client.id.toString) ~> check {
-//        status shouldEqual StatusCodes.NotFound
-//      }
-//    }
-//  }
+  "Retrieve all client keys" should {
+    "succeed" in {
+
+      execForEachOperatorClientExpectations()
+
+      (mockAuthorizationManagementService.getClientKeys _)
+        .expects(client1.id)
+        .once()
+        .returns(Future.successful(KeysResponse(Seq(createdKey.copy(relationshipId = relationship1.id)))))
+
+      (mockAuthorizationManagementService.getClientKeys _)
+        .expects(client2.id)
+        .once()
+        .returns(Future.successful(KeysResponse(Seq(createdKey.copy(relationshipId = relationship2.id)))))
+
+      val expected = Seq(apiClientKey, apiClientKey)
+
+      Get() ~> service.getOperatorKeys(taxCode) ~> check {
+        status shouldEqual StatusCodes.OK
+        entityAs[ClientKeys] shouldEqual ClientKeys(expected)
+      }
+    }
+
+    "fail if missing authorization header" in {
+      implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
+      Get() ~> service.getOperatorKeys(taxCode) ~> check {
+        status shouldEqual StatusCodes.Unauthorized
+      }
+    }
+
+    "fail if client or key do not exist" in {
+
+      execForEachOperatorClientExpectations()
+
+      (mockAuthorizationManagementService.getClientKeys _)
+        .expects(*)
+        .twice()
+        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+
+      Get() ~> service.getOperatorKeys(taxCode) ~> check {
+        status shouldEqual StatusCodes.NotFound
+      }
+    }
+  }
 //
 //  "Create client keys" should {
 //    "succeed" in {
@@ -376,4 +379,27 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 //      }
 //    }
 //  }
+  def execForEachOperatorClientExpectations(): Unit = {
+    (mockPartyManagementService.getRelationshipsByTaxCode _)
+      .expects(taxCode, None)
+      .once()
+      .returns(Future.successful(relationships))
+
+    (mockAuthorizationManagementService.listClients _)
+      .expects(None, None, None, Some(relationship1.id), None)
+      .once()
+      .returns(Future.successful(Seq(client1)))
+
+    (mockAuthorizationManagementService.listClients _)
+      .expects(None, None, None, Some(relationship2.id), None)
+      .once()
+      .returns(Future.successful(Seq(client2)))
+
+    (mockAuthorizationManagementService.listClients _)
+      .expects(None, None, None, Some(relationship3.id), None)
+      .once()
+      .returns(Future.successful(Seq()))
+
+    ()
+  }
 }
