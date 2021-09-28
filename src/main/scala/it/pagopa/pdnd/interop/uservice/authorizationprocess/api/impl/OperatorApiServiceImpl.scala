@@ -5,11 +5,13 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.OperatorApiService
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.OptionOps
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.KeySeedEnums
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -18,8 +20,6 @@ import scala.util.{Failure, Success}
 @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Product"))
 class OperatorApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
-  agreementManagementService: AgreementManagementService,
-  catalogManagementService: CatalogManagementService,
   partyManagementService: PartyManagementService
 )(implicit ec: ExecutionContext)
     extends OperatorApiService {
@@ -34,40 +34,44 @@ class OperatorApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = ???
-//  {
-//    val result = for {
-//      _          <- extractBearer(contexts)
-//      _ <- operatorKeySeeds.traverse{seed => for {
-//        clientUuid <- toUuid(seed.clientId).toFuture
-//        client     <- authorizationManagementService.getClient(seed.clientId)
-//        relationshipsIds <- securityOperatorRelationship(client.consumerId, taxCode)
-//      } yield ???
-//      }
-//
-//      seeds <- keysSeeds
-//        .zip(relationshipsIds)
-//        .traverse {
-//          case (seed, Some(relationship)) =>
-//            AuthorizationManagementService.toClientKeySeed(seed, relationship.id)
-//          case (seed, None) =>
-//            Left(SecurityOperatorRelationshipNotFound(client.consumerId.toString, seed.operatorTaxCode))
-//        }
-//        .toFuture
-//      keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)
-//    } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
-//
-//    onComplete(result) {
-//      case Success(keys)                      => createKeys201(keys)
-//      case Failure(ex @ UnauthenticatedError) => createKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-//      case Failure(ex: EnumParameterError)    => createKeys400(Problem(Option(ex.getMessage), 400, "Bad Request"))
-//      case Failure(ex: SecurityOperatorRelationshipNotFound) =>
-//        createKeys403(Problem(Option(ex.getMessage), 403, "Forbidden"))
-//      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-//        createKeys404(Problem(Some(ex.message), 404, "Not found"))
-//      case Failure(ex) => createKeys500(Problem(Option(ex.getMessage), 500, "Error on key creation"))
-//    }
-//  }
+  ): Route = {
+    val result = for {
+      _ <- extractBearer(contexts)
+      relationships <- partyManagementService.getRelationshipsByTaxCode(
+        taxCode,
+        Some(PartyManagementService.ROLE_SECURITY_OPERATOR)
+      )
+      keysResponse <- operatorKeySeeds.traverse { seed =>
+        for {
+          client <- authorizationManagementService.getClient(seed.clientId)
+          clientRelationshipId <- client.relationships
+            .intersect(relationships.items.map(_.id).toSet)
+            .headOption // Exactly one expected
+            .toFuture(new RuntimeException(s"Tax code $taxCode has no relationship with client ${seed.clientId}"))
+          managementSeed = keymanagement.client.model.KeySeed(
+            relationshipId = clientRelationshipId,
+            key = seed.key,
+            use = KeySeedEnums.Use.withName(seed.use),
+            alg = seed.alg
+          )
+          result <- authorizationManagementService.createKeys(client.id, Seq(managementSeed))
+        } yield result
+      }
+
+    } yield ClientKeys(keysResponse.flatMap(_.keys.map(AuthorizationManagementService.keyToApi)))
+
+    onComplete(result) {
+      case Success(keys) => createOperatorKeys201(keys)
+      case Failure(ex @ UnauthenticatedError) =>
+        createOperatorKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: EnumParameterError) => createOperatorKeys400(Problem(Option(ex.getMessage), 400, "Bad Request"))
+      case Failure(ex: SecurityOperatorRelationshipNotFound) =>
+        createOperatorKeys403(Problem(Option(ex.getMessage), 403, "Forbidden"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        createOperatorKeys404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(ex) => complete(500, Problem(Option(ex.getMessage), 500, "Error on key creation"))
+    }
+  }
 
   /** Code: 204, Message: the corresponding key has been deleted.
     * Code: 401, Message: Unauthorized, DataType: Problem
