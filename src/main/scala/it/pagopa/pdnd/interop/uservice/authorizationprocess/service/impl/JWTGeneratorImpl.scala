@@ -37,6 +37,8 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
     }
 //  TODO:End
 
+  private val purposesCustomClaimName: String = "purposes"
+
   override def generate(jwt: SignedJWT, audience: List[String], purposes: String): Future[String] = Future.fromTry {
     for {
       key    <- getPrivateKey(jwt.getHeader.getAlgorithm)
@@ -77,7 +79,7 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
       .issueTime(issuedAt)
       .notBeforeTime(notBeforeTime)
       .expirationTime(expirationTime)
-      .claim("purposes", seed.purposes)
+      .claim(purposesCustomClaimName, seed.purposes)
       .build()
 
     new SignedJWT(header, payload)
