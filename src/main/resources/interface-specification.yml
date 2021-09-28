@@ -687,6 +687,46 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  '/clients/{clientId}/operators/{taxCode}/keys':
+    parameters:
+      - name: clientId
+        in: path
+        description: ID of the client holding the key
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: taxCode
+        in: path
+        required: true
+        description: Tax Code of the Opeartor that the added keys MUST belong to
+        schema:
+          type: string
+    get:
+      tags:
+        - operator
+      summary: Returns a set of keys by operator Tax Code and client ID.
+      description: 'Given an operator and a client it returns its corresponding set of keys, if any'
+      operationId: getClientOperatorKeys
+      responses:
+        "200":
+          description: returns the corresponding array of keys
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientKeys'
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "404":
+          description: Client id not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   '/operators/{taxCode}/keys':
     parameters:
       - name: taxCode

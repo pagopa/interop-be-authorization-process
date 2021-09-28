@@ -5,7 +5,7 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.OperatorApiService
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.OptionOps
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, OptionOps, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
@@ -209,7 +209,36 @@ class OperatorApiServiceImpl(
         getOperatorKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getOperatorKeys404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(_ @NoResultsError) => deleteOperatorKeyById404(Problem(None, 404, "Not found"))
+      case Failure(_ @NoResultsError) => getOperatorKeys404(Problem(None, 404, "Not found"))
+      case Failure(ex)                => complete((500, Problem(Option(ex.getMessage), 500, "Error on keys retrieve")))
+    }
+  }
+
+  /** Code: 200, Message: returns the corresponding array of keys, DataType: ClientKeys
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Client id not found, DataType: Problem
+    */
+  override def getClientOperatorKeys(clientId: String, taxCode: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result = for {
+      _             <- extractBearer(contexts)
+      relationships <- partyManagementService.getRelationshipsByTaxCode(taxCode, None)
+      clientUuid    <- toUuid(clientId).toFuture
+      clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)
+      operatorKeys = clientKeys.keys.filter(key => relationships.items.exists(_.id == key.relationshipId))
+      keysResponse = keymanagement.client.model.KeysResponse(operatorKeys)
+    } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
+
+    onComplete(result) {
+      case Success(result) => getClientOperatorKeys200(result)
+      case Failure(ex @ UnauthenticatedError) =>
+        getClientOperatorKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        getClientOperatorKeys404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(_ @NoResultsError) => getClientOperatorKeys404(Problem(None, 404, "Not found"))
       case Failure(ex)                => complete((500, Problem(Option(ex.getMessage), 500, "Error on keys retrieve")))
     }
   }
