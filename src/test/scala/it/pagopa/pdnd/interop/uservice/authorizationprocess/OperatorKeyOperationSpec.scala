@@ -88,7 +88,8 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     consumerId = UUID.randomUUID(),
     name = "client1",
     description = None,
-    relationships = Set(relationship1.id)
+    relationships = Set(relationship1.id),
+    purposes = "purpose1"
   )
   val client2: ManagementClient = keymanagement.client.model.Client(
     id = UUID.randomUUID(),
@@ -96,7 +97,8 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     consumerId = UUID.randomUUID(),
     name = "client2",
     description = None,
-    relationships = Set(relationship2.id)
+    relationships = Set(relationship2.id),
+    purposes = "purpose2"
   )
 
   "Retrieve key" should {
