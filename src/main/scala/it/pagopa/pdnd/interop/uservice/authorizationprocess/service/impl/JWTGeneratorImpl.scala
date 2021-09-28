@@ -37,10 +37,10 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
     }
 //  TODO:End
 
-  override def generate(jwt: SignedJWT, audience: List[String]): Future[String] = Future.fromTry {
+  override def generate(jwt: SignedJWT, audience: List[String], purposes: String): Future[String] = Future.fromTry {
     for {
       key    <- getPrivateKey(jwt.getHeader.getAlgorithm)
-      seed   <- TokenSeed.create(jwt, key, audience)
+      seed   <- TokenSeed.create(jwt, key, audience, purposes)
       token  <- createToken(seed)
       signer <- getSigner(seed.algorithm, key)
       signed <- signToken(token, signer)
@@ -77,6 +77,7 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
       .issueTime(issuedAt)
       .notBeforeTime(notBeforeTime)
       .expirationTime(expirationTime)
+      .claim("purposes", seed.purposes)
       .build()
 
     new SignedJWT(header, payload)
