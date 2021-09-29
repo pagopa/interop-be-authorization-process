@@ -19,11 +19,12 @@ final case class TokenSeed(
   issuedAt: Long,
   nbf: Long,
   expireAt: Long,
-  audience: List[String]
+  audience: List[String],
+  purposes: String
 )
 
 object TokenSeed {
-  def create(assertion: SignedJWT, key: JWK, audience: List[String]): Try[TokenSeed] = Try {
+  def create(assertion: SignedJWT, key: JWK, audience: List[String], purposes: String): Try[TokenSeed] = Try {
     val issuedAt = Instant.now(Clock.system(ZoneId.of("UTC")))
     TokenSeed(
       id = UUID.randomUUID(),
@@ -35,7 +36,8 @@ object TokenSeed {
       issuedAt = issuedAt.toEpochMilli,
       nbf = issuedAt.toEpochMilli,
       expireAt = issuedAt.plusMillis(expireIn).toEpochMilli,
-      audience = audience
+      audience = audience,
+      purposes = purposes
     )
 
   }

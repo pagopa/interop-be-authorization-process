@@ -55,7 +55,7 @@ class AuthApiServiceImpl(
         activeAgreement    <- getActiveAgreement(agreements, client.eServiceId.toString, client.consumerId.toString)
         eservice           <- catalogManagementService.getEService(m2mToken, client.eServiceId.toString)
         descriptorAudience <- getDescriptorAudience(eservice, activeAgreement.descriptorId)
-        token              <- jwtGenerator.generate(assertion, descriptorAudience)
+        token              <- jwtGenerator.generate(assertion, descriptorAudience, client.purposes)
       } yield token
 
     onComplete(token) {
