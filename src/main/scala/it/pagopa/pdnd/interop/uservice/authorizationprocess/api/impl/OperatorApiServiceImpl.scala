@@ -18,7 +18,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Product"))
-class OperatorApiServiceImpl(
+final case class OperatorApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
   partyManagementService: PartyManagementService
 )(implicit ec: ExecutionContext)

@@ -949,6 +949,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/KeysResponse'
+        "400":
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   schemas:
     AccessTokenRequest:
@@ -1199,6 +1205,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Key'
+      required:
+        - keys
     OtherPrimeInfo:
       title: OtherPrimeInfo
       type: object
