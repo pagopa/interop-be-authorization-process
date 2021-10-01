@@ -935,20 +935,20 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  /.well-known:
+  /.well-known/jwks.json:
     get:
       tags:
         - well-known
       summary: Returns PDND public keys.
-        description: 'Returns PDND public keys.'
-        operationId: getPublicKey
-        responses:
-          "200":
-            description: PDND public keys in JWK format.
-            content:
-              application/problem+json:
-                schema:
-                  $ref: '#/components/schemas/Key'
+      description: 'Returns PDND public keys.'
+      operationId: getPublicKey
+      responses:
+        "200":
+          description: PDND public keys in JWK format.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/KeysResponse'
 components:
   schemas:
     AccessTokenRequest:
@@ -1191,6 +1191,14 @@ components:
       required:
         - kty
         - kid
+    KeysResponse:
+      description: 'JWKS'
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/Key'
     OtherPrimeInfo:
       title: OtherPrimeInfo
       type: object
