@@ -21,7 +21,7 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
 //   TODO: this part is static and initialized at the start up
 //   TODO - use a def instead of a val, but this approach generate to many calls to the vault
 //   TODO - use a refreshing cache, more complex
-  private val keyRootPath: Try[String] = Try(System.getenv("PDND_INTEROP_PRIVATE_KEY"))
+  private val keyRootPath: Try[String] = Try(System.getenv("PDND_INTEROP_KEYS"))
 
   private val rsaPrivateKey: Try[Map[String, String]] =
     keyRootPath.map { root =>
