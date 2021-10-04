@@ -6,7 +6,7 @@ import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiMarshaller
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 
-final case class AuthApiMarshallerImpl() extends AuthApiMarshaller with SprayJsonSupport {
+case object AuthApiMarshallerImpl extends AuthApiMarshaller with SprayJsonSupport {
 
   override implicit def fromEntityUnmarshallerAccessTokenRequest: FromEntityUnmarshaller[AccessTokenRequest] =
     sprayJsonUnmarshaller[AccessTokenRequest]

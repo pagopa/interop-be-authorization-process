@@ -13,7 +13,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{
   OperatorApiMarshallerImpl,
   OperatorApiServiceImpl,
   WellKnownApiMarshallerImpl,
-  WellKnownApiServiceImp
+  WellKnownApiServiceImpl
 }
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.{AuthApi, ClientApi, OperatorApi, WellKnownApi}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{
@@ -120,7 +120,7 @@ object Main
       catalogManagementService,
       m2mAuthorizationService
     ),
-    AuthApiMarshallerImpl(),
+    AuthApiMarshallerImpl,
     SecurityDirectives.authenticateOAuth2("SecurityRealm", PassThroughAuthenticator)
   )
 
@@ -131,19 +131,19 @@ object Main
       catalogManagementService,
       partyManagementService
     ),
-    ClientApiMarshallerImpl(),
+    ClientApiMarshallerImpl,
     SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
   )
 
   val operatorApi: OperatorApi = new OperatorApi(
     OperatorApiServiceImpl(authorizationManagementService, partyManagementService),
-    OperatorApiMarshallerImpl(),
+    OperatorApiMarshallerImpl,
     SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
   )
 
   val wellKnownApi: WellKnownApi = new WellKnownApi(
-    WellKnownApiServiceImp(vaultService = vaultService),
-    WellKnownApiMarshallerImpl(),
+    WellKnownApiServiceImpl(vaultService = vaultService),
+    WellKnownApiMarshallerImpl,
     SecurityDirectives.authenticateOAuth2("SecurityRealm", PassThroughAuthenticator)
   )
 

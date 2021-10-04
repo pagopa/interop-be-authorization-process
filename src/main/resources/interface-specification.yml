@@ -33,6 +33,11 @@ tags:
     externalDocs:
       description: Find out more
       url: http://swagger.io
+  - name: well-known
+    description: Get security information
+    externalDocs:
+      description: Find out more
+      url: http://swagger.io
 paths:
   /as/token.oauth2:
     post:
@@ -942,7 +947,7 @@ paths:
         - well-known
       summary: Returns PDND public keys.
       description: 'Returns PDND public keys.'
-      operationId: getPublicKey
+      operationId: getWellKnownKeys
       responses:
         "200":
           description: PDND public keys in JWK format.

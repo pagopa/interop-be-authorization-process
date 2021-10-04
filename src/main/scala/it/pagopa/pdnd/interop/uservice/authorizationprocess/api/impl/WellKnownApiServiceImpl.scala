@@ -12,12 +12,12 @@ import spray.json._
 import scala.util.{Failure, Success, Try}
 
 @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Product"))
-final case class WellKnownApiServiceImp(vaultService: VaultService) extends WellKnownApiService {
+final case class WellKnownApiServiceImpl(vaultService: VaultService) extends WellKnownApiService {
 
   /** Code: 200, Message: PDND public keys in JWK format., DataType: KeysResponse
     * Code: 400, Message: Bad Request, DataType: Problem
     */
-  override def getPublicKey()(implicit
+  override def getWellKnownKeys()(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerKeysResponse: ToEntityMarshaller[KeysResponse],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -39,9 +39,9 @@ final case class WellKnownApiServiceImp(vaultService: VaultService) extends Well
     } yield keys
 
     result match {
-      case Success(keys) => getPublicKey200(KeysResponse(keys))
+      case Success(keys) => getWellKnownKeys200(KeysResponse(keys))
       case Failure(ex) =>
-        getPublicKey400(Problem(Option(ex.getMessage), 400, "Something goes wrong during access token request"))
+        getWellKnownKeys400(Problem(Option(ex.getMessage), 400, "Something goes wrong trying to get well-known keys"))
     }
 
   }

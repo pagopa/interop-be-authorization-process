@@ -211,7 +211,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     ()
   }
 
-  val clientApiMarshaller: ClientApiMarshallerImpl = new ClientApiMarshallerImpl()
+  val clientApiMarshaller: ClientApiMarshallerImpl.type = ClientApiMarshallerImpl
 
   implicit val contexts: Seq[(String, String)] = Seq("bearer" -> bearerToken)
 
