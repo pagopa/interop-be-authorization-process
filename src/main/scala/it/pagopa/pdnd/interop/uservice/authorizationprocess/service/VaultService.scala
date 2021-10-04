@@ -8,7 +8,7 @@ trait VaultService {
 
 object VaultService {
 
-  private val keyRootPath: Try[String] = Try(System.getenv("PDND_INTEROP_PRIVATE_KEY"))
+  private val keyRootPath: Try[String] = Try(System.getenv("PDND_INTEROP_KEYS"))
 
   def extractKeyPath(algorithm: String, kind: String): Try[String] =
     keyRootPath.map(root => s"$root/$algorithm/jwk/$kind")

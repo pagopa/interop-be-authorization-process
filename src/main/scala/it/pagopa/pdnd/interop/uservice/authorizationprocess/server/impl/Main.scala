@@ -89,11 +89,11 @@ trait VaultServiceDependency {
   val vaultService: VaultServiceImpl = VaultServiceImpl(vault)
 }
 
-trait JWTGenerator { self: VaultServiceDependency =>
+trait JWTGeneratorDependency { self: VaultServiceDependency =>
   val jwtGenerator: JWTGeneratorImpl = JWTGeneratorImpl(vaultService)
 }
 
-trait JWTValidator { self: AuthorizationManagementAPI =>
+trait JWTValidatorDependency { self: AuthorizationManagementAPI =>
   val jwtValidator: JWTValidatorImpl = JWTValidatorImpl(authorizationManagementService)
 }
 
@@ -104,8 +104,8 @@ object Main
     with AuthorizationManagementAPI
     with CatalogManagementAPI
     with PartyManagementAPI
-    with JWTGenerator
-    with JWTValidator
+    with JWTGeneratorDependency
+    with JWTValidatorDependency
     with M2MAuthorizationService
     with VaultServiceDependency {
 
@@ -144,7 +144,7 @@ object Main
   val wellKnownApi: WellKnownApi = new WellKnownApi(
     WellKnownApiServiceImp(vaultService = vaultService),
     WellKnownApiMarshallerImpl(),
-    SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
+    SecurityDirectives.authenticateOAuth2("SecurityRealm", PassThroughAuthenticator)
   )
 
   locally {

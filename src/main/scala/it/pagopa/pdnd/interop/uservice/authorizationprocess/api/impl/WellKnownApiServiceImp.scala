@@ -35,7 +35,7 @@ final case class WellKnownApiServiceImp(vaultService: VaultService) extends Well
     val result: Try[Seq[Key]] = for {
       rsaKeys <- rsaPublicKey
       ecKeys  <- ecPublicKey
-      keys    <- (rsaKeys ++ ecKeys).values.toSeq.traverse(key => Try(key.parseJson.convertTo[Key]))
+      keys    <- (rsaKeys ++ ecKeys).toSeq.traverse(Function.tupled(convertToKey))
     } yield keys
 
     result match {
@@ -44,6 +44,11 @@ final case class WellKnownApiServiceImp(vaultService: VaultService) extends Well
         getPublicKey400(Problem(Option(ex.getMessage), 400, "Something goes wrong during access token request"))
     }
 
+  }
+
+  private def convertToKey(kid: String, key: String): Try[Key] = Try {
+    val mapped: Map[String, JsValue] = key.parseJson.asJsObject.fields + ("kid" -> JsString(kid))
+    mapped.toJson.convertTo[Key]
   }
 
 }
