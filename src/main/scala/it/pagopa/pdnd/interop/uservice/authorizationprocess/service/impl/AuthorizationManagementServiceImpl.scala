@@ -59,6 +59,16 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     invoke(request, "Client delete")
   }
 
+  override def activateClient(clientId: UUID): Future[Unit] = {
+    val request: ApiRequest[Unit] = clientApi.activateClientById(clientId)
+    invoke(request, "Client activation")
+  }
+
+  override def suspendClient(clientId: UUID): Future[Unit] = {
+    val request: ApiRequest[Unit] = clientApi.suspendClientById(clientId)
+    invoke(request, "Client suspension")
+  }
+
   override def addRelationship(clientId: UUID, relationshipId: UUID): Future[Client] = {
     val request: ApiRequest[Client] = clientApi.addRelationship(clientId, PartyRelationshipSeed(relationshipId))
     invoke(request, "Operator addition to client")

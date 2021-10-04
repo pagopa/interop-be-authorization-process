@@ -31,6 +31,8 @@ trait AuthorizationManagementService {
     consumerId: Option[UUID]
   ): Future[Seq[ManagementClient]]
   def deleteClient(clientId: String): Future[Unit]
+  def activateClient(clientId: UUID): Future[Unit]
+  def suspendClient(clientId: UUID): Future[Unit]
 
   def addRelationship(clientId: UUID, relationshipId: UUID): Future[ManagementClient]
   def removeClientRelationship(clientId: UUID, relationshipId: UUID): Future[Unit]

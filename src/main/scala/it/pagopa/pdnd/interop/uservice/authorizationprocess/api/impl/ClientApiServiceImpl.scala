@@ -482,6 +482,50 @@ final case class ClientApiServiceImpl(
     }
   }
 
+  /** Code: 204, Message: the client has been activated.
+    * Code: 404, Message: Client not found, DataType: Problem
+    */
+  override def activateClientById(
+    clientId: String
+  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
+    val result = for {
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      _          <- authorizationManagementService.activateClient(clientUuid)
+    } yield ()
+
+    onComplete(result) {
+      case Success(_) => activateClientById204
+      case Failure(ex @ UnauthenticatedError) =>
+        activateClientById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        activateClientById404(Problem(Option(ex.getMessage), 404, "Client not found"))
+      case Failure(ex) => complete((500, Problem(Option(ex.getMessage), 500, "Error on client activation")))
+    }
+  }
+
+  /** Code: 204, Message: the corresponding client has been suspended.
+    * Code: 404, Message: Client not found, DataType: Problem
+    */
+  override def suspendClientById(
+    clientId: String
+  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
+    val result = for {
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      _          <- authorizationManagementService.suspendClient(clientUuid)
+    } yield ()
+
+    onComplete(result) {
+      case Success(_) => suspendClientById204
+      case Failure(ex @ UnauthenticatedError) =>
+        suspendClientById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        suspendClientById404(Problem(Option(ex.getMessage), 404, "Client not found"))
+      case Failure(ex) => complete((500, Problem(Option(ex.getMessage), 500, "Error on client suspension")))
+    }
+  }
+
   private[this] def getClient(bearerToken: String, client: keymanagement.client.model.Client): Future[Client] = {
     for {
       eService   <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
