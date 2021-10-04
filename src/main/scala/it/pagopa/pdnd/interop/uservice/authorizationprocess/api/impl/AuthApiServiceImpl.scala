@@ -12,6 +12,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EService
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.ClientEnums
 
 import java.text.ParseException
 import java.util.UUID
@@ -46,6 +47,7 @@ final case class AuthApiServiceImpl(
         validated <- jwtValidator.validate(accessTokenRequest)
         (clientId, assertion) = validated
         client <- authorizationManagementService.getClient(clientId)
+        _      <- clientMustBeActive(client)
         agreements <- agreementManagementService.getAgreements(
           m2mToken,
           client.consumerId.toString,
@@ -75,6 +77,12 @@ final case class AuthApiServiceImpl(
       case _                => Future.failed(TooManyActiveAgreementsError(eserviceId, consumerId))
     }
   }
+
+  private def clientMustBeActive(client: ManagementClient): Future[Unit] =
+    client.status match {
+      case ClientEnums.Status.Active => Future.successful(())
+      case _                         => Future.failed(ClientNotActive(client.id.toString))
+    }
 
   private def getDescriptorAudience(eservice: EService, descriptorId: UUID): Future[List[String]] = {
     val audience = eservice.descriptors.find(_.id == descriptorId).map(_.audience)
