@@ -1,6 +1,16 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
+import scala.util.Try
+
 trait VaultService {
   def getSecret(path: String): Map[String, String]
-  def getKeysList(path: String): List[String]
+}
+
+object VaultService {
+
+  private val keyRootPath: Try[String] = Try(System.getenv("PDND_INTEROP_KEYS"))
+
+  def extractKeyPath(algorithm: String, kind: String): Try[String] =
+    keyRootPath.map(root => s"$root/$algorithm/jwk/$kind")
+
 }

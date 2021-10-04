@@ -4,7 +4,6 @@ import com.nimbusds.jose.crypto.{ECDSASigner, Ed25519Signer, RSASSASigner}
 import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jose.{JOSEObjectType, JWSAlgorithm, JWSHeader, JWSSigner}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.decodeBase64
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.token.TokenSeed
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{JWTGenerator, VaultService}
 import org.slf4j.{Logger, LoggerFactory}
@@ -21,20 +20,17 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
 //   TODO: this part is static and initialized at the start up
 //   TODO - use a def instead of a val, but this approach generate to many calls to the vault
 //   TODO - use a refreshing cache, more complex
-  private val keyRootPath: Try[String] = Try(System.getenv("PDND_INTEROP_KEYS"))
 
-  private val rsaPrivateKey: Try[Map[String, String]] =
-    keyRootPath.map { root =>
-      val rsaPath = s"$root/rsa/jwk/private"
-      getPrivateKeyFromVault(rsaPath)
-    }
+  val rsaPrivateKey: Try[Map[String, String]] = {
+    val path = VaultService.extractKeyPath("rsa", "private")
+    path.map(vaultService.getSecret)
+  }
 
-  private val ecPrivateKey: Try[Map[String, String]] =
-    keyRootPath.map { root =>
-      val ecPath = s"$root/ec/jwk/private"
-      getPrivateKeyFromVault(ecPath)
-    }
-//  TODO:End
+  val ecPrivateKey: Try[Map[String, String]] = {
+    val path = VaultService.extractKeyPath("ec", "private")
+    path.map(vaultService.getSecret)
+  }
+  //  TODO:End
 
   private val purposesClaimName: String = "purposes"
 
@@ -127,14 +123,6 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
   @SuppressWarnings(Array("org.wartremover.warts.StringPlusAny"))
   private def toBase64(jwt: SignedJWT): String = {
     s"""${jwt.getHeader.toBase64URL}.${jwt.getPayload.toBase64URL}.${jwt.getSignature}"""
-  }
-
-  private def getPrivateKeyFromVault(path: String): Map[String, String] = {
-    vaultService
-      .getSecret(path)
-      .view
-      .mapValues(decodeBase64)
-      .toMap
   }
 
 }

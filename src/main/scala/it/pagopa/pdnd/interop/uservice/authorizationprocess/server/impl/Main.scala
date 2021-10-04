@@ -5,15 +5,17 @@ import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
 import com.bettercloud.vault.Vault
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.{AuthApi, ClientApi, OperatorApi}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{
   AuthApiMarshallerImpl,
   AuthApiServiceImpl,
   ClientApiMarshallerImpl,
   ClientApiServiceImpl,
   OperatorApiMarshallerImpl,
-  OperatorApiServiceImpl
+  OperatorApiServiceImpl,
+  WellKnownApiMarshallerImpl,
+  WellKnownApiServiceImpl
 }
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.{AuthApi, ClientApi, OperatorApi, WellKnownApi}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{
   Authenticator,
   PassThroughAuthenticator,
@@ -82,13 +84,16 @@ trait AuthorizationManagementAPI {
   )
 }
 
-trait JWTGenerator {
-  lazy val vault: Vault                  = getVaultClient
-  private val vaultService: VaultService = VaultServiceImpl(vault)
-  val jwtGenerator: JWTGeneratorImpl     = JWTGeneratorImpl(vaultService)
+trait VaultServiceDependency {
+  lazy val vault: Vault              = getVaultClient
+  val vaultService: VaultServiceImpl = VaultServiceImpl(vault)
 }
 
-trait JWTValidator { self: AuthorizationManagementAPI =>
+trait JWTGeneratorDependency { self: VaultServiceDependency =>
+  val jwtGenerator: JWTGeneratorImpl = JWTGeneratorImpl(vaultService)
+}
+
+trait JWTValidatorDependency { self: AuthorizationManagementAPI =>
   val jwtValidator: JWTValidatorImpl = JWTValidatorImpl(authorizationManagementService)
 }
 
@@ -99,14 +104,15 @@ object Main
     with AuthorizationManagementAPI
     with CatalogManagementAPI
     with PartyManagementAPI
-    with JWTGenerator
-    with JWTValidator
-    with M2MAuthorizationService {
+    with JWTGeneratorDependency
+    with JWTValidatorDependency
+    with M2MAuthorizationService
+    with VaultServiceDependency {
 
   Kamon.init()
 
   val authApi: AuthApi = new AuthApi(
-    new AuthApiServiceImpl(
+    AuthApiServiceImpl(
       jwtValidator,
       jwtGenerator,
       authorizationManagementService,
@@ -114,32 +120,38 @@ object Main
       catalogManagementService,
       m2mAuthorizationService
     ),
-    new AuthApiMarshallerImpl(),
+    AuthApiMarshallerImpl,
     SecurityDirectives.authenticateOAuth2("SecurityRealm", PassThroughAuthenticator)
   )
 
   val clientApi: ClientApi = new ClientApi(
-    new ClientApiServiceImpl(
+    ClientApiServiceImpl(
       authorizationManagementService,
       agreementManagementService,
       catalogManagementService,
       partyManagementService
     ),
-    new ClientApiMarshallerImpl(),
+    ClientApiMarshallerImpl,
     SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
   )
 
   val operatorApi: OperatorApi = new OperatorApi(
-    new OperatorApiServiceImpl(authorizationManagementService, partyManagementService),
-    new OperatorApiMarshallerImpl(),
+    OperatorApiServiceImpl(authorizationManagementService, partyManagementService),
+    OperatorApiMarshallerImpl,
     SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
+  )
+
+  val wellKnownApi: WellKnownApi = new WellKnownApi(
+    WellKnownApiServiceImpl(vaultService = vaultService),
+    WellKnownApiMarshallerImpl,
+    SecurityDirectives.authenticateOAuth2("SecurityRealm", PassThroughAuthenticator)
   )
 
   locally {
     val _ = AkkaManagement.get(classicActorSystem).start()
   }
 
-  val controller: Controller = new Controller(authApi, clientApi, operatorApi)
+  val controller: Controller = new Controller(authApi, clientApi, operatorApi, wellKnownApi)
 
   val bindingFuture: Future[Http.ServerBinding] =
     Http().newServerAt("0.0.0.0", ApplicationConfiguration.serverPort).bind(corsHandler(controller.routes))

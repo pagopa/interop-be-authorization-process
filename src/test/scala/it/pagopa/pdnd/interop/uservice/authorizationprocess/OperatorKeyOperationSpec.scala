@@ -19,9 +19,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
   import clientApiMarshaller._
 
-  val service = new OperatorApiServiceImpl(mockAuthorizationManagementService, mockPartyManagementService)(
-    ExecutionContext.global
-  )
+  val service =
+    OperatorApiServiceImpl(mockAuthorizationManagementService, mockPartyManagementService)(ExecutionContext.global)
 
   val kid: String = "some-kid"
 

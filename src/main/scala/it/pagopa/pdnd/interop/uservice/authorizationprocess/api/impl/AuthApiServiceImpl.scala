@@ -19,7 +19,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
-class AuthApiServiceImpl(
+final case class AuthApiServiceImpl(
   jwtValidator: JWTValidator,
   jwtGenerator: JWTGenerator,
   authorizationManagementService: AuthorizationManagementService,
