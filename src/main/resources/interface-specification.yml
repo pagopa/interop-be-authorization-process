@@ -1042,6 +1042,9 @@ components:
           type: string
         description:
           type: string
+        status:
+          type: string
+          enum: [ 'active', 'suspended' ]
         operators:
           $ref: '#/components/schemas/Operators'
           uniqueItems: true
@@ -1053,6 +1056,7 @@ components:
         - agreement
         - name
         - purposes
+        - status
     EService:
       description: Models an E-Service
       type: object

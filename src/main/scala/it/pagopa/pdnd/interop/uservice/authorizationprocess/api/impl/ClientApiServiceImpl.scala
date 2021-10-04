@@ -581,6 +581,7 @@ final case class ClientApiServiceImpl(
       name = client.name,
       purposes = client.purposes,
       description = client.description,
+      status = client.status.toString,
       operators = Some(operator)
     )
   }

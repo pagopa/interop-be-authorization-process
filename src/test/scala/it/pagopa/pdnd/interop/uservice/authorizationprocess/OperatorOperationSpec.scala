@@ -25,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
   import clientApiMarshaller._
 
-  val service = new ClientApiServiceImpl(
+  val service: ClientApiServiceImpl = ClientApiServiceImpl(
     mockAuthorizationManagementService,
     mockAgreementManagementService,
     mockCatalogManagementService,
@@ -73,6 +73,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         name = client.name,
         purposes = client.purposes,
         description = client.description,
+        status = client.status.toString,
         operators = Some(Seq(operator))
       )
 
@@ -146,6 +147,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         name = client.name,
         purposes = client.purposes,
         description = client.description,
+        status = client.status.toString,
         operators = Some(Seq(operator))
       )
 
@@ -224,6 +226,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         name = client.name,
         purposes = client.purposes,
         description = client.description,
+        status = client.status.toString,
         operators = Some(Seq(operator))
       )
 

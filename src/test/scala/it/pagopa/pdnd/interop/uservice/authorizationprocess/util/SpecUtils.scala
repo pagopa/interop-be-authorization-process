@@ -21,6 +21,7 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
   OtherPrimeInfo,
   Client => AuthManagementClient,
   ClientKey => AuthManagementClientKey,
+  ClientEnums => AuthManagementClientEnums,
   Key => AuthManagementKey
 }
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
@@ -116,6 +117,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       name = clientSeed.name,
       purposes = clientSeed.purposes,
       description = clientSeed.description,
+      status = AuthManagementClientEnums.Status.Active,
       relationships = Set.empty
     )
 

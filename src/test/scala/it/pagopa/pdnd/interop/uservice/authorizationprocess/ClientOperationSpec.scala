@@ -69,6 +69,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         name = client.name,
         purposes = client.purposes,
         description = client.description,
+        status = client.status.toString,
         operators = Some(Seq.empty)
       )
 
@@ -125,6 +126,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           name = client.name,
           purposes = client.purposes,
           description = client.description,
+          status = client.status.toString,
           operators = Some(Seq.empty)
         )
 
@@ -174,6 +176,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           name = client.name,
           purposes = client.purposes,
           description = client.description,
+          status = client.status.toString,
           operators = Some(Seq.empty)
         )
 
@@ -259,6 +262,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           name = client.name,
           purposes = client.purposes,
           description = client.description,
+          status = client.status.toString,
           operators = Some(Seq.empty)
         )
       )
