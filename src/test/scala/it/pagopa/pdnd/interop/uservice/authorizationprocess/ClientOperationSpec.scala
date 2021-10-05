@@ -20,7 +20,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
   import clientApiMarshaller._
 
-  val service = new ClientApiServiceImpl(
+  val service: ClientApiServiceImpl = ClientApiServiceImpl(
     mockAuthorizationManagementService,
     mockAgreementManagementService,
     mockCatalogManagementService,
@@ -69,6 +69,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         name = client.name,
         purposes = client.purposes,
         description = client.description,
+        status = client.status.toString,
         operators = Some(Seq.empty)
       )
 
@@ -125,6 +126,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           name = client.name,
           purposes = client.purposes,
           description = client.description,
+          status = client.status.toString,
           operators = Some(Seq.empty)
         )
 
@@ -174,6 +176,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           name = client.name,
           purposes = client.purposes,
           description = client.description,
+          status = client.status.toString,
           operators = Some(Seq.empty)
         )
 
@@ -259,6 +262,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           name = client.name,
           purposes = client.purposes,
           description = client.description,
+          status = client.status.toString,
           operators = Some(Seq.empty)
         )
       )
@@ -293,4 +297,53 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       }
     }
   }
+
+  "Client activation" should {
+    "succeed" in {
+      (mockAuthorizationManagementService.activateClient _)
+        .expects(*)
+        .once()
+        .returns(Future.successful(()))
+
+      Get() ~> service.activateClientById(client.id.toString) ~> check {
+        status shouldEqual StatusCodes.NoContent
+      }
+    }
+
+    "fail if client does not exist" in {
+      (mockAuthorizationManagementService.activateClient _)
+        .expects(*)
+        .once()
+        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+
+      Get() ~> service.activateClientById(client.id.toString) ~> check {
+        status shouldEqual StatusCodes.NotFound
+      }
+    }
+  }
+
+  "Client suspension" should {
+    "succeed" in {
+      (mockAuthorizationManagementService.suspendClient _)
+        .expects(*)
+        .once()
+        .returns(Future.successful(()))
+
+      Get() ~> service.suspendClientById(client.id.toString) ~> check {
+        status shouldEqual StatusCodes.NoContent
+      }
+    }
+
+    "fail if client does not exist" in {
+      (mockAuthorizationManagementService.suspendClient _)
+        .expects(*)
+        .once()
+        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+
+      Get() ~> service.suspendClientById(client.id.toString) ~> check {
+        status shouldEqual StatusCodes.NotFound
+      }
+    }
+  }
+
 }

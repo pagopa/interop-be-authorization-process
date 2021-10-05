@@ -7,7 +7,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{ManagementClient, PartyManagementService}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.KeysResponse
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{KeysResponse, ClientEnums}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Relationship, RelationshipEnums, Relationships}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
@@ -19,7 +19,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
   import clientApiMarshaller._
 
-  val service =
+  val service: OperatorApiServiceImpl =
     OperatorApiServiceImpl(mockAuthorizationManagementService, mockPartyManagementService)(ExecutionContext.global)
 
   val kid: String = "some-kid"
@@ -88,7 +88,8 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     name = "client1",
     description = None,
     relationships = Set(relationship1.id),
-    purposes = "purpose1"
+    purposes = "purpose1",
+    status = ClientEnums.Status.Active
   )
   val client2: ManagementClient = keymanagement.client.model.Client(
     id = UUID.randomUUID(),
@@ -97,7 +98,8 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     name = "client2",
     description = None,
     relationships = Set(relationship2.id),
-    purposes = "purpose2"
+    purposes = "purpose2",
+    status = ClientEnums.Status.Active
   )
 
   "Retrieve key" should {
