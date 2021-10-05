@@ -496,6 +496,8 @@ final case class ClientApiServiceImpl(
 
     onComplete(result) {
       case Success(_) => activateClientById204
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 400 =>
+        activateClientById400(Problem(Option(ex.getMessage), 400, "Bad Request"))
       case Failure(ex @ UnauthenticatedError) =>
         activateClientById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
@@ -518,6 +520,8 @@ final case class ClientApiServiceImpl(
 
     onComplete(result) {
       case Success(_) => suspendClientById204
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 400 =>
+        suspendClientById400(Problem(Option(ex.getMessage), 400, "Bad Request"))
       case Failure(ex @ UnauthenticatedError) =>
         suspendClientById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
