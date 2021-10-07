@@ -1208,6 +1208,9 @@ components:
           type: string
         platformRole:
           type: string
+        status:
+          type: string
+          enum: [ 'active', 'suspended' ]
       required:
         - taxCode
         - name
@@ -1215,6 +1218,7 @@ components:
         - email
         - role
         - platformRole
+        - status
     Operators:
       type: object
       items:
