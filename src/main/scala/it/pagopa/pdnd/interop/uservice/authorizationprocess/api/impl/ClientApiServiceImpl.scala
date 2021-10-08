@@ -636,4 +636,29 @@ final case class ClientApiServiceImpl(
     )
   }
 
+  /** Code: 200, Message: returns the corresponding base 64 encoded key, DataType: EncodedClientKey
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 404, Message: Key not found, DataType: Problem
+    * Code: 500, Message: Internal Server Error, DataType: Problem
+    */
+  override def getEncodedClientKeyById(clientId: String, keyId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerEncodedClientKey: ToEntityMarshaller[EncodedClientKey],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result = for {
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      encodedKey <- authorizationManagementService.getEncodedClientKey(clientUuid, keyId)
+    } yield EncodedClientKey(key = encodedKey.key)
+
+    onComplete(result) {
+      case Success(key) => getEncodedClientKeyById200(key)
+      case Failure(ex @ UnauthenticatedError) =>
+        getEncodedClientKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        getClientKeyById404(Problem(Some(ex.message), 404, "Not found"))
+      case Failure(ex) => getEncodedClientKeyById500(Problem(Option(ex.getMessage), 500, "Error on key retrieve"))
+    }
+  }
 }
