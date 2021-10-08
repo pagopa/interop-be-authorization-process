@@ -104,6 +104,11 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     invoke(request, "Client keys retrieve")
   }
 
+  def getEncodedClientKey(clientId: UUID, kid: String): Future[EncodedClientKey] = {
+    val request: ApiRequest[EncodedClientKey] = keyApi.getEncodedClientKeyById(clientId, kid)
+    invoke(request, "Key Retrieve")
+  }
+
   override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed]): Future[KeysResponse] = {
     val request: ApiRequest[KeysResponse] = keyApi.createKeys(clientId, keysSeeds)
     invoke(request, "Key creation")

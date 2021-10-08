@@ -43,6 +43,7 @@ trait AuthorizationManagementService {
   def deleteKey(clientId: UUID, kid: String): Future[Unit]
   def enableKey(clientId: UUID, kid: String): Future[Unit]
   def disableKey(clientId: UUID, kid: String): Future[Unit]
+  def getEncodedClientKey(clientId: UUID, kid: String): Future[EncodedClientKey]
 }
 
 object AuthorizationManagementService {

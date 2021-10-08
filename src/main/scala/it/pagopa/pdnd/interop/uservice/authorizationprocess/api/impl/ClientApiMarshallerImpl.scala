@@ -17,6 +17,8 @@ case object ClientApiMarshallerImpl extends ClientApiMarshaller with SprayJsonSu
     sprayJsonUnmarshaller[OperatorSeed]
 
   override implicit def toEntityMarshallerClientKey: ToEntityMarshaller[ClientKey] = sprayJsonMarshaller[ClientKey]
+  override implicit def toEntityMarshallerEncodedClientKey: ToEntityMarshaller[EncodedClientKey] =
+    sprayJsonMarshaller[EncodedClientKey]
 
   override implicit def fromEntityUnmarshallerKeySeedList: FromEntityUnmarshaller[Seq[KeySeed]] =
     sprayJsonUnmarshaller[Seq[KeySeed]]
