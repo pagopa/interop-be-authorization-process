@@ -111,6 +111,6 @@ final case class AuthApiServiceImpl(
     case ex: ParseException            => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
     case ex: JOSEException             => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
     case ex: InvalidAccessTokenRequest => createToken400(Problem(Option(ex.errors.mkString(", ")), 400, ex.getMessage))
-    case ex                            => createToken400(Problem(Option(ex.getMessage), 400, "Something goes wrong during access token request"))
+    case ex                            => createToken400(Problem(Option(ex.getMessage), 400, "Something went wrong during access token request"))
   }
 }
