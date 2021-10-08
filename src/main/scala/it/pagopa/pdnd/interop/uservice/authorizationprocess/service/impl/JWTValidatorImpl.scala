@@ -3,20 +3,25 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 import com.nimbusds.jwt.SignedJWT
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.KeyNotActiveError
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.AccessTokenRequest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{AuthorizationManagementService, JWTValidator}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{ClientKey, ClientKeyEnums}
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 final case class JWTValidatorImpl(keyManager: AuthorizationManagementService)(implicit ex: ExecutionContext)
     extends JWTValidator {
   private val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  override def validate(accessTokenRequest: AccessTokenRequest): Future[(String, SignedJWT)] =
+  override def validate(
+    clientAssertion: String,
+    clientAssertionType: String,
+    grantType: String,
+    clientId: Option[UUID]
+  ): Future[(String, SignedJWT)] =
     for {
-      info <- extractJwtInfo(accessTokenRequest)
+      info <- extractJwtInfo(clientAssertion, clientAssertionType, grantType, clientId)
       (jwt, kid, clientId) = info
       clientUUid <- toUuid(clientId).toFuture
       publicKey  <- keyManager.getKey(clientUUid, kid)
