@@ -127,7 +127,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       name = person.name,
       surname = person.surname,
       role = "Operator",
-      platformRole = "aPlatformRole"
+      platformRole = "aPlatformRole",
+      status = "active"
     )
 
   val relationship: Relationship = Relationship(

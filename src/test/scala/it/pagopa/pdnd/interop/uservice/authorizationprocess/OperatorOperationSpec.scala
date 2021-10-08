@@ -367,7 +367,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
           name = person.name,
           surname = person.surname,
           role = operatorRelationship.role.toString,
-          platformRole = operatorRelationship.platformRole
+          platformRole = operatorRelationship.platformRole,
+          // TODO Remove toLowerCase once defined standard for enums
+          status = operatorRelationship.status.toString.toLowerCase
         )
       )
 
@@ -420,7 +422,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
           name = person.name,
           surname = person.surname,
           role = relationship.role.toString,
-          platformRole = relationship.platformRole
+          platformRole = relationship.platformRole,
+          // TODO Remove toLowerCase once defined standard for enums
+          status = relationship.status.toString.toLowerCase
         )
 
       Get() ~> service.getClientOperatorByExternalId(client.id.toString, relationship.from) ~> check {

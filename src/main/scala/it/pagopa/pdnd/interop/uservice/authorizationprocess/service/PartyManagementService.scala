@@ -43,7 +43,9 @@ object PartyManagementService {
       name = person.name,
       surname = person.surname,
       role = relationship.role.toString,
-      platformRole = relationship.platformRole
+      platformRole = relationship.platformRole,
+      // TODO Remove toLowerCase once defined standard for enums
+      status = relationship.status.toString.toLowerCase
     )
 
 }
