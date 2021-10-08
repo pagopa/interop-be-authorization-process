@@ -1,10 +1,15 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
 import com.nimbusds.jwt.SignedJWT
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.AccessTokenRequest
 
+import java.util.UUID
 import scala.concurrent.Future
 
 trait JWTValidator {
-  def validate(accessTokenRequest: AccessTokenRequest): Future[(String, SignedJWT)]
+  def validate(
+    clientAssertion: String,
+    clientAssertionType: String,
+    grantType: String,
+    clientId: Option[UUID]
+  ): Future[(String, SignedJWT)]
 }

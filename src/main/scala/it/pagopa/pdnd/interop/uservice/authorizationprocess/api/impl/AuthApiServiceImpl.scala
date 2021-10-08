@@ -35,11 +35,15 @@ final case class AuthApiServiceImpl(
     extends AuthApiService {
 
   /** Code: 200, Message: an Access token, DataType: ClientCredentialsResponse
-    * Code: 403, Message: Unauthorized, DataType: Problem
+    * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 400, Message: Bad request, DataType: Problem
     */
-
-  override def createToken(accessTokenRequest: AccessTokenRequest)(implicit
+  override def createToken(
+    clientAssertion: String,
+    clientAssertionType: String,
+    grantType: String,
+    clientId: Option[UUID]
+  )(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerClientCredentialsResponse: ToEntityMarshaller[ClientCredentialsResponse],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -48,7 +52,7 @@ final case class AuthApiServiceImpl(
     val token: Future[String] =
       for {
         m2mToken  <- m2mAuthorizationService.token
-        validated <- jwtValidator.validate(accessTokenRequest)
+        validated <- jwtValidator.validate(clientAssertion, clientAssertionType, grantType, clientId)
         (clientId, assertion) = validated
         client <- authorizationManagementService.getClient(clientId)
         _      <- clientMustBeActive(client)
@@ -103,9 +107,10 @@ final case class AuthApiServiceImpl(
       .toFuture(DescriptorNotFound(eService.id.toString, descriptorId.toString))
 
   private def manageError(error: Throwable): Route = error match {
-    case ex @ UnauthenticatedError => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-    case ex: ParseException        => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-    case ex: JOSEException         => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-    case ex                        => createToken400(Problem(Option(ex.getMessage), 400, "Something goes wrong during access token request"))
+    case ex @ UnauthenticatedError     => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+    case ex: ParseException            => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+    case ex: JOSEException             => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+    case ex: InvalidAccessTokenRequest => createToken400(Problem(Option(ex.errors.mkString(", ")), 400, ex.getMessage))
+    case ex                            => createToken400(Problem(Option(ex.getMessage), 400, "Something went wrong during access token request"))
   }
 }

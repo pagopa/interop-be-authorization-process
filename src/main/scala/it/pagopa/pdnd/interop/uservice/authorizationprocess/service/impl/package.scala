@@ -6,34 +6,42 @@ import com.nimbusds.jose.crypto.{ECDSAVerifier, RSASSAVerifier}
 import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jose.{JWSAlgorithm, JWSVerifier}
 import com.nimbusds.jwt.SignedJWT
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.AccessTokenRequest
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.Validation
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{Key, OtherPrimeInfo}
 import spray.json.{DefaultJsonProtocol, RootJsonFormat, _}
 
+import java.util.UUID
 import scala.concurrent.Future
 import scala.util.Try
 
-package object impl extends DefaultJsonProtocol with SprayJsonSupport {
+package object impl extends DefaultJsonProtocol with SprayJsonSupport with Validation {
 
   implicit val otherPrimeInfoFormat: RootJsonFormat[OtherPrimeInfo] = jsonFormat3(OtherPrimeInfo.apply)
   implicit val keyFormat: RootJsonFormat[Key]                       = jsonFormat22(Key.apply)
 
   implicit def toEntityMarshallerKey: ToEntityMarshaller[Key] = sprayJsonMarshaller[Key]
 
-  def extractJwtInfo(accessTokenRequest: AccessTokenRequest): Future[(SignedJWT, String, String)] = Future.fromTry {
-    for {
-      jwt     <- Try(SignedJWT.parse(accessTokenRequest.client_assertion))
-      subject <- Try(jwt.getJWTClaimsSet.getSubject)
-      clientId <- Either
-        .cond(
-          subject == accessTokenRequest.client_id.map(_.toString).getOrElse(subject),
-          subject,
-          new RuntimeException(s"ClientId ${accessTokenRequest.client_id.toString} not equal to subject $subject")
-        )
-        .toTry
-      kid <- Try(jwt.getHeader.getKeyID)
-    } yield (jwt, kid, clientId)
-  }
+  def extractJwtInfo(
+    clientAssertion: String,
+    clientAssertionType: String,
+    grantType: String,
+    clientId: Option[UUID]
+  ): Future[(SignedJWT, String, String)] =
+    Future.fromTry {
+      for {
+        _       <- validateAccessTokenRequest(clientAssertionType, grantType)
+        jwt     <- Try(SignedJWT.parse(clientAssertion))
+        subject <- Try(jwt.getJWTClaimsSet.getSubject)
+        clientId <- Either
+          .cond(
+            subject == clientId.map(_.toString).getOrElse(subject),
+            subject,
+            new RuntimeException(s"ClientId ${clientId.toString} not equal to subject $subject")
+          )
+          .toTry
+        kid <- Try(jwt.getHeader.getKeyID)
+      } yield (jwt, kid, clientId)
+    }
 
   def getVerifier(algorithm: JWSAlgorithm, key: Key): Future[JWSVerifier] = algorithm match {
     case JWSAlgorithm.RS256 | JWSAlgorithm.RS384 | JWSAlgorithm.RS512 => rsa(key)
