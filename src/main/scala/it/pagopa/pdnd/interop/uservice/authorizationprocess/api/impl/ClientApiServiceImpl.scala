@@ -29,6 +29,11 @@ final case class ClientApiServiceImpl(
 )(implicit ec: ExecutionContext)
     extends ClientApiService {
 
+  def internalServerError(responseProblem: Problem)(implicit
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route =
+    complete((500, responseProblem))
+
   /** Code: 201, Message: Client created, DataType: Client
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Not Found, DataType: Problem
@@ -59,7 +64,7 @@ final case class ClientApiServiceImpl(
       case Failure(ex @ UnauthenticatedError) => createClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: CatalogManagementApiError[_]) if ex.code == 404 =>
         createClient404(Problem(Some(s"E-Service id ${clientSeed.eServiceId.toString} not found"), 404, "Not found"))
-      case Failure(ex) => createClient500(Problem(Option(ex.getMessage), 500, "Error on client creation"))
+      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on client creation"))
     }
   }
 
@@ -84,7 +89,7 @@ final case class ClientApiServiceImpl(
       case Failure(ex @ UnauthenticatedError) => getClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClient404(Problem(Some(ex.message), 404, "Client not found"))
-      case Failure(ex) => getClient500(Problem(Option(ex.getMessage), 500, "Error on client retrieve"))
+      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on client retrieve"))
     }
   }
 
@@ -127,7 +132,7 @@ final case class ClientApiServiceImpl(
       case Success(clients)                   => listClients200(clients)
       case Failure(ex: UuidConversionError)   => listClients400(Problem(Option(ex.getMessage), 400, "Bad request"))
       case Failure(ex @ UnauthenticatedError) => listClients401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex)                        => listClients500(Problem(Option(ex.getMessage), 500, "Error on clients list"))
+      case Failure(ex)                        => internalServerError(Problem(Option(ex.getMessage), 500, "Error on clients list"))
     }
   }
 
@@ -149,7 +154,7 @@ final case class ClientApiServiceImpl(
       case Failure(ex @ UnauthenticatedError) => deleteClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         deleteClient404(Problem(Option(ex.getMessage), 404, "Client not found"))
-      case Failure(ex) => deleteClient500(Problem(Option(ex.getMessage), 500, "Error on client deletion"))
+      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on client deletion"))
     }
   }
 
@@ -184,7 +189,7 @@ final case class ClientApiServiceImpl(
         addOperator400(Problem(Option(ex.getMessage), 400, "Bad request"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         addOperator404(Problem(Some(ex.message), 404, "Client not found"))
-      case Failure(ex) => addOperator500(Problem(Option(ex.getMessage), 500, "Error on operator addition"))
+      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on operator addition"))
     }
   }
 
@@ -259,7 +264,7 @@ final case class ClientApiServiceImpl(
         removeClientOperator400(Problem(Option(ex.getMessage), 400, "Bad request"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         removeClientOperator404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => removeClientOperator500(Problem(Option(ex.getMessage), 500, "Error on operator removal"))
+      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on operator removal"))
     }
   }
 
@@ -285,7 +290,7 @@ final case class ClientApiServiceImpl(
         getClientKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClientKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => getClientKeyById500(Problem(Option(ex.getMessage), 500, "Error on key retrieve"))
+      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on key retrieve"))
     }
   }
 
@@ -310,7 +315,7 @@ final case class ClientApiServiceImpl(
         deleteClientKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         deleteClientKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => deleteClientKeyById500(Problem(Option(ex.getMessage), 500, "Error on key delete"))
+      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on key delete"))
     }
   }
 
@@ -332,7 +337,7 @@ final case class ClientApiServiceImpl(
       case Failure(ex @ UnauthenticatedError) => enableKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         enableKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => enableKeyById500(Problem(Option(ex.getMessage), 500, "Error on key enabling"))
+      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on key enabling"))
     }
   }
 
@@ -357,7 +362,7 @@ final case class ClientApiServiceImpl(
         disableKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         disableKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => disableKeyById500(Problem(Option(ex.getMessage), 500, "Error on key disabling"))
+      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on key disabling"))
     }
   }
 
@@ -398,7 +403,7 @@ final case class ClientApiServiceImpl(
         createKeys403(Problem(Option(ex.getMessage), 403, "Forbidden"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         createKeys404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => createKeys500(Problem(Option(ex.getMessage), 500, "Error on key creation"))
+      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on key creation"))
     }
   }
 
@@ -423,7 +428,7 @@ final case class ClientApiServiceImpl(
       case Failure(ex @ UnauthenticatedError) => getClientKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClientKeys404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => getClientKeys500(Problem(Option(ex.getMessage), 500, "Error on client keys retrieve"))
+      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on client keys retrieve"))
     }
   }
 
@@ -658,7 +663,7 @@ final case class ClientApiServiceImpl(
         getEncodedClientKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClientKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => getEncodedClientKeyById500(Problem(Option(ex.getMessage), 500, "Error on key retrieve"))
+      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on key retrieve"))
     }
   }
 }

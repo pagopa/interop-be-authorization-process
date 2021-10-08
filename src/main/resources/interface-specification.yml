@@ -112,12 +112,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal Server Error
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
     get:
       tags:
         - client
@@ -172,12 +166,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal Server Error
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
   /clients/{clientId}:
     get:
       description: Retrieves a Client
@@ -211,12 +199,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal server error
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
     delete:
       description: Deletes a Client
       tags:
@@ -241,12 +223,6 @@ paths:
                 $ref: '#/components/schemas/Problem'
         "404":
           description: Client not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal server error
           content:
             application/problem+json:
               schema:
@@ -395,12 +371,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal server error
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
       requestBody:
         required: true
         description: An Operator seed
@@ -490,12 +460,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal server error
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
   '/clients/{clientId}/keys':
     post:
       tags:
@@ -529,12 +493,6 @@ paths:
                 $ref: '#/components/schemas/Problem'
         "404":
           description: Client id not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal Server Error
           content:
             application/problem+json:
               schema:
@@ -588,12 +546,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal Server Error
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
   '/clients/{clientId}/keys/{keyId}':
     get:
       tags:
@@ -634,12 +586,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal Server Error
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
     delete:
       tags:
         - client
@@ -671,12 +617,6 @@ paths:
                 $ref: '#/components/schemas/Problem'
         "404":
           description: Key not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal Server Error
           content:
             application/problem+json:
               schema:
@@ -721,12 +661,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal Server Error
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
   '/clients/{clientId}/keys/{keyId}/enable':
     patch:
       tags:
@@ -763,12 +697,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal Server Error
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
   '/clients/{clientId}/keys/{keyId}/disable':
     patch:
       tags:
@@ -801,12 +729,6 @@ paths:
                 $ref: '#/components/schemas/Problem'
         "404":
           description: Key not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        "500":
-          description: Internal Server Error
           content:
             application/problem+json:
               schema:
