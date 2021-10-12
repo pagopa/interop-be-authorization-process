@@ -23,6 +23,6 @@ object Versions {
 object PDNDVersions {
   lazy val agreementManagementVersion = "0.0.0"
   lazy val catalogManagementVersion   = "0.0.0"
-  lazy val keyManagementVersion = "0.0.0"
+  lazy val keyManagementVersion       = "0.0.0"
   lazy val partyManagementVersion     = "0.0.0"
 }
