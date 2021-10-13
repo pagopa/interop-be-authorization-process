@@ -16,7 +16,6 @@ client/target
 client/src
 client/project/build.properties
 .bsp
-openapitools.json
 .DS_Store
 .env
 python
