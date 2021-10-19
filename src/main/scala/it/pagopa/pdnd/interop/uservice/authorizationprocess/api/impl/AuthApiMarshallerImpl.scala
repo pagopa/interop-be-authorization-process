@@ -19,4 +19,5 @@ case object AuthApiMarshallerImpl extends AuthApiMarshaller with SprayJsonSuppor
 
   override implicit def toEntityMarshallerProblem: ToEntityMarshaller[Problem] = sprayJsonMarshaller[Problem]
 
+  override implicit def toEntityMarshallerValidJWT: ToEntityMarshaller[ValidJWT] = sprayJsonMarshaller[ValidJWT]
 }
