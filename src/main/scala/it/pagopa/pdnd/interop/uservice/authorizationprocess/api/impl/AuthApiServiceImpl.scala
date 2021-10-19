@@ -71,7 +71,7 @@ final case class AuthApiServiceImpl(
       } yield token
 
     onComplete(token) {
-      case Success(tk) => createToken200(ClientCredentialsResponse(tk, "tokenType", expireIn))
+      case Success(tk) => createToken200(ClientCredentialsResponse(tk, "bearer", expireIn))
       case Failure(ex) => manageError(ex)
     }
   }

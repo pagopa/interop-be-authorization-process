@@ -100,14 +100,14 @@ trait JWTValidatorDependency { self: AuthorizationManagementAPI =>
 object Main
     extends App
     with CorsSupport
+    with VaultServiceDependency
     with AgreementManagementAPI
     with AuthorizationManagementAPI
     with CatalogManagementAPI
     with PartyManagementAPI
     with JWTGeneratorDependency
     with JWTValidatorDependency
-    with M2MAuthorizationService
-    with VaultServiceDependency {
+    with M2MAuthorizationService {
 
   Kamon.init()
 
