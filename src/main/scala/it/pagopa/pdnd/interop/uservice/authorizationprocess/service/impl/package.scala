@@ -76,4 +76,20 @@ package object impl extends DefaultJsonProtocol with SprayJsonSupport with Valid
     }
   }
 
+  def rsa(jwkKey: String): Future[RSASSAVerifier] = Future.fromTry {
+    Try {
+      val jwk: JWK  = JWK.parse(jwkKey)
+      val publicKey = jwk.toRSAKey
+      new RSASSAVerifier(publicKey)
+    }
+  }
+
+  def ec(jwkKey: String): Future[ECDSAVerifier] = Future.fromTry {
+    Try {
+      val jwk: JWK  = JWK.parse(jwkKey)
+      val publicKey = jwk.toECKey
+      new ECDSAVerifier(publicKey)
+    }
+  }
+
 }

@@ -79,6 +79,34 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /as/token/validate:
+    post:
+      security:
+        - bearerAuth: [ ]
+      tags:
+        - auth
+      summary: JWT validation
+      description: Validates the access token passed as Authorization header
+      operationId: validateToken
+      responses:
+        "200":
+          description: Client created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidJWT'
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "400":
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /clients:
     post:
       tags:
@@ -1143,6 +1171,38 @@ components:
         - id
         - status
         - descriptor
+    ValidJWT:
+      description: Models a JWT payload
+      type: object
+      properties:
+        iss:
+          type: string
+        sub:
+          type: string
+        aud:
+          type: array
+          items:
+            type: string
+        exp:
+          type: string
+          format: date-time
+        nbf:
+          type: string
+          format: date-time
+        iat:
+          type: string
+          format: date-time
+        jti:
+          type: string
+      additionalProperties: true
+      required:
+        - iss
+        - sub
+        - aud
+        - exp
+        - nbf
+        - iat
+        - jti
     Clients:
       type: object
       items:

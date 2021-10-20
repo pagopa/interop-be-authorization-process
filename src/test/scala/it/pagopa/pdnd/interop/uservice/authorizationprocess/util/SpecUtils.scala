@@ -44,6 +44,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
+  val mockVaultService: VaultService                                     = mock[VaultService]
 
   val bearerToken: String   = "token"
   val eServiceId: UUID      = UUID.randomUUID()

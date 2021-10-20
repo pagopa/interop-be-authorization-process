@@ -4,9 +4,11 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
 import com.nimbusds.jose.JOSEException
+import com.nimbusds.jwt.JWTClaimsSet
 import it.pagopa.pdnd.interop.uservice.agreementmanagement
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.TryOps
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{OptionOps, expireIn}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
@@ -19,9 +21,11 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.ClientEnums
 
 import java.text.ParseException
+import java.time.ZoneOffset
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.util.{Failure, Success, Try}
 
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 final case class AuthApiServiceImpl(
@@ -113,4 +117,48 @@ final case class AuthApiServiceImpl(
     case ex: InvalidAccessTokenRequest => createToken400(Problem(Option(ex.errors.mkString(", ")), 400, ex.getMessage))
     case ex                            => createToken400(Problem(Option(ex.getMessage), 400, "Something went wrong during access token request"))
   }
+
+  def toResponseJWT(claims: JWTClaimsSet): Future[ValidJWT] = {
+    Try {
+      ValidJWT(
+        iss = claims.getIssuer,
+        sub = claims.getSubject,
+        aud = claims.getAudience.asScala.toSeq,
+        exp = claims.getExpirationTime.toInstant.atOffset(ZoneOffset.UTC),
+        nbf = claims.getNotBeforeTime.toInstant.atOffset(ZoneOffset.UTC),
+        iat = claims.getIssueTime.toInstant.atOffset(ZoneOffset.UTC),
+        jti = claims.getJWTID
+      )
+    }.toFuture
+  }
+
+  /** Code: 200, Message: Client created, DataType: ValidJWT
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 400, Message: Bad request, DataType: Problem
+    */
+  override def validateToken()(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerValidJWT: ToEntityMarshaller[ValidJWT],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result: Future[ValidJWT] = for {
+      bearer     <- tokenFromContext(contexts)
+      claims     <- jwtValidator.validateBearer(bearer)
+      validToken <- toResponseJWT(claims)
+    } yield validToken
+
+    onComplete(result) {
+      case Success(tk) => validateToken200(tk)
+      case Failure(ex) => manageError(ex)
+    }
+  }
+
+  private[this] def tokenFromContext(context: Seq[(String, String)]): Future[String] =
+    Future.fromTry(
+      context
+        .find(_._1 == "bearer")
+        .map(header => header._2)
+        .toRight(new RuntimeException("Bearer Token not provided"))
+        .toTry
+    )
 }

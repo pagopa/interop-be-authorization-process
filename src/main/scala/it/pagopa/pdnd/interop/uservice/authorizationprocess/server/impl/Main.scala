@@ -93,8 +93,8 @@ trait JWTGeneratorDependency { self: VaultServiceDependency =>
   val jwtGenerator: JWTGeneratorImpl = JWTGeneratorImpl(vaultService)
 }
 
-trait JWTValidatorDependency { self: AuthorizationManagementAPI =>
-  val jwtValidator: JWTValidatorImpl = JWTValidatorImpl(authorizationManagementService)
+trait JWTValidatorDependency { self: AuthorizationManagementAPI with VaultServiceDependency =>
+  val jwtValidator: JWTValidatorImpl = JWTValidatorImpl(authorizationManagementService, vaultService)
 }
 
 object Main
