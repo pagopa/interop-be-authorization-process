@@ -81,7 +81,8 @@ paths:
                 $ref: '#/components/schemas/Problem'
   /as/token/validate:
     post:
-      security: [ ]
+      security:
+        - bearerAuth: [ ]
       tags:
         - auth
       summary: JWT validation
