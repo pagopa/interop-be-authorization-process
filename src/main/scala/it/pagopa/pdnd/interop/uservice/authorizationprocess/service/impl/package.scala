@@ -7,6 +7,7 @@ import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jose.{JWSAlgorithm, JWSVerifier}
 import com.nimbusds.jwt.SignedJWT
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.Validation
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.InvalidJWTSign
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{Key, OtherPrimeInfo}
 import spray.json.{DefaultJsonProtocol, RootJsonFormat, _}
 
@@ -53,7 +54,7 @@ package object impl extends DefaultJsonProtocol with SprayJsonSupport with Valid
   def verify(verifier: JWSVerifier, jwt: SignedJWT): Future[SignedJWT] = Future.fromTry {
     {
       Either
-        .cond(jwt.verify(verifier), jwt, new RuntimeException("Invalid JWT sign"))
+        .cond(jwt.verify(verifier), jwt, InvalidJWTSign)
         .toTry
     }
   }
