@@ -64,7 +64,7 @@ final case class JWTValidatorImpl(keyManager: AuthorizationManagementService, va
       val result = for {
         vaultPath <- VaultService.extractKeyPath("rsa", "public")
         keys = vaultService.getSecret(vaultPath)
-        publicKey <- Try(keys.get(kid).get)
+        publicKey <- Try(keys(kid))
       } yield publicKey
       result.toFuture.flatMap(key => rsa(key))
 
@@ -72,7 +72,7 @@ final case class JWTValidatorImpl(keyManager: AuthorizationManagementService, va
       val result = for {
         vaultPath <- VaultService.extractKeyPath("ec", "public")
         keys = vaultService.getSecret(vaultPath)
-        publicKey <- Try(keys.get(kid).get)
+        publicKey <- Try(keys(kid))
       } yield publicKey
       result.toFuture.flatMap(key => ec(key))
 
