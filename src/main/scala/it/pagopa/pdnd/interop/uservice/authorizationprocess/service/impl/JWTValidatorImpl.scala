@@ -17,6 +17,7 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
+@SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
 final case class JWTValidatorImpl(keyManager: AuthorizationManagementService, vaultService: VaultService)(implicit
   ex: ExecutionContext
 ) extends JWTValidator {
