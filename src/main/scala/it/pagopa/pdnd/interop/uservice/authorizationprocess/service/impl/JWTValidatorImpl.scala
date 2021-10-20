@@ -60,14 +60,21 @@ final case class JWTValidatorImpl(keyManager: AuthorizationManagementService, va
 
   private def getPublicKey(algorithm: JWSAlgorithm, kid: String): Future[JWSVerifier] = algorithm match {
     case JWSAlgorithm.RS256 | JWSAlgorithm.RS384 | JWSAlgorithm.RS512 =>
-      VaultService
-        .extractKeyPath("rsa", "public")
-        .map(vaultService.getSecret(kid))
-        .map(key => rsa(key))
-        .toFuture
-        .flatten
+      val result = for {
+        vaultPath <- VaultService.extractKeyPath("rsa", "public")
+        keys = vaultService.getSecret(vaultPath)
+        publicKey <- Try(keys.get(kid).get)
+      } yield publicKey
+      result.toFuture.flatMap(key => rsa(key))
+
     case JWSAlgorithm.ES256 =>
-      VaultService.extractKeyPath("ec", "public").map(vaultService.getSecret(kid)).map(key => ec(key)).toFuture.flatten
+      val result = for {
+        vaultPath <- VaultService.extractKeyPath("ec", "public")
+        keys = vaultService.getSecret(vaultPath)
+        publicKey <- Try(keys.get(kid).get)
+      } yield publicKey
+      result.toFuture.flatMap(key => ec(key))
+
     case _ => Future.failed(new RuntimeException("Invalid key algorithm"))
 
   }
