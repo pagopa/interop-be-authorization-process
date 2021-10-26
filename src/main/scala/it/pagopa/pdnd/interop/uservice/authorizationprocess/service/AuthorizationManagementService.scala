@@ -22,7 +22,7 @@ trait AuthorizationManagementService {
     purposes: String,
     description: Option[String]
   ): Future[ManagementClient]
-  def getClient(clientId: String): Future[ManagementClient]
+  def getClient(clientId: UUID): Future[ManagementClient]
   def listClients(
     offset: Option[Int],
     limit: Option[Int],
@@ -30,7 +30,7 @@ trait AuthorizationManagementService {
     relationshipId: Option[UUID],
     consumerId: Option[UUID]
   ): Future[Seq[ManagementClient]]
-  def deleteClient(clientId: String): Future[Unit]
+  def deleteClient(clientId: UUID): Future[Unit]
   def activateClient(clientId: UUID): Future[Unit]
   def suspendClient(clientId: UUID): Future[Unit]
 

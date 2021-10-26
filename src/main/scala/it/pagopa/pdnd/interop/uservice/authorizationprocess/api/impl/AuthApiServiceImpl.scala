@@ -9,7 +9,7 @@ import it.pagopa.pdnd.interop.uservice.agreementmanagement
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.TryOps
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{OptionOps, expireIn}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, OptionOps, expireIn, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
@@ -58,8 +58,9 @@ final case class AuthApiServiceImpl(
         m2mToken  <- m2mAuthorizationService.token
         validated <- jwtValidator.validate(clientAssertion, clientAssertionType, grantType, clientId)
         (clientId, assertion) = validated
-        client <- authorizationManagementService.getClient(clientId)
-        _      <- clientMustBeActive(client)
+        clientUuid <- toUuid(clientId).toFuture
+        client     <- authorizationManagementService.getClient(clientUuid)
+        _          <- clientMustBeActive(client)
         agreements <- agreementManagementService.getAgreements(
           m2mToken,
           client.consumerId,

@@ -45,7 +45,8 @@ final case class OperatorApiServiceImpl(
       )
       keysResponse <- operatorKeySeeds.traverse { seed =>
         for {
-          client <- authorizationManagementService.getClient(seed.clientId)
+          clientUuid <- toUuid(seed.clientId).toFuture
+          client     <- authorizationManagementService.getClient(clientUuid)
           clientRelationshipId <- client.relationships
             .intersect(relationships.items.map(_.id).toSet)
             .headOption // Exactly one expected

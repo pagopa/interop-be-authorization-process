@@ -37,7 +37,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
   "Operator addition" should {
     "succeed on existing relationship" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client))
 
@@ -87,7 +87,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "succeed creating relationship" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client))
 
@@ -151,7 +151,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "succeed creating relationship and person" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client))
 
@@ -258,7 +258,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       )
 
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
@@ -287,7 +287,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       )
 
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
@@ -334,7 +334,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       )
 
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
@@ -377,7 +377,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
@@ -390,7 +390,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
   "Operator retrieve by external id" should {
     "succeed" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
 
@@ -432,7 +432,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
@@ -443,7 +443,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if operator is not found" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client))
 

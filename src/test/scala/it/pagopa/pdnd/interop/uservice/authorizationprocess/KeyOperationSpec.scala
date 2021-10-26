@@ -136,7 +136,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
       )
 
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client))
 
@@ -163,7 +163,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         Seq(KeySeed(operatorId = user.id, key = "key", use = "non-existing-use-value", alg = "123"))
 
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client))
 
@@ -186,7 +186,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
 
     "fail if client or key do not exist" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 

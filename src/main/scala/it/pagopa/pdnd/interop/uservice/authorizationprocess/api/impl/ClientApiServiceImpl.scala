@@ -84,7 +84,8 @@ final case class ClientApiServiceImpl(
   ): Route = {
     val result = for {
       bearerToken <- extractBearer(contexts)
-      client      <- authorizationManagementService.getClient(clientId)
+      clientUuid  <- toUuid(clientId).toFuture
+      client      <- authorizationManagementService.getClient(clientUuid)
       apiClient   <- getClient(bearerToken, client)
     } yield apiClient
 
@@ -149,8 +150,9 @@ final case class ClientApiServiceImpl(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
     val result = for {
-      _ <- extractBearer(contexts)
-      _ <- authorizationManagementService.deleteClient(clientId)
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      _          <- authorizationManagementService.deleteClient(clientUuid)
     } yield ()
 
     onComplete(result) {
@@ -175,7 +177,7 @@ final case class ClientApiServiceImpl(
     val result = for {
       bearerToken  <- extractBearer(contexts)
       clientUuid   <- toUuid(clientId).toFuture
-      client       <- authorizationManagementService.getClient(clientId)
+      client       <- authorizationManagementService.getClient(clientUuid)
       relationship <- getOrCreateRelationship(client, operatorSeed)
       updatedClient <- client.relationships
         .find(_ === relationship.id)
@@ -260,7 +262,7 @@ final case class ClientApiServiceImpl(
       _                 <- extractBearer(contexts)
       clientUuid        <- toUuid(clientId).toFuture
       operatorUuid      <- toUuid(operatorId).toFuture
-      client            <- authorizationManagementService.getClient(clientId)
+      client            <- authorizationManagementService.getClient(clientUuid)
       maybeRelationship <- securityOperatorRelationship(client.consumerId, operatorUuid)
       relationship      <- maybeRelationship.toFuture(SecurityOperatorRelationshipNotFound(client.consumerId, operatorUuid))
       _                 <- authorizationManagementService.removeClientRelationship(clientUuid, relationship.id)
@@ -391,7 +393,7 @@ final case class ClientApiServiceImpl(
     val result = for {
       _                <- extractBearer(contexts)
       clientUuid       <- toUuid(clientId).toFuture
-      client           <- authorizationManagementService.getClient(clientId)
+      client           <- authorizationManagementService.getClient(clientUuid)
       relationshipsIds <- keysSeeds.traverse(seed => securityOperatorRelationship(client.consumerId, seed.operatorId))
       seeds <- keysSeeds
         .zip(relationshipsIds)
@@ -452,9 +454,10 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _         <- extractBearer(contexts)
-      client    <- authorizationManagementService.getClient(clientId)
-      operators <- operatorsFromClient(client)
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      client     <- authorizationManagementService.getClient(clientUuid)
+      operators  <- operatorsFromClient(client)
     } yield operators
 
     onComplete(result) {
@@ -478,7 +481,8 @@ final case class ClientApiServiceImpl(
   ): Route = {
     val result = for {
       _          <- extractBearer(contexts)
-      client     <- authorizationManagementService.getClient(clientId)
+      clientUuid <- toUuid(clientId).toFuture
+      client     <- authorizationManagementService.getClient(clientUuid)
       operatorId <- toUuid(operatorId).toFuture
       operators  <- operatorsFromClient(client)
       operator <- operators
