@@ -62,12 +62,12 @@ final case class AuthApiServiceImpl(
         _      <- clientMustBeActive(client)
         agreements <- agreementManagementService.getAgreements(
           m2mToken,
-          client.consumerId.toString,
-          client.eServiceId.toString,
+          client.consumerId,
+          client.eServiceId,
           Some(AgreementEnums.Status.Active)
         )
-        activeAgreement <- getActiveAgreement(agreements, client.eServiceId.toString, client.consumerId.toString)
-        eservice        <- catalogManagementService.getEService(m2mToken, client.eServiceId.toString)
+        activeAgreement <- getActiveAgreement(agreements, client.eServiceId, client.consumerId)
+        eservice        <- catalogManagementService.getEService(m2mToken, client.eServiceId)
         descriptor      <- getDescriptor(eservice, activeAgreement.descriptorId)
         descriptorAudience = descriptor.audience.toList
         _     <- descriptorMustBeActive(descriptor)
@@ -82,8 +82,8 @@ final case class AuthApiServiceImpl(
 
   private def getActiveAgreement(
     agreements: Seq[agreementmanagement.client.model.Agreement],
-    eserviceId: String,
-    consumerId: String
+    eserviceId: UUID,
+    consumerId: UUID
   ): Future[agreementmanagement.client.model.Agreement] = {
     agreements match {
       case agreement :: Nil => Future.successful(agreement)
@@ -95,20 +95,20 @@ final case class AuthApiServiceImpl(
   private def clientMustBeActive(client: ManagementClient): Future[Unit] =
     client.status match {
       case ClientEnums.Status.Active => Future.successful(())
-      case _                         => Future.failed(ClientNotActive(client.id.toString))
+      case _                         => Future.failed(ClientNotActive(client.id))
     }
 
   private def descriptorMustBeActive(descriptor: EServiceDescriptor): Future[Unit] =
     descriptor.status match {
       case EServiceDescriptorEnums.Status.Deprecated => Future.successful(())
       case EServiceDescriptorEnums.Status.Published  => Future.successful(())
-      case _                                         => Future.failed(EServiceDescriptorNotActive(descriptor.id.toString))
+      case _                                         => Future.failed(EServiceDescriptorNotActive(descriptor.id))
     }
 
   private def getDescriptor(eService: EService, descriptorId: UUID): Future[EServiceDescriptor] =
     eService.descriptors
       .find(_.id == descriptorId)
-      .toFuture(DescriptorNotFound(eService.id.toString, descriptorId.toString))
+      .toFuture(DescriptorNotFound(eService.id, descriptorId))
 
   private def manageError(error: Throwable): Route = error match {
     case ex @ UnauthenticatedError     => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))

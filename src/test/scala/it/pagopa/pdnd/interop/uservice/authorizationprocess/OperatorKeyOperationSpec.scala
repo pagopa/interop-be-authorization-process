@@ -7,7 +7,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{ManagementClient, PartyManagementService}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{KeysResponse, ClientEnums}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{ClientEnums, KeysResponse}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Relationship, RelationshipEnums, Relationships}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
@@ -54,8 +54,8 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
   val relationship1: Relationship = Relationship(
     id = UUID.randomUUID(),
-    from = person.taxCode,
-    to = "institutionId1",
+    from = user.id,
+    to = UUID.randomUUID(),
     role = RelationshipEnums.Role.Operator,
     platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR,
     status = RelationshipEnums.Status.Active
@@ -63,8 +63,8 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
   val relationship2: Relationship = Relationship(
     id = UUID.randomUUID(),
-    from = person.taxCode,
-    to = "institutionId2",
+    from = user.id,
+    to = UUID.randomUUID(),
     role = RelationshipEnums.Role.Operator,
     platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR,
     status = RelationshipEnums.Status.Active
@@ -72,8 +72,8 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
   val relationship3: Relationship = Relationship(
     id = UUID.randomUUID(),
-    from = person.taxCode,
-    to = "institutionId3",
+    from = user.id,
+    to = UUID.randomUUID(),
     role = RelationshipEnums.Role.Manager,
     platformRole = "admin",
     status = RelationshipEnums.Status.Active
@@ -119,7 +119,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
       val expected = apiClientKey
 
-      Get() ~> service.getOperatorKeyById(taxCode, kid) ~> check {
+      Get() ~> service.getOperatorKeyById(personId.toString, kid) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[ClientKey] shouldEqual expected
       }
@@ -128,7 +128,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val kid                                      = "some-kid"
-      Get() ~> service.getOperatorKeyById(taxCode, kid) ~> check {
+      Get() ~> service.getOperatorKeyById(personId.toString, kid) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
@@ -148,7 +148,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
-      Get() ~> service.getOperatorKeyById(taxCode, kid) ~> check {
+      Get() ~> service.getOperatorKeyById(personId.toString, kid) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -171,7 +171,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
       val expected = Seq(apiClientKey, apiClientKey)
 
-      Get() ~> service.getOperatorKeys(taxCode) ~> check {
+      Get() ~> service.getOperatorKeys(personId.toString) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[ClientKeys] shouldEqual ClientKeys(expected)
       }
@@ -179,7 +179,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      Get() ~> service.getOperatorKeys(taxCode) ~> check {
+      Get() ~> service.getOperatorKeys(personId.toString) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
@@ -193,15 +193,15 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
         .twice()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
-      Get() ~> service.getOperatorKeys(taxCode) ~> check {
+      Get() ~> service.getOperatorKeys(personId.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
   }
 
   def execForEachOperatorClientExpectations(): Unit = {
-    (mockPartyManagementService.getRelationshipsByTaxCode _)
-      .expects(taxCode, None)
+    (mockPartyManagementService.getRelationshipsByPersonId _)
+      .expects(personId, None)
       .once()
       .returns(Future.successful(relationships))
 

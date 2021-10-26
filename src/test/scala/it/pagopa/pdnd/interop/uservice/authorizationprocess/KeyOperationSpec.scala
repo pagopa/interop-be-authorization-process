@@ -17,11 +17,12 @@ import scala.concurrent.{ExecutionContext, Future}
 class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
   import clientApiMarshaller._
 
-  val service = new ClientApiServiceImpl(
+  val service: ClientApiServiceImpl = ClientApiServiceImpl(
     mockAuthorizationManagementService,
     mockAgreementManagementService,
     mockCatalogManagementService,
-    mockPartyManagementService
+    mockPartyManagementService,
+    mockUserRegistryManagementService
   )(ExecutionContext.global)
 
   val apiClientKey: ClientKey = ClientKey(
@@ -127,7 +128,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     "succeed" in {
       val keySeeds: Seq[KeySeed] = Seq(
         KeySeed(
-          operatorTaxCode = person.taxCode,
+          operatorId = user.id,
           key = "key",
           use = keymanagement.client.model.KeySeedEnums.Use.Sig.toString,
           alg = "123"
@@ -139,13 +140,8 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .once()
         .returns(Future.successful(client))
 
-      (mockPartyManagementService.getOrganization _)
-        .expects(client.consumerId)
-        .once()
-        .returns(Future.successful(organization))
-
       (mockPartyManagementService.getRelationships _)
-        .expects(organization.institutionId, person.taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .expects(client.consumerId, user.id, PartyManagementService.ROLE_SECURITY_OPERATOR)
         .once()
         .returns(Future.successful(relationships))
 
@@ -164,20 +160,15 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
 
     "fail on wrong enum parameters" in {
       val keySeeds: Seq[KeySeed] =
-        Seq(KeySeed(operatorTaxCode = person.taxCode, key = "key", use = "non-existing-use-value", alg = "123"))
+        Seq(KeySeed(operatorId = user.id, key = "key", use = "non-existing-use-value", alg = "123"))
 
       (mockAuthorizationManagementService.getClient _)
         .expects(client.id.toString)
         .once()
         .returns(Future.successful(client))
 
-      (mockPartyManagementService.getOrganization _)
-        .expects(client.consumerId)
-        .once()
-        .returns(Future.successful(organization))
-
       (mockPartyManagementService.getRelationships _)
-        .expects(organization.institutionId, person.taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .expects(client.consumerId, user.id, PartyManagementService.ROLE_SECURITY_OPERATOR)
         .once()
         .returns(Future.successful(relationships))
 

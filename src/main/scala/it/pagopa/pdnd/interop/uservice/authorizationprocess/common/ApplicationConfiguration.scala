@@ -22,6 +22,8 @@ object ApplicationConfiguration {
 
   def getPartyManagementURL: String = config.getString("services.party-management")
 
+  def getUserRegistryManagementURL: String = config.getString("services.user-registry-management")
+
   def getPdndIdIssuer: String = {
     config.getString("uservice-authorization-process.issuer")
   }

@@ -21,8 +21,9 @@ object Versions {
 }
 
 object PDNDVersions {
-  lazy val agreementManagementVersion = "0.1.1-SNAPSHOT"
-  lazy val catalogManagementVersion   = "0.1.1-SNAPSHOT"
-  lazy val keyManagementVersion       = "0.1.1-SNAPSHOT"
-  lazy val partyManagementVersion     = "0.1.1-SNAPSHOT"
+  lazy val agreementManagementVersion    = "0.1.1-SNAPSHOT"
+  lazy val catalogManagementVersion      = "0.1.1-SNAPSHOT"
+  lazy val keyManagementVersion          = "0.1.1-SNAPSHOT"
+  lazy val partyManagementVersion        = "0.1.1-SNAPSHOT"
+  lazy val userRegistryManagementVersion = "0.1.1-SNAPSHOT"
 }

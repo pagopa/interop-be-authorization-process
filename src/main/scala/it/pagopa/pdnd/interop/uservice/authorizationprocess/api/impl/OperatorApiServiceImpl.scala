@@ -14,6 +14,7 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError =>
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.KeySeedEnums
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -30,15 +31,16 @@ final case class OperatorApiServiceImpl(
     * Code: 403, Message: Forbidden, DataType: Problem
     * Code: 404, Message: Client id not found, DataType: Problem
     */
-  override def createOperatorKeys(taxCode: String, operatorKeySeeds: Seq[OperatorKeySeed])(implicit
+  override def createOperatorKeys(operatorId: String, operatorKeySeeds: Seq[OperatorKeySeed])(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _ <- extractBearer(contexts)
-      relationships <- partyManagementService.getRelationshipsByTaxCode(
-        taxCode,
+      _            <- extractBearer(contexts)
+      operatorUuid <- toUuid(operatorId).toFuture
+      relationships <- partyManagementService.getRelationshipsByPersonId(
+        operatorUuid,
         Some(PartyManagementService.ROLE_SECURITY_OPERATOR)
       )
       keysResponse <- operatorKeySeeds.traverse { seed =>
@@ -47,7 +49,7 @@ final case class OperatorApiServiceImpl(
           clientRelationshipId <- client.relationships
             .intersect(relationships.items.map(_.id).toSet)
             .headOption // Exactly one expected
-            .toFuture(new RuntimeException(s"Tax code $taxCode has no relationship with client ${seed.clientId}"))
+            .toFuture(new RuntimeException(s"ID $operatorId has no relationship with client ${seed.clientId}"))
           managementSeed = keymanagement.client.model.KeySeed(
             relationshipId = clientRelationshipId,
             key = seed.key,
@@ -77,14 +79,15 @@ final case class OperatorApiServiceImpl(
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Key not found, DataType: Problem
     */
-  override def deleteOperatorKeyById(taxCode: String, keyId: String)(implicit
+  override def deleteOperatorKeyById(operatorId: String, keyId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _ <- extractBearer(contexts)
+      _            <- extractBearer(contexts)
+      operatorUuid <- toUuid(operatorId).toFuture
       _ <- collectFirstForEachOperatorClient(
-        taxCode,
+        operatorUuid,
         client => authorizationManagementService.deleteKey(client.id, keyId)
       )
     } yield ()
@@ -104,14 +107,15 @@ final case class OperatorApiServiceImpl(
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Key not found, DataType: Problem
     */
-  override def disableOperatorKeyById(taxCode: String, keyId: String)(implicit
+  override def disableOperatorKeyById(operatorId: String, keyId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _ <- extractBearer(contexts)
+      _            <- extractBearer(contexts)
+      operatorUuid <- toUuid(operatorId).toFuture
       _ <- collectFirstForEachOperatorClient(
-        taxCode,
+        operatorUuid,
         client => authorizationManagementService.disableKey(client.id, keyId)
       )
     } yield ()
@@ -131,14 +135,15 @@ final case class OperatorApiServiceImpl(
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Key not found, DataType: Problem
     */
-  override def enableOperatorKeyById(taxCode: String, keyId: String)(implicit
+  override def enableOperatorKeyById(operatorId: String, keyId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _ <- extractBearer(contexts)
+      _            <- extractBearer(contexts)
+      operatorUuid <- toUuid(operatorId).toFuture
       _ <- collectFirstForEachOperatorClient(
-        taxCode,
+        operatorUuid,
         client => authorizationManagementService.enableKey(client.id, keyId)
       )
     } yield ()
@@ -158,15 +163,16 @@ final case class OperatorApiServiceImpl(
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Key not found, DataType: Problem
     */
-  override def getOperatorKeyById(taxCode: String, keyId: String)(implicit
+  override def getOperatorKeyById(operatorId: String, keyId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKey: ToEntityMarshaller[ClientKey],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _ <- extractBearer(contexts)
+      _            <- extractBearer(contexts)
+      operatorUuid <- toUuid(operatorId).toFuture
       key <- collectFirstForEachOperatorClient(
-        taxCode,
+        operatorUuid,
         client => authorizationManagementService.getKey(client.id, keyId)
       )
     } yield AuthorizationManagementService.keyToApi(key)
@@ -186,15 +192,16 @@ final case class OperatorApiServiceImpl(
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Client id not found, DataType: Problem
     */
-  override def getOperatorKeys(taxCode: String)(implicit
+  override def getOperatorKeys(operatorId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _ <- extractBearer(contexts)
+      _            <- extractBearer(contexts)
+      operatorUuid <- toUuid(operatorId).toFuture
       keysResponse <- collectAllForEachOperatorClient(
-        taxCode,
+        operatorUuid,
         (client, operatorRelationships) =>
           for {
             clientKeys <- authorizationManagementService.getClientKeys(client.id)
@@ -218,14 +225,15 @@ final case class OperatorApiServiceImpl(
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Client id not found, DataType: Problem
     */
-  override def getClientOperatorKeys(clientId: String, taxCode: String)(implicit
+  override def getClientOperatorKeys(clientId: String, operatorId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
       _             <- extractBearer(contexts)
-      relationships <- partyManagementService.getRelationshipsByTaxCode(taxCode, None)
+      operatorUuid  <- toUuid(operatorId).toFuture
+      relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, None)
       clientUuid    <- toUuid(clientId).toFuture
       clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)
       operatorKeys = clientKeys.keys.filter(key => relationships.items.exists(_.id == key.relationshipId))
@@ -246,10 +254,10 @@ final case class OperatorApiServiceImpl(
   /** Exec f for each operator client, and returns the all successful operations, failure otherwise
     */
   private def collectAllForEachOperatorClient[T](
-    taxCode: String,
+    operatorId: UUID,
     f: (ManagementClient, Relationships) => Future[T]
   ): Future[Seq[T]] = for {
-    relationships <- partyManagementService.getRelationshipsByTaxCode(taxCode, None)
+    relationships <- partyManagementService.getRelationshipsByPersonId(operatorId, None)
     clients <- relationships.items.flatTraverse(relationship =>
       authorizationManagementService.listClients(
         relationshipId = Some(relationship.id),
@@ -272,17 +280,17 @@ final case class OperatorApiServiceImpl(
   /** Exec f for each operator client, and returns the first successful operation, failure otherwise
     */
   private def collectFirstForEachOperatorClient[T](
-    taxCode: String,
+    operatorId: UUID,
     f: (ManagementClient, Relationships) => Future[T]
   ): Future[T] = for {
-    successes <- collectAllForEachOperatorClient(taxCode, f)
+    successes <- collectAllForEachOperatorClient(operatorId, f)
     result <- successes match {
       case Nil       => Future.failed(NoResultsError)
       case head +: _ => Future.successful(head)
     }
   } yield result
 
-  private def collectFirstForEachOperatorClient[T](taxCode: String, f: ManagementClient => Future[T]): Future[T] =
-    collectFirstForEachOperatorClient(taxCode, (client, _) => f(client))
+  private def collectFirstForEachOperatorClient[T](operatorId: UUID, f: ManagementClient => Future[T]): Future[T] =
+    collectFirstForEachOperatorClient(operatorId, (client, _) => f(client))
 
 }

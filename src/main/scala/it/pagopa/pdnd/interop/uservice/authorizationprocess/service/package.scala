@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.EnumsSerializers
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.ApiInvoker
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.Client
-import it.pagopa.pdnd.interop.uservice.{agreementmanagement, catalogmanagement, keymanagement, partymanagement}
+import it.pagopa.pdnd.interop.uservice._
 
 package object service {
   type KeyManagementInvoker           = ApiInvoker
@@ -12,6 +12,7 @@ package object service {
   type PartyManagementInvoker         = partymanagement.client.invoker.ApiInvoker
   type AgreementManagementInvoker     = agreementmanagement.client.invoker.ApiInvoker
   type AuthorizationManagementInvoker = keymanagement.client.invoker.ApiInvoker
+  type UserRegistryManagementInvoker  = userregistrymanagement.client.invoker.ApiInvoker
 
   type ManagementClient = Client
 
@@ -43,5 +44,11 @@ package object service {
   object KeyManagementInvoker {
     def apply()(implicit actorSystem: ActorSystem): KeyManagementInvoker =
       ApiInvoker(EnumsSerializers.all)
+  }
+
+  @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
+  object UserRegistryManagementInvoker {
+    def apply()(implicit actorSystem: ActorSystem): UserRegistryManagementInvoker =
+      userregistrymanagement.client.invoker.ApiInvoker(userregistrymanagement.client.api.EnumsSerializers.all)
   }
 }
