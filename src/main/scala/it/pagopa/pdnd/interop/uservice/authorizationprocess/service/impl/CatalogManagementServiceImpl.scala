@@ -6,6 +6,7 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiRequ
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EService
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class CatalogManagementServiceImpl(invoker: CatalogManagementInvoker, api: EServiceApi)(implicit ec: ExecutionContext)
@@ -19,8 +20,8 @@ class CatalogManagementServiceImpl(invoker: CatalogManagementInvoker, api: EServ
     * @param eServiceId
     * @return
     */
-  override def getEService(bearerToken: String, eServiceId: String): Future[EService] = {
-    val request: ApiRequest[EService] = api.getEService(eServiceId)(BearerToken(bearerToken))
+  override def getEService(bearerToken: String, eServiceId: UUID): Future[EService] = {
+    val request: ApiRequest[EService] = api.getEService(eServiceId.toString)(BearerToken(bearerToken))
     invoker
       .execute[EService](request)
       .map { x =>

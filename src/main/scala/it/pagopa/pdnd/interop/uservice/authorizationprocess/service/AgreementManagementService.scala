@@ -7,6 +7,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
   Descriptor => ApiDescriptor
 }
 
+import java.util.UUID
 import scala.concurrent.Future
 
 trait AgreementManagementService {
@@ -19,8 +20,8 @@ trait AgreementManagementService {
 
   def getAgreements(
     bearerToken: String,
-    consumerId: String,
-    eserviceId: String,
+    consumerId: UUID,
+    eserviceId: UUID,
     status: Option[Status]
   ): Future[Seq[Agreement]]
 }

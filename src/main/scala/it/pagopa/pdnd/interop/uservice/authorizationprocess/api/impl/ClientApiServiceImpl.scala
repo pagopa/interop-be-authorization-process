@@ -14,7 +14,12 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiErro
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EServiceDescriptor
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
-import it.pagopa.pdnd.interop.uservice.{agreementmanagement, catalogmanagement, keymanagement, partymanagement}
+import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{
+  UserExtras,
+  UserSeed,
+  NONE => CertificationEnumNone
+}
+import it.pagopa.pdnd.interop.uservice._
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -25,7 +30,8 @@ final case class ClientApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
   agreementManagementService: AgreementManagementService,
   catalogManagementService: CatalogManagementService,
-  partyManagementService: PartyManagementService
+  partyManagementService: PartyManagementService,
+  userRegistryManagementService: UserRegistryManagementService
 )(implicit ec: ExecutionContext)
     extends ClientApiService {
 
@@ -46,12 +52,10 @@ final case class ClientApiServiceImpl(
   ): Route = {
     val result = for {
       bearerToken <- extractBearer(contexts)
-      _           <- catalogManagementService.getEService(bearerToken, clientSeed.eServiceId.toString)
-      consumer    <- partyManagementService.getOrganizationByInstitutionId(clientSeed.consumerInstitutionId)
-      consumerId  <- toUuid(consumer.partyId).toFuture
+      _           <- catalogManagementService.getEService(bearerToken, clientSeed.eServiceId)
       client <- authorizationManagementService.createClient(
         clientSeed.eServiceId,
-        consumerId,
+        clientSeed.consumerId,
         clientSeed.name,
         clientSeed.purposes,
         clientSeed.description
@@ -80,7 +84,8 @@ final case class ClientApiServiceImpl(
   ): Route = {
     val result = for {
       bearerToken <- extractBearer(contexts)
-      client      <- authorizationManagementService.getClient(clientId)
+      clientUuid  <- toUuid(clientId).toFuture
+      client      <- authorizationManagementService.getClient(clientUuid)
       apiClient   <- getClient(bearerToken, client)
     } yield apiClient
 
@@ -102,8 +107,8 @@ final case class ClientApiServiceImpl(
     offset: Option[Int],
     limit: Option[Int],
     eServiceId: Option[String],
-    operatorTaxCode: Option[String],
-    institutionId: Option[String]
+    operatorId: Option[String],
+    consumerId: Option[String]
   )(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
@@ -113,16 +118,16 @@ final case class ClientApiServiceImpl(
     val result = for {
       bearerToken  <- extractBearer(contexts)
       eServiceUuid <- eServiceId.traverse(toUuid).toFuture
-      relationships <- operatorTaxCode.traverse(
-        partyManagementService.getRelationshipsByTaxCode(_, Some(PartyManagementService.ROLE_SECURITY_OPERATOR))
+      operatorUuid <- operatorId.traverse(toUuid).toFuture
+      consumerUuid <- consumerId.traverse(toUuid).toFuture
+      relationships <- operatorUuid.traverse(
+        partyManagementService.getRelationshipsByPersonId(_, Some(PartyManagementService.ROLE_SECURITY_OPERATOR))
       )
-      consumer   <- institutionId.traverse(partyManagementService.getOrganizationByInstitutionId)
-      consumerId <- consumer.traverse(c => toUuid(c.partyId)).toFuture
       clients <- relationships match {
-        case None => authorizationManagementService.listClients(offset, limit, eServiceUuid, None, consumerId)
+        case None => authorizationManagementService.listClients(offset, limit, eServiceUuid, None, consumerUuid)
         case Some(rels) =>
           rels.items.flatTraverse(rel =>
-            authorizationManagementService.listClients(offset, limit, eServiceUuid, Some(rel.id), consumerId)
+            authorizationManagementService.listClients(offset, limit, eServiceUuid, Some(rel.id), consumerUuid)
           )
       }
       clientsDetails <- clients.traverse(client => getClient(bearerToken, client))
@@ -145,8 +150,9 @@ final case class ClientApiServiceImpl(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
     val result = for {
-      _ <- extractBearer(contexts)
-      _ <- authorizationManagementService.deleteClient(clientId)
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      _          <- authorizationManagementService.deleteClient(clientUuid)
     } yield ()
 
     onComplete(result) {
@@ -171,12 +177,12 @@ final case class ClientApiServiceImpl(
     val result = for {
       bearerToken  <- extractBearer(contexts)
       clientUuid   <- toUuid(clientId).toFuture
-      client       <- authorizationManagementService.getClient(clientId)
+      client       <- authorizationManagementService.getClient(clientUuid)
       relationship <- getOrCreateRelationship(client, operatorSeed)
       updatedClient <- client.relationships
         .find(_ === relationship.id)
         .fold(authorizationManagementService.addRelationship(clientUuid, relationship.id))(_ =>
-          Future.failed(SecurityOperatorAlreadyAssigned(client.id.toString, operatorSeed.taxCode))
+          Future.failed(SecurityOperatorAlreadyAssigned(client.id, operatorSeed.taxCode))
         )
       apiClient <- getClient(bearerToken, updatedClient)
     } yield apiClient
@@ -195,7 +201,7 @@ final case class ClientApiServiceImpl(
 
   private[this] def recoverIfMissing[T](toRecover: Future[T], recoverWith: => Future[T]): Future[T] =
     toRecover.recoverWith {
-      case ex: partymanagement.client.invoker.ApiError[_] if ex.code == 404 =>
+      case ex: userregistrymanagement.client.invoker.ApiError[_] if ex.code == 404 =>
         recoverWith
       case ex =>
         Future.failed(ex)
@@ -206,19 +212,27 @@ final case class ClientApiServiceImpl(
     operatorSeed: OperatorSeed
   ): Future[Relationship] = {
     // TODO These could be replaced by a PUT
-    def createPersonIfMissing: Future[Person] =
-      recoverIfMissing(
-        partyManagementService.getPersonByTaxCode(operatorSeed.taxCode),
-        partyManagementService.createPerson(PersonSeed(operatorSeed.taxCode, operatorSeed.surname, operatorSeed.name))
-      )
+    def createPersonIfMissing(seed: OperatorSeed): Future[UUID] =
+      recoverIfMissing(userRegistryManagementService.getUserIdByExternalId(seed.taxCode).map(_.id), createPerson(seed))
 
-    def createRelationship: Future[Relationship] = for {
-      _        <- createPersonIfMissing
-      consumer <- partyManagementService.getOrganization(client.consumerId)
+    def createPerson(seed: OperatorSeed): Future[UUID] = for {
+      userId <- userRegistryManagementService.createUser(
+        UserSeed(
+          seed.taxCode,
+          seed.name,
+          seed.surname,
+          CertificationEnumNone,
+          UserExtras(email = None, birthDate = None)
+        )
+      )
+      _ <- partyManagementService.createPerson(PersonSeed(userId.id))
+    } yield userId.id
+
+    def createRelationship(operatorId: UUID, consumerId: UUID): Future[Relationship] = for {
       relationship <- partyManagementService.createRelationship(
         RelationshipSeed(
-          operatorSeed.taxCode,
-          consumer.institutionId,
+          operatorId,
+          consumerId,
           RelationshipSeedEnums.Role.Operator,
           PartyManagementService.ROLE_SECURITY_OPERATOR
         )
@@ -226,10 +240,11 @@ final case class ClientApiServiceImpl(
     } yield relationship
 
     for {
-      maybeRelationship <- securityOperatorRelationship(client.consumerId, operatorSeed.taxCode)
+      operatorId        <- createPersonIfMissing(operatorSeed)
+      maybeRelationship <- securityOperatorRelationship(client.consumerId, operatorId)
       relationship <- maybeRelationship match {
         case Some(relationship) => Future.successful(relationship)
-        case None               => createRelationship
+        case None               => createRelationship(operatorId, client.consumerId)
       }
     } yield relationship
   }
@@ -239,19 +254,18 @@ final case class ClientApiServiceImpl(
     * Code: 404, Message: Client or operator not found, DataType: Problem
     * Code: 500, Message: Internal server error, DataType: Problem
     */
-  override def removeClientOperator(clientId: String, operatorTaxCode: String)(implicit
+  override def removeClientOperator(clientId: String, operatorId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
       _                 <- extractBearer(contexts)
       clientUuid        <- toUuid(clientId).toFuture
-      client            <- authorizationManagementService.getClient(clientId)
-      maybeRelationship <- securityOperatorRelationship(client.consumerId, operatorTaxCode)
-      relationship <- maybeRelationship.toFuture(
-        SecurityOperatorRelationshipNotFound(client.consumerId.toString, operatorTaxCode)
-      )
-      _ <- authorizationManagementService.removeClientRelationship(clientUuid, relationship.id)
+      operatorUuid      <- toUuid(operatorId).toFuture
+      client            <- authorizationManagementService.getClient(clientUuid)
+      maybeRelationship <- securityOperatorRelationship(client.consumerId, operatorUuid)
+      relationship      <- maybeRelationship.toFuture(SecurityOperatorRelationshipNotFound(client.consumerId, operatorUuid))
+      _                 <- authorizationManagementService.removeClientRelationship(clientUuid, relationship.id)
     } yield ()
 
     onComplete(result) {
@@ -377,19 +391,17 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _          <- extractBearer(contexts)
-      clientUuid <- toUuid(clientId).toFuture
-      client     <- authorizationManagementService.getClient(clientId)
-      relationshipsIds <- keysSeeds.traverse(seed =>
-        securityOperatorRelationship(client.consumerId, seed.operatorTaxCode)
-      )
+      _                <- extractBearer(contexts)
+      clientUuid       <- toUuid(clientId).toFuture
+      client           <- authorizationManagementService.getClient(clientUuid)
+      relationshipsIds <- keysSeeds.traverse(seed => securityOperatorRelationship(client.consumerId, seed.operatorId))
       seeds <- keysSeeds
         .zip(relationshipsIds)
         .traverse {
           case (seed, Some(relationship)) =>
             AuthorizationManagementService.toClientKeySeed(seed, relationship.id)
           case (seed, None) =>
-            Left(SecurityOperatorRelationshipNotFound(client.consumerId.toString, seed.operatorTaxCode))
+            Left(SecurityOperatorRelationshipNotFound(client.consumerId, seed.operatorId))
         }
         .toFuture
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)
@@ -442,9 +454,10 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _         <- extractBearer(contexts)
-      client    <- authorizationManagementService.getClient(clientId)
-      operators <- operatorsFromClient(client)
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      client     <- authorizationManagementService.getClient(clientUuid)
+      operators  <- operatorsFromClient(client)
     } yield operators
 
     onComplete(result) {
@@ -461,28 +474,30 @@ final case class ClientApiServiceImpl(
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Client or Operator not found, DataType: Problem
     */
-  override def getClientOperatorByExternalId(clientId: String, operatorTaxCode: String)(implicit
+  override def getClientOperatorById(clientId: String, operatorId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerOperator: ToEntityMarshaller[Operator],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _         <- extractBearer(contexts)
-      client    <- authorizationManagementService.getClient(clientId)
-      operators <- operatorsFromClient(client)
+      _          <- extractBearer(contexts)
+      clientUuid <- toUuid(clientId).toFuture
+      client     <- authorizationManagementService.getClient(clientUuid)
+      operatorId <- toUuid(operatorId).toFuture
+      operators  <- operatorsFromClient(client)
       operator <- operators
-        .find(_.taxCode == operatorTaxCode)
-        .toFuture(SecurityOperatorRelationshipNotFound(client.consumerId.toString, operatorTaxCode))
+        .find(_.id == operatorId)
+        .toFuture(SecurityOperatorRelationshipNotFound(client.consumerId, operatorId))
     } yield operator
 
     onComplete(result) {
-      case Success(operator) => getClientOperatorByExternalId200(operator)
+      case Success(operator) => getClientOperatorById200(operator)
       case Failure(ex @ UnauthenticatedError) =>
-        getClientOperatorByExternalId401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        getClientOperatorById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        getClientOperatorByExternalId404(Problem(Some(ex.message), 404, "Not found"))
+        getClientOperatorById404(Problem(Some(ex.message), 404, "Not found"))
       case Failure(ex: SecurityOperatorRelationshipNotFound) =>
-        getClientOperatorByExternalId404(Problem(Option(ex.getMessage), 404, "Not found"))
+        getClientOperatorById404(Problem(Option(ex.getMessage), 404, "Not found"))
       case Failure(ex) => complete((500, Problem(Option(ex.getMessage), 500, "Error on client keys retrieve")))
     }
   }
@@ -537,25 +552,24 @@ final case class ClientApiServiceImpl(
 
   private[this] def getClient(bearerToken: String, client: keymanagement.client.model.Client): Future[Client] = {
     for {
-      eService   <- catalogManagementService.getEService(bearerToken, client.eServiceId.toString)
+      eService   <- catalogManagementService.getEService(bearerToken, client.eServiceId)
       producer   <- partyManagementService.getOrganization(eService.producerId)
       consumer   <- partyManagementService.getOrganization(client.consumerId)
       operators  <- operatorsFromClient(client)
-      agreements <- agreementManagementService.getAgreements(bearerToken, consumer.partyId, eService.id.toString, None)
-      agreement  <- getLatestAgreement(agreements, eService).toFuture(ClientAgreementNotFoundError(client.id.toString))
+      agreements <- agreementManagementService.getAgreements(bearerToken, consumer.id, eService.id, None)
+      agreement  <- getLatestAgreement(agreements, eService).toFuture(ClientAgreementNotFoundError(client.id))
       client     <- clientToApi(client, eService, producer, consumer, agreement, operators)
     } yield client
   }
 
   private[this] def securityOperatorRelationship(
     consumerId: UUID,
-    taxCode: String
+    operatorId: UUID
   ): Future[Option[partymanagement.client.model.Relationship]] =
     for {
-      consumer <- partyManagementService.getOrganization(consumerId)
       relationships <-
         partyManagementService
-          .getRelationships(consumer.institutionId, taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+          .getRelationships(consumerId, operatorId, PartyManagementService.ROLE_SECURITY_OPERATOR)
           .map(Some(_))
           // TODO This is dangerous because every error is treated as "missing party with given tax code"
           //  but currently there is no precise way to identify the error
@@ -570,11 +584,12 @@ final case class ClientApiServiceImpl(
   private[this] def operatorFromRelationship(relationshipId: UUID): Future[Operator] =
     for {
       relationship <- partyManagementService.getRelationshipById(relationshipId)
-      person       <- partyManagementService.getPersonByTaxCode(relationship.from)
+      user         <- userRegistryManagementService.getUserById(relationship.from)
     } yield Operator(
-      taxCode = person.taxCode,
-      name = person.name,
-      surname = person.surname,
+      id = user.id,
+      taxCode = user.externalId,
+      name = user.name,
+      surname = user.surname,
       role = relationship.role.toString,
       platformRole = relationship.platformRole,
       // TODO Remove toLowerCase once defined standard for enums
@@ -617,13 +632,7 @@ final case class ClientApiServiceImpl(
     for {
       agreementDescriptor <- eService.descriptors
         .find(_.id == agreement.descriptorId)
-        .toRight(
-          UnknownAgreementDescriptor(
-            agreement.id.toString,
-            agreement.eserviceId.toString,
-            agreement.descriptorId.toString
-          )
-        )
+        .toRight(UnknownAgreementDescriptor(agreement.id, agreement.eserviceId, agreement.descriptorId))
         .toFuture
       apiAgreementDescriptor = CatalogManagementService.descriptorToApi(agreementDescriptor)
       apiProvider            = PartyManagementService.organizationToApi(provider)

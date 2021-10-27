@@ -164,16 +164,18 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: operatorTaxCode
+        - name: operatorId
           in: query
           description: ID of operator that MUST be related to the Client
           schema:
             type: string
-        - name: institutionId
+            format: uuid
+        - name: consumerId
           in: query
-          description: ID of institution that MUST be related to the Client
+          description: ID of Consumer that MUST be related to the Client
           schema:
             type: string
+            format: uuid
       responses:
         "200":
           description: Request succeed
@@ -406,27 +408,28 @@ paths:
             schema:
               $ref: '#/components/schemas/OperatorSeed'
       description: Adds an Operator to a Client
-  '/clients/{clientId}/operators/{operatorTaxCode}':
+  '/clients/{clientId}/operators/{operatorId}':
+    parameters:
+      - name: clientId
+        in: path
+        description: The Client id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: operatorId
+        in: path
+        description: The Operator ID
+        required: true
+        schema:
+          type: string
+          format: uuid
     get:
       description: Retrieves a Client Operator
       tags:
         - client
       summary: Get a Client Operator
-      operationId: getClientOperatorByExternalId
-      parameters:
-        - name: clientId
-          in: path
-          description: The Client id
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: operatorTaxCode
-          in: path
-          description: The Operator Tax Code
-          required: true
-          schema:
-            type: string
+      operationId: getClientOperatorById
       responses:
         "200":
           description: Client Operator retrieved
@@ -452,20 +455,6 @@ paths:
         - client
       summary: Remove an operator from a Client
       operationId: removeClientOperator
-      parameters:
-        - name: clientId
-          in: path
-          description: The Client id
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: operatorTaxCode
-          in: path
-          description: The Operator Tax Code
-          required: true
-          schema:
-            type: string
       responses:
         "204":
           description: Operator removed
@@ -760,7 +749,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/clients/{clientId}/operators/{taxCode}/keys':
+  '/clients/{clientId}/operators/{operatorId}/keys':
     parameters:
       - name: clientId
         in: path
@@ -769,16 +758,17 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: taxCode
+      - name: operatorId
         in: path
         required: true
-        description: Tax Code of the Opeartor that the added keys MUST belong to
+        description: ID of the Opeartor that the added keys MUST belong to
         schema:
           type: string
+          format: uuid
     get:
       tags:
         - operator
-      summary: Returns a set of keys by operator Tax Code and client ID.
+      summary: Returns a set of keys by operator ID and client ID.
       description: 'Given an operator and a client it returns its corresponding set of keys, if any'
       operationId: getClientOperatorKeys
       responses:
@@ -800,14 +790,15 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/operators/{taxCode}/keys':
+  '/operators/{operatorId}/keys':
     parameters:
-      - name: taxCode
+      - name: operatorId
         in: path
         required: true
-        description: Tax Code of the Opeartor that the added keys MUST belong to
+        description: ID of the Opeartor that the added keys MUST belong to
         schema:
           type: string
+          format: uuid
     post:
       tags:
         - operator
@@ -855,8 +846,8 @@ paths:
     get:
       tags:
         - operator
-      summary: Returns a set of keys by operator Tax Code.
-      description: 'Given an operator tax code it returns its corresponding set of keys, if any'
+      summary: Returns a set of keys by operator ID.
+      description: 'Given an operator ID it returns its corresponding set of keys, if any'
       operationId: getOperatorKeys
       responses:
         "200":
@@ -877,11 +868,11 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/operators/{taxCode}/keys/{keyId}':
+  '/operators/{operatorId}/keys/{keyId}':
     parameters:
-      - name: taxCode
+      - name: operatorId
         in: path
-        description: Operator Tax Code owning the key
+        description: Operator ID owning the key
         required: true
         schema:
           type: string
@@ -937,7 +928,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/operators/{taxCode}/keys/{keyId}/enable':
+  '/operators/{operatorId}/keys/{keyId}/enable':
     patch:
       tags:
         - operator
@@ -945,12 +936,13 @@ paths:
       description: 'Given an operator and a disabled key identifier it enables the corresponding key, if any'
       operationId: enableOperatorKeyById
       parameters:
-        - name: taxCode
+        - name: operatorId
           in: path
-          description: Operator Tax Code owning the key
+          description: Operator ID owning the key
           required: true
           schema:
             type: string
+            format: uuid
         - name: keyId
           in: path
           description: the unique identifier of the key (kid) to enable
@@ -972,7 +964,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/operators/{taxCode}/keys/{keyId}/disable':
+  '/operators/{operatorId}/keys/{keyId}/disable':
     patch:
       tags:
         - operator
@@ -980,12 +972,13 @@ paths:
       description: 'Given an operator and an enabled key identifier it disables the corresponding key, if any'
       operationId: disableOperatorKeyById
       parameters:
-        - name: taxCode
+        - name: operatorId
           in: path
-          description: Opeartor TaxCode owning the key
+          description: Opeartor ID owning the key
           required: true
           schema:
             type: string
+            format: uuid
         - name: keyId
           in: path
           description: the unique identifier of the key (kid) to disable
@@ -1077,8 +1070,9 @@ components:
         eServiceId:
           type: string
           format: uuid
-        consumerInstitutionId:
+        consumerId:
           type: string
+          format: uuid
         name:
           type: string
         purposes:
@@ -1087,7 +1081,7 @@ components:
           type: string
       required:
         - eServiceId
-        - consumerInstitutionId
+        - consumerId
         - name
         - purposes
     Client:
@@ -1225,6 +1219,9 @@ components:
       description: Models a Client Operator
       type: object
       properties:
+        id:
+          type: string
+          format: uuid
         taxCode:
           type: string
         name:
@@ -1239,6 +1236,7 @@ components:
           type: string
           enum: [ 'active', 'suspended' ]
       required:
+        - id
         - taxCode
         - name
         - surname
@@ -1371,8 +1369,9 @@ components:
       description: 'Models the seed for a public key to be persisted'
       type: object
       properties:
-        operatorTaxCode:
+        operatorId:
           type: string
+          format: uuid
           description: 'Represents the identifier of the platform security operator that is uploading the key'
         key:
           type: string
@@ -1387,7 +1386,7 @@ components:
           type: string
           description: 'The algorithm type of the key.'
       required:
-        - operatorTaxCode
+        - operatorId
         - key
         - use
         - alg

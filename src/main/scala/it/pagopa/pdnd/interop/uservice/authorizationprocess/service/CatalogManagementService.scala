@@ -1,9 +1,9 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
+  Descriptor => ApiDescriptor,
   EService => ApiEService,
-  Organization => ApiOrganization,
-  Descriptor => ApiDescriptor
+  Organization => ApiOrganization
 }
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
   EService,
@@ -11,11 +11,12 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
   EServiceDescriptorEnums
 }
 
+import java.util.UUID
 import scala.concurrent.Future
 
 trait CatalogManagementService {
 
-  def getEService(bearerToken: String, eServiceId: String): Future[EService]
+  def getEService(bearerToken: String, eServiceId: UUID): Future[EService]
 }
 
 object CatalogManagementService {

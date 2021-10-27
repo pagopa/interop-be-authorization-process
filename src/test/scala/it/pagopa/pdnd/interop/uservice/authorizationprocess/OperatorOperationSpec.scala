@@ -6,16 +6,17 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.ClientApiSe
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
-import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.partymanagement
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
-  PersonSeed,
-  Relationship,
-  RelationshipEnums,
-  RelationshipSeed,
-  RelationshipSeedEnums,
-  Relationships
+  Person => PartyPerson,
+  PersonSeed => PartyPersonSeed,
+  Relationship => PartyRelationship,
+  RelationshipEnums => PartyRelationshipEnums,
+  RelationshipSeed => PartyRelationshipSeed,
+  RelationshipSeedEnums => PartyRelationshipSeedEnums,
+  Relationships => PartyRelationships
 }
+import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{NONE, UserExtras, UserId, UserSeed}
+import it.pagopa.pdnd.interop.uservice.{keymanagement, partymanagement, userregistrymanagement}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -29,25 +30,26 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     mockAuthorizationManagementService,
     mockAgreementManagementService,
     mockCatalogManagementService,
-    mockPartyManagementService
+    mockPartyManagementService,
+    mockUserRegistryManagementService
   )(ExecutionContext.global)
 
   "Operator addition" should {
     "succeed on existing relationship" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client))
 
-      (mockPartyManagementService.getOrganization _)
-        .expects(client.consumerId)
+      (mockUserRegistryManagementService.getUserIdByExternalId _)
+        .expects(operatorSeed.taxCode)
         .once()
-        .returns(Future.successful(organization))
+        .returns(Future.successful(UserId(user.id)))
 
       (mockPartyManagementService.getRelationships _)
-        .expects(organization.institutionId, person.taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .expects(client.consumerId, user.id, PartyManagementService.ROLE_SECURITY_OPERATOR)
         .once()
-        .returns(Future.successful(Relationships(Seq(relationship))))
+        .returns(Future.successful(PartyRelationships(Seq(relationship))))
 
       (mockAuthorizationManagementService.addRelationship _)
         .expects(client.id, relationship.id)
@@ -85,38 +87,28 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "succeed creating relationship" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client))
 
-      (mockPartyManagementService.getOrganization _)
-        .expects(client.consumerId)
+      // Existing person
+      (mockUserRegistryManagementService.getUserIdByExternalId _)
+        .expects(operatorSeed.taxCode)
         .once()
-        .returns(Future.successful(organization))
+        .returns(Future.successful(UserId(user.id)))
 
       // Missing relationship
       (mockPartyManagementService.getRelationships _)
-        .expects(organization.institutionId, operatorSeed.taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .expects(client.consumerId, user.id, PartyManagementService.ROLE_SECURITY_OPERATOR)
         .once()
         .returns(Future.failed(partymanagement.client.invoker.ApiError(404, "Some message", None)))
 
-      // Existing person
-      (mockPartyManagementService.getPersonByTaxCode _)
-        .expects(operatorSeed.taxCode)
-        .once()
-        .returns(Future.successful(person))
-
-      (mockPartyManagementService.getOrganization _)
-        .expects(client.consumerId)
-        .once()
-        .returns(Future.successful(organization))
-
       (mockPartyManagementService.createRelationship _)
         .expects(
-          RelationshipSeed(
-            operatorSeed.taxCode,
-            organization.institutionId,
-            RelationshipSeedEnums.Role.Operator,
+          PartyRelationshipSeed(
+            user.id,
+            client.consumerId,
+            PartyRelationshipSeedEnums.Role.Operator,
             PartyManagementService.ROLE_SECURITY_OPERATOR
           )
         )
@@ -159,43 +151,46 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "succeed creating relationship and person" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client))
 
-      (mockPartyManagementService.getOrganization _)
-        .expects(client.consumerId)
+      // Missing person
+      (mockUserRegistryManagementService.getUserIdByExternalId _)
+        .expects(operatorSeed.taxCode)
         .once()
-        .returns(Future.successful(organization))
+        .returns(Future.failed(userregistrymanagement.client.invoker.ApiError(404, "Some message", None)))
+
+      (mockUserRegistryManagementService.createUser _)
+        .expects(
+          UserSeed(
+            externalId = user.externalId,
+            name = user.name,
+            surname = user.surname,
+            certification = NONE,
+            extras = UserExtras(email = None, birthDate = None)
+          )
+        )
+        .once()
+        .returns(Future.successful(user))
+
+      (mockPartyManagementService.createPerson _)
+        .expects(PartyPersonSeed(user.id))
+        .once()
+        .returns(Future.successful(PartyPerson(user.id)))
 
       // Missing relationship
       (mockPartyManagementService.getRelationships _)
-        .expects(organization.institutionId, operatorSeed.taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .expects(client.consumerId, user.id, PartyManagementService.ROLE_SECURITY_OPERATOR)
         .once()
         .returns(Future.failed(partymanagement.client.invoker.ApiError(404, "Some message", None)))
-
-      // Missing person
-      (mockPartyManagementService.getPersonByTaxCode _)
-        .expects(operatorSeed.taxCode)
-        .once()
-        .returns(Future.failed(partymanagement.client.invoker.ApiError(404, "Some message", None)))
-
-      (mockPartyManagementService.createPerson _)
-        .expects(PersonSeed(operatorSeed.taxCode, operatorSeed.surname, operatorSeed.name))
-        .once()
-        .returns(Future.successful(person))
-
-      (mockPartyManagementService.getOrganization _)
-        .expects(client.consumerId)
-        .once()
-        .returns(Future.successful(organization))
 
       (mockPartyManagementService.createRelationship _)
         .expects(
-          RelationshipSeed(
-            operatorSeed.taxCode,
-            organization.institutionId,
-            RelationshipSeedEnums.Role.Operator,
+          PartyRelationshipSeed(
+            user.id,
+            client.consumerId,
+            PartyRelationshipSeedEnums.Role.Operator,
             PartyManagementService.ROLE_SECURITY_OPERATOR
           )
         )
@@ -257,25 +252,25 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     }
 
     "fail if operator is already assigned" in {
-      val operatorRelationship: Relationship = relationship.copy(
-        status = RelationshipEnums.Status.Active,
+      val operatorRelationship: PartyRelationship = relationship.copy(
+        status = PartyRelationshipEnums.Status.Active,
         platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR
       )
 
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
-      (mockPartyManagementService.getOrganization _)
-        .expects(client.consumerId)
+      (mockUserRegistryManagementService.getUserIdByExternalId _)
+        .expects(operatorSeed.taxCode)
         .once()
-        .returns(Future.successful(organization))
+        .returns(Future.successful(UserId(user.id)))
 
       (mockPartyManagementService.getRelationships _)
-        .expects(organization.institutionId, person.taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .expects(client.consumerId, user.id, PartyManagementService.ROLE_SECURITY_OPERATOR)
         .once()
-        .returns(Future.successful(Relationships(Seq(operatorRelationship))))
+        .returns(Future.successful(PartyRelationships(Seq(operatorRelationship))))
 
       Get() ~> service.addOperator(client.id.toString, operatorSeed) ~> check {
         status shouldEqual StatusCodes.BadRequest
@@ -285,55 +280,47 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
   "Operator removal" should {
     "succeed" in {
-      val operatorTaxCode = person.taxCode
-      val operatorRelationship: Relationship = relationship.copy(
-        status = RelationshipEnums.Status.Active,
+      val operatorId = user.id
+      val operatorRelationship: PartyRelationship = relationship.copy(
+        status = PartyRelationshipEnums.Status.Active,
         platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR
       )
 
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
-      (mockPartyManagementService.getOrganization _)
-        .expects(client.consumerId)
-        .once()
-        .returns(Future.successful(organization))
-
       (mockPartyManagementService.getRelationships _)
-        .expects(organization.institutionId, person.taxCode, PartyManagementService.ROLE_SECURITY_OPERATOR)
+        .expects(client.consumerId, operatorId, PartyManagementService.ROLE_SECURITY_OPERATOR)
         .once()
-        .returns(Future.successful(Relationships(Seq(operatorRelationship))))
+        .returns(Future.successful(PartyRelationships(Seq(operatorRelationship))))
 
       (mockAuthorizationManagementService.removeClientRelationship _)
         .expects(client.id, relationship.id)
         .once()
         .returns(Future.successful(()))
 
-      Get() ~> service.removeClientOperator(client.id.toString, operatorTaxCode) ~> check {
+      Get() ~> service.removeClientOperator(client.id.toString, operatorId.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      val operatorTaxCode                          = person.taxCode
 
-      Get() ~> service.removeClientOperator(client.id.toString, operatorTaxCode) ~> check {
+      Get() ~> service.removeClientOperator(client.id.toString, user.id.toString) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
 
     "fail if client does not exist" in {
-      val operatorTaxCode = person.taxCode
-
       (mockAuthorizationManagementService.getClient _)
         .expects(*)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
-      Get() ~> service.removeClientOperator(client.id.toString, operatorTaxCode) ~> check {
+      Get() ~> service.removeClientOperator(client.id.toString, user.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -341,13 +328,13 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
   "Operator retrieve" should {
     "succeed" in {
-      val operatorRelationship: Relationship = relationship.copy(
-        status = RelationshipEnums.Status.Active,
+      val operatorRelationship: PartyRelationship = relationship.copy(
+        status = PartyRelationshipEnums.Status.Active,
         platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR
       )
 
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
@@ -356,16 +343,17 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.successful(operatorRelationship))
 
-      (mockPartyManagementService.getPersonByTaxCode _)
+      (mockUserRegistryManagementService.getUserById _)
         .expects(operatorRelationship.from)
         .once()
-        .returns(Future.successful(person))
+        .returns(Future.successful(user))
 
       val expected = Seq(
         Operator(
-          taxCode = person.taxCode,
-          name = person.name,
-          surname = person.surname,
+          id = user.id,
+          taxCode = user.externalId,
+          name = user.name,
+          surname = user.surname,
           role = operatorRelationship.role.toString,
           platformRole = operatorRelationship.platformRole,
           // TODO Remove toLowerCase once defined standard for enums
@@ -389,7 +377,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
@@ -402,7 +390,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
   "Operator retrieve by external id" should {
     "succeed" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
 
@@ -411,23 +399,24 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.successful(relationship))
 
-      (mockPartyManagementService.getPersonByTaxCode _)
+      (mockUserRegistryManagementService.getUserById _)
         .expects(relationship.from)
         .once()
-        .returns(Future.successful(person))
+        .returns(Future.successful(user))
 
       val expected =
         Operator(
-          taxCode = person.taxCode,
-          name = person.name,
-          surname = person.surname,
+          id = user.id,
+          taxCode = user.externalId,
+          name = user.name,
+          surname = user.surname,
           role = relationship.role.toString,
           platformRole = relationship.platformRole,
           // TODO Remove toLowerCase once defined standard for enums
           status = relationship.status.toString.toLowerCase
         )
 
-      Get() ~> service.getClientOperatorByExternalId(client.id.toString, relationship.from) ~> check {
+      Get() ~> service.getClientOperatorById(client.id.toString, relationship.from.toString) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Operator] shouldEqual expected
       }
@@ -436,29 +425,29 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
 
-      Get() ~> service.getClientOperatorByExternalId(client.id.toString, relationship.from) ~> check {
+      Get() ~> service.getClientOperatorById(client.id.toString, relationship.from.toString) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
-      Get() ~> service.getClientOperatorByExternalId(client.id.toString, relationship.from) ~> check {
+      Get() ~> service.getClientOperatorById(client.id.toString, relationship.from.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
 
     "fail if operator is not found" in {
       (mockAuthorizationManagementService.getClient _)
-        .expects(client.id.toString)
+        .expects(client.id)
         .once()
         .returns(Future.successful(client))
 
-      Get() ~> service.getClientOperatorByExternalId(client.id.toString, relationship.from) ~> check {
+      Get() ~> service.getClientOperatorById(client.id.toString, relationship.from.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
