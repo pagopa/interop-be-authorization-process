@@ -16,7 +16,6 @@ trait Validation {
   final val jwtBearerClientAssertionType: String = "urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer"
   final val clientCredentialsGrantType: String   = "client_credentials"
 
-  @SuppressWarnings(Array("org.wartremover.warts.Any"))
   def validateAccessTokenRequest(clientAssertionType: String, grantType: String): Try[Unit] = {
     val result: Validated[NonEmptyList[Throwable], Unit] =
       (validateClientAssertionType(clientAssertionType), validateGrantType(grantType)).mapN((_: Unit, _: Unit) => ())
