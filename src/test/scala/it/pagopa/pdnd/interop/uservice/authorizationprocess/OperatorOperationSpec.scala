@@ -15,7 +15,7 @@ import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
   RelationshipSeedEnums => PartyRelationshipSeedEnums,
   Relationships => PartyRelationships
 }
-import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{NONE, UserExtras, UserId, UserSeed}
+import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{NONE, UserExtras, UserSeed}
 import it.pagopa.pdnd.interop.uservice.{keymanagement, partymanagement, userregistrymanagement}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
@@ -41,10 +41,10 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.successful(client))
 
-      (mockUserRegistryManagementService.getUserIdByExternalId _)
+      (mockUserRegistryManagementService.getUserByExternalId _)
         .expects(operatorSeed.taxCode)
         .once()
-        .returns(Future.successful(UserId(user.id)))
+        .returns(Future.successful(user))
 
       (mockPartyManagementService.getRelationships _)
         .expects(client.consumerId, user.id, PartyManagementService.ROLE_SECURITY_OPERATOR)
@@ -92,10 +92,10 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(client))
 
       // Existing person
-      (mockUserRegistryManagementService.getUserIdByExternalId _)
+      (mockUserRegistryManagementService.getUserByExternalId _)
         .expects(operatorSeed.taxCode)
         .once()
-        .returns(Future.successful(UserId(user.id)))
+        .returns(Future.successful(user))
 
       // Missing relationship
       (mockPartyManagementService.getRelationships _)
@@ -156,7 +156,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(client))
 
       // Missing person
-      (mockUserRegistryManagementService.getUserIdByExternalId _)
+      (mockUserRegistryManagementService.getUserByExternalId _)
         .expects(operatorSeed.taxCode)
         .once()
         .returns(Future.failed(userregistrymanagement.client.invoker.ApiError(404, "Some message", None)))
@@ -262,10 +262,10 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
-      (mockUserRegistryManagementService.getUserIdByExternalId _)
+      (mockUserRegistryManagementService.getUserByExternalId _)
         .expects(operatorSeed.taxCode)
         .once()
-        .returns(Future.successful(UserId(user.id)))
+        .returns(Future.successful(user))
 
       (mockPartyManagementService.getRelationships _)
         .expects(client.consumerId, user.id, PartyManagementService.ROLE_SECURITY_OPERATOR)

@@ -25,7 +25,6 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-@SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Product"))
 final case class ClientApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
   agreementManagementService: AgreementManagementService,
@@ -213,7 +212,7 @@ final case class ClientApiServiceImpl(
   ): Future[Relationship] = {
     // TODO These could be replaced by a PUT
     def createPersonIfMissing(seed: OperatorSeed): Future[UUID] =
-      recoverIfMissing(userRegistryManagementService.getUserIdByExternalId(seed.taxCode).map(_.id), createPerson(seed))
+      recoverIfMissing(userRegistryManagementService.getUserByExternalId(seed.taxCode).map(_.id), createPerson(seed))
 
     def createPerson(seed: OperatorSeed): Future[UUID] = for {
       userId <- userRegistryManagementService.createUser(

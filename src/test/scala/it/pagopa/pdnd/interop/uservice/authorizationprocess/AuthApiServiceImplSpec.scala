@@ -51,16 +51,6 @@
 //import scala.concurrent.{Await, Future}
 //import scala.io.{BufferedSource, Source}
 //import scala.jdk.CollectionConverters._
-//@SuppressWarnings(
-//  Array(
-//    "org.wartremover.warts.OptionPartial",
-//    "org.wartremover.warts.Var",
-//    "org.wartremover.warts.Any",
-//    "org.wartremover.warts.NonUnitStatements",
-//    "org.wartremover.warts.Null",
-//    "org.wartremover.warts.TryPartial"
-//  )
-//)
 //class AuthApiServiceImplSpec
 //    extends AnyWordSpec
 //    with TestSuite
@@ -261,9 +251,6 @@
 //  }
 //}
 //
-//@SuppressWarnings(
-//  Array("org.wartremover.warts.Any", "org.wartremover.warts.TryPartial", "org.wartremover.warts.DefaultArguments")
-//)
 //object AuthApiServiceImplSpec extends SprayJsonSupport with DefaultJsonProtocol {
 //  implicit def toEntityMarshallerAccessTokenRequest: ToEntityMarshaller[AccessTokenRequest] =
 //    sprayJsonMarshaller[AccessTokenRequest]
