@@ -6,7 +6,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
 }
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.api.UserApi
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.invoker.ApiRequest
-import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{EmbeddedExternalId, User, UserId, UserSeed}
+import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{EmbeddedExternalId, User, UserSeed}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -23,9 +23,9 @@ final case class UserRegistryManagementServiceImpl(invoker: UserRegistryManageme
     invoke(request, "Create User")
   }
 
-  override def getUserIdByExternalId(taxCode: String): Future[UserId] = {
-    val request: ApiRequest[UserId] = api.getUserIdByExternalId(EmbeddedExternalId(taxCode))
-    invoke(request, "Retrieve UserID by External ID")
+  override def getUserByExternalId(taxCode: String): Future[User] = {
+    val request: ApiRequest[User] = api.getUserByExternalId(EmbeddedExternalId(taxCode))
+    invoke(request, "Retrieve User by External ID")
   }
 
   override def getUserById(id: UUID): Future[User] = {
