@@ -74,6 +74,14 @@ spec:
                 secretKeyRef:
                   name: key-paths
                   key: PDND_INTEROP_KEYS
+            - name: AGREEMENT_MANAGEMENT_URL
+              value: {{agreementManagementUrl}}
+            - name: CATALOG_MANAGEMENT_URL
+              value: {{catalogManagementUrl}}
+            - name: KEY_MANAGEMENT_URL
+              value: {{keyManagementUrl}}
+            - name: PARTY_MANAGEMENT_URL
+              value: {{partyManagementUrl}}
       volumes:
       - name: snapshots-volume
         emptyDir: {}
