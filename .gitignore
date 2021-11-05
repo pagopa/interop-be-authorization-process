@@ -17,3 +17,5 @@ client/project/build.properties
 .DS_Store
 .env
 python
+generated/src/
+client/src/
