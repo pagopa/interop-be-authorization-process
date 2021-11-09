@@ -25,9 +25,8 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     mockUserRegistryManagementService
   )(ExecutionContext.global)
 
-  val apiClientKey: ClientKey = ClientKey(
-    status = createdKey.status.toString,
-    key = Key(
+  val apiClientKey: ClientKey = ClientKey(key =
+    Key(
       kty = createdKey.key.kty,
       key_ops = createdKey.key.keyOps,
       use = createdKey.key.use,
@@ -126,14 +125,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
 
   "Create client keys" should {
     "succeed" in {
-      val keySeeds: Seq[KeySeed] = Seq(
-        KeySeed(
-          operatorId = user.id,
-          key = "key",
-          use = keymanagement.client.model.KeySeedEnums.Use.Sig.toString,
-          alg = "123"
-        )
-      )
+      val keySeeds: Seq[KeySeed] = Seq(KeySeed(operatorId = user.id, key = "key", use = KeyUse.SIG, alg = "123"))
 
       (mockAuthorizationManagementService.getClient _)
         .expects(client.id)
@@ -155,25 +147,6 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
       Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.Created
         entityAs[ClientKeys] shouldEqual ClientKeys(Seq(expected))
-      }
-    }
-
-    "fail on wrong enum parameters" in {
-      val keySeeds: Seq[KeySeed] =
-        Seq(KeySeed(operatorId = user.id, key = "key", use = "non-existing-use-value", alg = "123"))
-
-      (mockAuthorizationManagementService.getClient _)
-        .expects(client.id)
-        .once()
-        .returns(Future.successful(client))
-
-      (mockPartyManagementService.getRelationships _)
-        .expects(client.consumerId, user.id, PartyManagementService.ROLE_SECURITY_OPERATOR)
-        .once()
-        .returns(Future.successful(relationships))
-
-      Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
-        status shouldEqual StatusCodes.BadRequest
       }
     }
 
@@ -230,71 +203,4 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     }
   }
 
-  "Enable key" should {
-    "succeed" in {
-      val kid = "some-kid"
-      (mockAuthorizationManagementService.enableKey _)
-        .expects(client.id, kid)
-        .once()
-        .returns(Future.successful(()))
-
-      Get() ~> service.enableKeyById(client.id.toString, kid) ~> check {
-        status shouldEqual StatusCodes.NoContent
-      }
-    }
-
-    "fail if missing authorization header" in {
-      implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      val kid                                      = "some-kid"
-      Get() ~> service.enableKeyById(client.id.toString, kid) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
-      }
-    }
-
-    "fail if client or key do not exist" in {
-      val kid = "some-kid"
-      (mockAuthorizationManagementService.enableKey _)
-        .expects(*, *)
-        .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
-
-      Get() ~> service.enableKeyById(client.id.toString, kid) ~> check {
-        status shouldEqual StatusCodes.NotFound
-      }
-    }
-  }
-
-  "Disable key" should {
-    "succeed" in {
-      val kid = "some-kid"
-      (mockAuthorizationManagementService.disableKey _)
-        .expects(client.id, kid)
-        .once()
-        .returns(Future.successful(()))
-
-      Get() ~> service.disableKeyById(client.id.toString, kid) ~> check {
-        status shouldEqual StatusCodes.NoContent
-      }
-    }
-
-    "fail if missing authorization header" in {
-      implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      val kid                                      = "some-kid"
-      Get() ~> service.disableKeyById(client.id.toString, kid) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
-      }
-    }
-
-    "fail if client or key do not exist" in {
-      val kid = "some-kid"
-      (mockAuthorizationManagementService.disableKey _)
-        .expects(*, *)
-        .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
-
-      Get() ~> service.disableKeyById(client.id.toString, kid) ~> check {
-        status shouldEqual StatusCodes.NotFound
-      }
-    }
-  }
 }

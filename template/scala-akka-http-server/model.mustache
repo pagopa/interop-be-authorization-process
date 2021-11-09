@@ -1,0 +1,90 @@
+package {{package}}
+
+{{#imports}}
+import {{import}}
+{{/imports}}
+
+{{#models}}
+{{#model}}
+/**
+{{#title}} * = {{{.}}} =
+ *
+{{/title}}
+{{#description}} * {{{.}}}
+ *
+{{/description}}
+{{#vars}}
+ * @param {{{name}}} {{{description}}}{{#example}} for example: ''{{{.}}}''{{/example}}
+{{/vars}}
+*/
+{{^isEnum}}
+final case class {{classname}} (
+  {{#vars}}
+  {{{name}}}: {{^required}}Option[{{/required}}{{^isEnum}}{{dataType}}{{/isEnum}}{{#isEnum}}{{classname}}Enums.{{datatypeWithEnum}}{{/isEnum}}{{^required}}] = None{{/required}}{{^-last}},{{/-last}}
+  {{/vars}}
+)
+
+{{#hasEnums}}
+object {{classname}}Enums {
+  {{#vars}}
+  {{#isEnum}}
+  type {{datatypeWithEnum}} = {{datatypeWithEnum}}.Value
+  {{/isEnum}}
+  {{/vars}}
+  {{#vars}}
+  {{#isEnum}}
+  object {{datatypeWithEnum}} extends Enumeration {
+{{#_enum}}
+    val {{.}} = Value("{{.}}")
+{{/_enum}}
+  }
+
+  {{/isEnum}}
+  {{/vars}}
+}
+{{/hasEnums}}
+{{/isEnum}}
+
+{{#isEnum}}
+
+import enumeratum._
+
+sealed trait {{classname}} extends EnumEntry
+
+object {{classname}} extends Enum[{{classname}}] {
+  import spray.json._
+
+  val values: IndexedSeq[{{classname}}] = findValues
+
+  {{#allowableValues}}
+  {{#values}}
+  case object {{.}} extends {{classname}}
+  {{/values}}
+  {{/allowableValues}}
+
+  implicit object {{classname}}Format extends RootJsonFormat[{{classname}}] {
+      def write(obj: {{classname}}): JsValue =
+        obj match {
+  {{#allowableValues}}
+  {{#values}}
+           case {{.}} => JsString("{{.}}")
+  {{/values}}
+  {{/allowableValues}}
+        }
+
+      def read(json: JsValue): {{classname}} =
+        json match {
+  {{#allowableValues}}
+  {{#values}}
+           case JsString("{{.}}") => {{.}}
+  {{/values}}
+  {{/allowableValues}}
+          case unrecognized     => deserializationError(s"{{classname}} serialization error ${unrecognized.toString}")
+        }
+  }
+
+}
+
+{{/isEnum}}
+{{/model}}
+{{/models}}

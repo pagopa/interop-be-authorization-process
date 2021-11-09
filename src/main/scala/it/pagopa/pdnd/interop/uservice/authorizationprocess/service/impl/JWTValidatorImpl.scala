@@ -4,13 +4,11 @@ import com.nimbusds.jose.{JWSAlgorithm, JWSVerifier}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.TryOps
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, toUuid}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.KeyNotActiveError
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
   AuthorizationManagementService,
   JWTValidator,
   VaultService
 }
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{ClientKey, ClientKeyEnums}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -33,18 +31,11 @@ final case class JWTValidatorImpl(keyManager: AuthorizationManagementService, va
       (jwt, kid, clientId) = info
       clientUUid <- toUuid(clientId).toFuture
       publicKey  <- keyManager.getKey(clientUUid, kid)
-      _          <- verifyKeyActivation(publicKey)
       verifier   <- getVerifier(jwt.getHeader.getAlgorithm, publicKey.key)
       _ = logger.info("Verify signature")
       verified <- verify(verifier, jwt)
       _ = logger.info("Signature verified")
     } yield clientId -> verified
-
-  private[this] def verifyKeyActivation(clientKey: ClientKey): Future[Unit] =
-    clientKey.status match {
-      case ClientKeyEnums.Status.Active => Future.successful(())
-      case _                            => Future.failed(KeyNotActiveError(clientKey.key.kid))
-    }
 
   override def validateBearer(bearer: String): Future[JWTClaimsSet] = {
     for {

@@ -2,12 +2,15 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AgreementManagementService.agreementStateToApi
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AuthorizationManagementService.clientStateToApi
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.CatalogManagementService.descriptorStateToApi
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EServiceDescriptorEnums
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Relationships
 import it.pagopa.pdnd.interop.uservice.{catalogmanagement, keymanagement}
 import org.scalamock.scalatest.MockFactory
@@ -49,18 +52,18 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           eService.id,
           eService.name,
           Organization(organization.institutionId, organization.description),
-          Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+          Some(Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version))
         ),
         consumer = Organization(consumer.institutionId, consumer.description),
         agreement = Agreement(
           agreement.id,
-          agreement.status.toString,
-          Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
+          agreementStateToApi(agreement.state),
+          Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
         ),
         name = client.name,
         purposes = client.purposes,
         description = client.description,
-        status = client.status.toString,
+        state = clientStateToApi(client.state),
         operators = Some(Seq.empty)
       )
 
@@ -106,18 +109,20 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
             eService.id,
             eService.name,
             Organization(organization.institutionId, organization.description),
-            Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+            Some(
+              Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
+            )
           ),
           consumer = Organization(consumer.institutionId, consumer.description),
           agreement = Agreement(
             agreement.id,
-            agreement.status.toString,
-            Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
+            agreementStateToApi(agreement.state),
+            Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
           ),
           name = client.name,
           purposes = client.purposes,
           description = client.description,
-          status = client.status.toString,
+          state = clientStateToApi(client.state),
           operators = Some(Seq.empty)
         )
 
@@ -131,16 +136,32 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val descriptorId1 = UUID.randomUUID()
       val descriptorId2 = UUID.randomUUID()
       val descriptor1 =
-        activeDescriptor.copy(id = descriptorId1, version = "1", status = EServiceDescriptorEnums.Status.Deprecated)
+        activeDescriptor.copy(
+          id = descriptorId1,
+          version = "1",
+          state = CatalogManagementDependency.EServiceDescriptorState.DEPRECATED
+        )
       val descriptor2 =
-        activeDescriptor.copy(id = descriptorId2, version = "2", status = EServiceDescriptorEnums.Status.Deprecated)
+        activeDescriptor.copy(
+          id = descriptorId2,
+          version = "2",
+          state = CatalogManagementDependency.EServiceDescriptorState.DEPRECATED
+        )
 
       val eService1 = eService.copy(descriptors = Seq(descriptor1, descriptor2))
 
       val agreement1 =
-        agreement.copy(id = UUID.randomUUID(), descriptorId = descriptorId1, status = AgreementEnums.Status.Suspended)
+        agreement.copy(
+          id = UUID.randomUUID(),
+          descriptorId = descriptorId1,
+          state = AgreementManagementDependency.AgreementState.SUSPENDED
+        )
       val agreement2 =
-        agreement.copy(id = UUID.randomUUID(), descriptorId = descriptorId2, status = AgreementEnums.Status.Suspended)
+        agreement.copy(
+          id = UUID.randomUUID(),
+          descriptorId = descriptorId2,
+          state = AgreementManagementDependency.AgreementState.SUSPENDED
+        )
 
       (mockAuthorizationManagementService.getClient _)
         .expects(*)
@@ -161,13 +182,13 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           consumer = Organization(consumer.institutionId, consumer.description),
           agreement = Agreement(
             agreement2.id,
-            agreement2.status.toString,
-            Descriptor(descriptor2.id, descriptor2.status.toString, descriptor2.version)
+            agreementStateToApi(agreement2.state),
+            Descriptor(descriptor2.id, descriptorStateToApi(descriptor2.state), descriptor2.version)
           ),
           name = client.name,
           purposes = client.purposes,
           description = client.description,
-          status = client.status.toString,
+          state = clientStateToApi(client.state),
           operators = Some(Seq.empty)
         )
 
@@ -237,18 +258,20 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
             eService.id,
             eService.name,
             Organization(organization.institutionId, organization.description),
-            Some(Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version))
+            Some(
+              Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
+            )
           ),
           consumer = Organization(consumer.institutionId, consumer.description),
           agreement = Agreement(
             agreement.id,
-            agreement.status.toString,
-            Descriptor(activeDescriptor.id, activeDescriptor.status.toString, activeDescriptor.version)
+            agreementStateToApi(agreement.state),
+            Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
           ),
           name = client.name,
           purposes = client.purposes,
           description = client.description,
-          status = client.status.toString,
+          state = clientStateToApi(client.state),
           operators = Some(Seq.empty)
         )
       )

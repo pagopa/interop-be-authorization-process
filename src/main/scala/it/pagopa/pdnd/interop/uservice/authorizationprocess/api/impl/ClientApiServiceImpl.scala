@@ -4,17 +4,30 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums
+import it.pagopa.pdnd.interop.uservice._
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.ClientApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, OptionOps, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AuthorizationManagementService.clientStateToApi
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService.{
+  relationshipRoleToApi,
+  relationshipStateToApi
+}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogManagementApiError}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EServiceDescriptor
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => KeyManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
-import it.pagopa.pdnd.interop.uservice._
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
+import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{
+  UserExtras,
+  UserSeed,
+  NONE => CertificationEnumNone
+}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -277,53 +290,6 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  /** Code: 204, Message: the corresponding key has been enabled.
-    * Code: 404, Message: Key not found, DataType: Problem
-    */
-  override def enableKeyById(clientId: String, keyId: String)(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
-    val result = for {
-      _          <- extractBearer(contexts)
-      clientUuid <- toUuid(clientId).toFuture
-      _          <- authorizationManagementService.enableKey(clientUuid, keyId)
-    } yield ()
-
-    onComplete(result) {
-      case Success(_)                         => enableKeyById204
-      case Failure(ex @ UnauthenticatedError) => enableKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        enableKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on key enabling"))
-    }
-  }
-
-  /** Code: 204, Message: the corresponding key has been disabled.
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 404, Message: Key not found, DataType: Problem
-    * Code: 500, Message: Internal Server Error, DataType: Problem
-    */
-  override def disableKeyById(clientId: String, keyId: String)(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
-    val result = for {
-      _          <- extractBearer(contexts)
-      clientUuid <- toUuid(clientId).toFuture
-      _          <- authorizationManagementService.disableKey(clientUuid, keyId)
-    } yield ()
-
-    onComplete(result) {
-      case Success(_) => disableKeyById204
-      case Failure(ex @ UnauthenticatedError) =>
-        disableKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        disableKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on key disabling"))
-    }
-  }
-
   /** Code: 201, Message: Keys created, DataType: Keys
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 404, Message: Client id not found, DataType: Problem
@@ -343,7 +309,7 @@ final case class ClientApiServiceImpl(
         .zip(relationshipsIds)
         .traverse {
           case (seed, Some(relationship)) =>
-            AuthorizationManagementService.toClientKeySeed(seed, relationship.id)
+            Right(AuthorizationManagementService.toDependencyKeySeed(seed, relationship.id))
           case (seed, None) =>
             Left(SecurityOperatorRelationshipNotFound(client.consumerId, seed.operatorId))
         }
@@ -492,7 +458,7 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  private[this] def getClient(bearerToken: String, client: keymanagement.client.model.Client): Future[Client] = {
+  private[this] def getClient(bearerToken: String, client: KeyManagementDependency.Client): Future[Client] = {
     for {
       eService   <- catalogManagementService.getEService(bearerToken, client.eServiceId)
       producer   <- partyManagementService.getOrganization(eService.producerId)
@@ -526,7 +492,7 @@ final case class ClientApiServiceImpl(
   private[this] def securityOperatorRelationship(
     consumerId: UUID,
     operatorId: UUID
-  ): Future[Option[partymanagement.client.model.Relationship]] =
+  ): Future[Option[PartyManagementDependency.Relationship]] =
     for {
       relationships <-
         partyManagementService
@@ -535,11 +501,13 @@ final case class ClientApiServiceImpl(
           // TODO This is dangerous because every error is treated as "missing party with given tax code"
           //  but currently there is no precise way to identify the error
           .recoverWith(_ => Future.successful(None))
-      activeRelationships = relationships.toSeq.flatMap(_.items.filter(_.status == RelationshipEnums.Status.Active))
+      activeRelationships = relationships.toSeq.flatMap(
+        _.items.filter(_.state == PartyManagementDependency.RelationshipState.ACTIVE)
+      )
       securityOperatorRel = activeRelationships.headOption // Only one expected
     } yield securityOperatorRel
 
-  private[this] def operatorsFromClient(client: keymanagement.client.model.Client): Future[Seq[Operator]] =
+  private[this] def operatorsFromClient(client: KeyManagementDependency.Client): Future[Seq[Operator]] =
     client.relationships.toSeq.traverse(operatorFromRelationship)
 
   private[this] def hasClientRelationship(
@@ -552,17 +520,17 @@ final case class ClientApiServiceImpl(
 
   private[this] def operatorFromRelationship(relationshipId: UUID): Future[Operator] =
     for {
-      relationship <- partyManagementService.getRelationshipById(relationshipId)
-      user         <- userRegistryManagementService.getUserById(relationship.from)
+      relationship  <- partyManagementService.getRelationshipById(relationshipId)
+      user          <- userRegistryManagementService.getUserById(relationship.from)
+      operatorState <- relationshipStateToApi(relationship.state).toFuture
     } yield Operator(
       id = user.id,
       taxCode = user.externalId,
       name = user.name,
       surname = user.surname,
-      role = relationship.role.toString,
+      role = relationshipRoleToApi(relationship.role),
       platformRole = relationship.productRole,
-      // TODO Remove toLowerCase once defined standard for enums
-      status = relationship.status.toString.toLowerCase
+      state = operatorState
     )
 
   private[this] def compareDescriptorsVersion(
@@ -573,10 +541,10 @@ final case class ClientApiServiceImpl(
     descriptor1.version.toInt > descriptor2.version.toInt
 
   private[this] def getLatestAgreement(
-    agreements: Seq[agreementmanagement.client.model.Agreement],
-    eService: catalogmanagement.client.model.EService
-  ): Option[agreementmanagement.client.model.Agreement] = {
-    val activeAgreement = agreements.find(_.status == AgreementEnums.Status.Active)
+    agreements: Seq[AgreementManagementDependency.Agreement],
+    eService: CatalogManagementDependency.EService
+  ): Option[AgreementManagementDependency.Agreement] = {
+    val activeAgreement = agreements.find(_.state == AgreementManagementDependency.AgreementState.ACTIVE)
     lazy val latestAgreementByDescriptor =
       agreements
         .map(agreement => (agreement, eService.descriptors.find(_.id == agreement.descriptorId)))
@@ -591,11 +559,11 @@ final case class ClientApiServiceImpl(
   }
 
   private[this] def clientToApi(
-    client: keymanagement.client.model.Client,
-    eService: catalogmanagement.client.model.EService,
-    provider: partymanagement.client.model.Organization,
-    consumer: partymanagement.client.model.Organization,
-    agreement: agreementmanagement.client.model.Agreement,
+    client: KeyManagementDependency.Client,
+    eService: CatalogManagementDependency.EService,
+    provider: PartyManagementDependency.Organization,
+    consumer: PartyManagementDependency.Organization,
+    agreement: AgreementManagementDependency.Agreement,
     operator: Seq[Operator]
   ): Future[Client] = {
     for {
@@ -614,7 +582,7 @@ final case class ClientApiServiceImpl(
       name = client.name,
       purposes = client.purposes,
       description = client.description,
-      status = client.status.toString,
+      state = clientStateToApi(client.state),
       operators = Some(operator)
     )
   }

@@ -2,34 +2,31 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.util
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{
-  AgreementEnums,
-  Agreement => AgreementManagerAgreement
-}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement => AgreementManagerAgreement}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
   Attributes,
-  EServiceDescriptorEnums,
   EService => CatalogManagementEService,
   EServiceDescriptor => CatalogManagementDescriptor
 }
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
-  ClientKeyEnums,
   OtherPrimeInfo,
   Client => AuthManagementClient,
-  ClientEnums => AuthManagementClientEnums,
   ClientKey => AuthManagementClientKey,
   Key => AuthManagementKey
 }
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
   Organization => PartyManagementOrganization,
   Relationship => PartyRelationship,
-  RelationshipEnums => PartyRelationshipEnums,
   Relationships => PartyRelationships
 }
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{NONE, User, UserExtras}
 import org.scalamock.scalatest.MockFactory
 
@@ -78,7 +75,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     description = None,
     interface = None,
     docs = Seq.empty,
-    status = EServiceDescriptorEnums.Status.Published,
+    state = CatalogManagementDependency.EServiceDescriptorState.PUBLISHED,
     audience = Seq.empty,
     voucherLifespan = 10
   )
@@ -88,7 +85,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     producerId = organizationId,
     name = "Service name",
     description = "Service description",
-    technology = "REST",
+    technology = CatalogManagementDependency.EServiceTechnology.REST,
     attributes = Attributes(Seq.empty, Seq.empty, Seq.empty),
     descriptors = Seq(activeDescriptor)
   )
@@ -99,7 +96,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     descriptorId = activeDescriptor.id,
     producerId = organizationId,
     consumerId = consumerId,
-    status = AgreementEnums.Status.Active,
+    state = AgreementManagementDependency.AgreementState.ACTIVE,
     verifiedAttributes = Seq.empty
   )
 
@@ -133,7 +130,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       name = clientSeed.name,
       purposes = clientSeed.purposes,
       description = clientSeed.description,
-      status = AuthManagementClientEnums.Status.Active,
+      state = AuthorizationManagementDependency.ClientState.ACTIVE,
       relationships = Set.empty
     )
 
@@ -143,25 +140,24 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       taxCode = user.externalId,
       name = user.name,
       surname = user.surname,
-      role = "Operator",
+      role = OperatorRole.OPERATOR,
       platformRole = "aPlatformRole",
-      status = "active"
+      state = OperatorState.ACTIVE
     )
 
   val relationship: PartyRelationship = PartyRelationship(
     id = UUID.randomUUID(),
     from = user.id,
     to = organization.id,
-    role = PartyRelationshipEnums.Role.Operator,
+    role = PartyManagementDependency.PartyRole.OPERATOR,
     productRole = "aPlatformRole",
-    status = PartyRelationshipEnums.Status.Active,
+    state = PartyManagementDependency.RelationshipState.ACTIVE,
     products = Set("PDND")
   )
 
   val relationships: PartyRelationships = PartyRelationships(Seq(relationship))
 
   val createdKey: AuthManagementClientKey = AuthManagementClientKey(
-    status = ClientKeyEnums.Status.Active,
     relationshipId = UUID.randomUUID(),
     key = AuthManagementKey(
       kty = "1",

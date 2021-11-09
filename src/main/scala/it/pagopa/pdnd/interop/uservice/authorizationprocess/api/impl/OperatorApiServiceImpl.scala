@@ -8,10 +8,10 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.OperatorApiServi
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, OptionOps, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AuthorizationManagementService.keyUseToDependency
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.KeySeedEnums
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
 
 import java.util.UUID
@@ -53,7 +53,7 @@ final case class OperatorApiServiceImpl(
           managementSeed = keymanagement.client.model.KeySeed(
             relationshipId = clientRelationshipId,
             key = seed.key,
-            use = KeySeedEnums.Use.withName(seed.use),
+            use = keyUseToDependency(seed.use),
             alg = seed.alg
           )
           result <- authorizationManagementService.createKeys(client.id, Seq(managementSeed))
@@ -100,62 +100,6 @@ final case class OperatorApiServiceImpl(
         deleteOperatorKeyById404(Problem(Some(ex.message), 404, "Not found"))
       case Failure(_ @NoResultsError) => deleteOperatorKeyById404(Problem(None, 404, "Not found"))
       case Failure(ex)                => complete((500, Problem(Option(ex.getMessage), 500, "Error on operator key delete")))
-    }
-  }
-
-  /** Code: 204, Message: the corresponding key has been disabled.
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 404, Message: Key not found, DataType: Problem
-    */
-  override def disableOperatorKeyById(operatorId: String, keyId: String)(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
-    val result = for {
-      _            <- extractBearer(contexts)
-      operatorUuid <- toUuid(operatorId).toFuture
-      _ <- collectFirstForEachOperatorClient(
-        operatorUuid,
-        client => authorizationManagementService.disableKey(client.id, keyId)
-      )
-    } yield ()
-
-    onComplete(result) {
-      case Success(_) => disableOperatorKeyById204
-      case Failure(ex @ UnauthenticatedError) =>
-        disableOperatorKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        disableOperatorKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(_ @NoResultsError) => deleteOperatorKeyById404(Problem(None, 404, "Not found"))
-      case Failure(ex)                => complete((500, Problem(Option(ex.getMessage), 500, "Error on key disabling")))
-    }
-  }
-
-  /** Code: 204, Message: the corresponding key has been enabled.
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 404, Message: Key not found, DataType: Problem
-    */
-  override def enableOperatorKeyById(operatorId: String, keyId: String)(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
-    val result = for {
-      _            <- extractBearer(contexts)
-      operatorUuid <- toUuid(operatorId).toFuture
-      _ <- collectFirstForEachOperatorClient(
-        operatorUuid,
-        client => authorizationManagementService.enableKey(client.id, keyId)
-      )
-    } yield ()
-
-    onComplete(result) {
-      case Success(_) => enableOperatorKeyById204
-      case Failure(ex @ UnauthenticatedError) =>
-        enableOperatorKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        enableOperatorKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(_ @NoResultsError) => deleteOperatorKeyById404(Problem(None, 404, "Not found"))
-      case Failure(ex)                => complete((500, Problem(Option(ex.getMessage), 500, "Error on key enabling")))
     }
   }
 
