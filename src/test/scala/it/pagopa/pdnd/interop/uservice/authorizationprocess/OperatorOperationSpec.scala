@@ -13,9 +13,8 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagem
   relationshipStateToApi
 }
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
+import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
-import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{NONE, UserExtras, UserSeed}
-import it.pagopa.pdnd.interop.uservice.{keymanagement, partymanagement, userregistrymanagement}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -74,7 +73,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         purposes = client.purposes,
         description = client.description,
         state = clientStateToApi(client.state),
-        operators = Some(Seq(operator.copy(productRole = PartyManagementService.ROLE_SECURITY_OPERATOR)))
+        operators = Some(Seq(operator.copy(platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR)))
       )
 
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, relationshipId) ~> check {

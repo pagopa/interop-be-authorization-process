@@ -23,11 +23,6 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError =>
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => KeyManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
-import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{
-  UserExtras,
-  UserSeed,
-  NONE => CertificationEnumNone
-}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -474,8 +469,8 @@ final case class ClientApiServiceImpl(
 
     def isActiveSecurityOperatorRelationship(relationship: Relationship): Future[Boolean] = {
       val condition = relationship.productRole == PartyManagementService.ROLE_SECURITY_OPERATOR &&
-        relationship.role == RelationshipEnums.Role.Operator &&
-        relationship.status == RelationshipEnums.Status.Active
+        relationship.role == PartyManagementDependency.PartyRole.OPERATOR &&
+        relationship.state == PartyManagementDependency.RelationshipState.ACTIVE
       if (condition) {
         Future.successful(true)
       } else {
