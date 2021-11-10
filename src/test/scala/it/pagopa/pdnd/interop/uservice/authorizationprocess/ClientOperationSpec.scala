@@ -18,6 +18,7 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
+
   import clientApiMarshaller._
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
