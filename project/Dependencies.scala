@@ -54,11 +54,6 @@ object Dependencies {
     lazy val kix       = namespace % "bcpkix-jdk15on" % bouncycastleVersion
   }
 
-  private[this] object enumeratum {
-    lazy val namespace = "com.beachape"
-    lazy val core      = namespace %% "enumeratum" % enumeratumVersion
-  }
-
   private[this] object vault {
     lazy val namespace = "com.bettercloud"
     lazy val driver    = namespace % "vault-java-driver" % vaultDriverVersion
@@ -137,7 +132,6 @@ object Dependencies {
       bouncycastle.kix              % Compile,
       bouncycastle.provider         % Compile,
       cats.core                     % Compile,
-      enumeratum.core               % Compile,
       kamon.bundle                  % Compile,
       kamon.prometheus              % Compile,
       logback.classic               % Compile,
@@ -162,7 +156,6 @@ object Dependencies {
         akka.stream     % Compile,
         akka.http       % Compile,
         akka.httpJson4s % Compile,
-        enumeratum.core % Compile,
         json4s.jackson  % Compile,
         json4s.ext      % Compile
       )
