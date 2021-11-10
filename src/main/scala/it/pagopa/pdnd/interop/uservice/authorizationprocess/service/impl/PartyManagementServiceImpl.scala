@@ -22,38 +22,24 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   override def getOrganization(organizationId: UUID): Future[Organization] = {
-    val request: ApiRequest[Organization] = api.getPartyOrganizationByUUID(organizationId)
+    val request: ApiRequest[Organization] = api.getOrganizationById(organizationId)
     invoke(request, "Retrieve Organization")
   }
 
-  override def getOrganizationByInstitutionId(institutionId: String): Future[Organization] = {
-    val request: ApiRequest[Organization] = api.getOrganization(institutionId)
-    invoke(request, "Retrieve Organization by Institution Id")
-  }
-
   override def getPerson(personId: UUID): Future[Person] = {
-    val request: ApiRequest[Person] = api.getPartyPersonByUUID(personId)
+    val request: ApiRequest[Person] = api.getPersonById(personId)
     invoke(request, "Retrieve Person")
   }
 
-  override def getRelationships(
-    institutionId: String,
-    personTaxCode: String,
-    platformRole: String
-  ): Future[Relationships] = {
+  override def getRelationships(organizationId: UUID, personId: UUID, platformRole: String): Future[Relationships] = {
     val request: ApiRequest[Relationships] =
-      api.getRelationships(Some(personTaxCode), Some(institutionId), Some(platformRole))
+      api.getRelationships(Some(personId), Some(organizationId), Some(platformRole))
     invoke(request, "Retrieve Relationships")
   }
 
-  override def getPersonByTaxCode(taxCode: String): Future[Person] = {
-    val request: ApiRequest[Person] = api.getPerson(taxCode)
-    invoke(request, "Retrieve Person By Tax Code")
-  }
-
-  override def getRelationshipsByTaxCode(personTaxCode: String, platformRole: Option[String]): Future[Relationships] = {
-    val request: ApiRequest[Relationships] = api.getRelationships(Some(personTaxCode), None, platformRole)
-    invoke(request, "Retrieve Relationships By Tax Code")
+  override def getRelationshipsByPersonId(personId: UUID, platformRole: Option[String]): Future[Relationships] = {
+    val request: ApiRequest[Relationships] = api.getRelationships(Some(personId), None, platformRole)
+    invoke(request, "Retrieve Relationships By Person Id")
   }
 
   override def getRelationshipById(relationshipId: UUID): Future[Relationship] = {

@@ -1,6 +1,6 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.common
 
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.UuidConversionError
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.UUIDConversionError
 import spray.json.{JsString, JsValue, JsonFormat, deserializationError}
 
 import java.net.URI
@@ -67,8 +67,8 @@ package object utils {
       }
     }
 
-  def toUuid(str: String): Either[UuidConversionError, UUID] =
-    Try(UUID.fromString(str)).toEither.left.map(_ => UuidConversionError(str))
+  def toUuid(str: String): Either[UUIDConversionError, UUID] =
+    Try(UUID.fromString(str)).toEither.left.map(_ => UUIDConversionError(str))
 
   implicit class EitherOps[A](val either: Either[Throwable, A]) extends AnyVal {
     def toFuture: Future[A] = either.fold(e => Future.failed(e), a => Future.successful(a))

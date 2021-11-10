@@ -9,8 +9,9 @@ import akka.http.scaladsl.server.directives.Credentials.{Missing, Provided}
 import akka.util.Timeout
 import akka.{actor => classic}
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.concurrent.duration.DurationInt
+import scala.util.Try
 
 package object system {
 
@@ -36,5 +37,9 @@ package object system {
 
   object PassThroughAuthenticator extends Authenticator[Seq[(String, String)]] {
     override def apply(credentials: Credentials): Option[Seq[(String, String)]] = Some(Seq.empty)
+  }
+
+  implicit class TryOps[A](val tryOp: Try[A]) extends AnyVal {
+    def toFuture: Future[A] = tryOp.fold(e => Future.failed(e), a => Future.successful(a))
   }
 }

@@ -4,26 +4,26 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
 import com.nimbusds.jose.JOSEException
+import com.nimbusds.jwt.JWTClaimsSet
 import it.pagopa.pdnd.interop.uservice.agreementmanagement
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{OptionOps, expireIn}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.TryOps
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, OptionOps, expireIn, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
-  EService,
-  EServiceDescriptor,
-  EServiceDescriptorEnums
-}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.ClientEnums
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{EService, EServiceDescriptor}
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagementDependency}
 
 import java.text.ParseException
+import java.time.ZoneOffset
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.util.{Failure, Success, Try}
 
-@SuppressWarnings(Array("org.wartremover.warts.Any"))
 final case class AuthApiServiceImpl(
   jwtValidator: JWTValidator,
   jwtGenerator: JWTGenerator,
@@ -54,16 +54,17 @@ final case class AuthApiServiceImpl(
         m2mToken  <- m2mAuthorizationService.token
         validated <- jwtValidator.validate(clientAssertion, clientAssertionType, grantType, clientId)
         (clientId, assertion) = validated
-        client <- authorizationManagementService.getClient(clientId)
-        _      <- clientMustBeActive(client)
+        clientUuid <- toUuid(clientId).toFuture
+        client     <- authorizationManagementService.getClient(clientUuid)
+        _          <- clientMustBeActive(client)
         agreements <- agreementManagementService.getAgreements(
           m2mToken,
-          client.consumerId.toString,
-          client.eServiceId.toString,
-          Some(AgreementEnums.Status.Active)
+          client.consumerId,
+          client.eServiceId,
+          Some(AgreementManagementDependency.AgreementState.ACTIVE)
         )
-        activeAgreement <- getActiveAgreement(agreements, client.eServiceId.toString, client.consumerId.toString)
-        eservice        <- catalogManagementService.getEService(m2mToken, client.eServiceId.toString)
+        activeAgreement <- getActiveAgreement(agreements, client.eServiceId, client.consumerId)
+        eservice        <- catalogManagementService.getEService(m2mToken, client.eServiceId)
         descriptor      <- getDescriptor(eservice, activeAgreement.descriptorId)
         descriptorAudience = descriptor.audience.toList
         _     <- descriptorMustBeActive(descriptor)
@@ -71,15 +72,15 @@ final case class AuthApiServiceImpl(
       } yield token
 
     onComplete(token) {
-      case Success(tk) => createToken200(ClientCredentialsResponse(tk, "bearer", expireIn))
+      case Success(tk) => createToken200(ClientCredentialsResponse(tk, TokenType.BEARER, expireIn))
       case Failure(ex) => manageError(ex)
     }
   }
 
   private def getActiveAgreement(
     agreements: Seq[agreementmanagement.client.model.Agreement],
-    eserviceId: String,
-    consumerId: String
+    eserviceId: UUID,
+    consumerId: UUID
   ): Future[agreementmanagement.client.model.Agreement] = {
     agreements match {
       case agreement :: Nil => Future.successful(agreement)
@@ -89,22 +90,22 @@ final case class AuthApiServiceImpl(
   }
 
   private def clientMustBeActive(client: ManagementClient): Future[Unit] =
-    client.status match {
-      case ClientEnums.Status.Active => Future.successful(())
-      case _                         => Future.failed(ClientNotActive(client.id.toString))
+    client.state match {
+      case AuthorizationManagementDependency.ClientState.ACTIVE => Future.successful(())
+      case _                                                    => Future.failed(ClientNotActive(client.id))
     }
 
   private def descriptorMustBeActive(descriptor: EServiceDescriptor): Future[Unit] =
-    descriptor.status match {
-      case EServiceDescriptorEnums.Status.Deprecated => Future.successful(())
-      case EServiceDescriptorEnums.Status.Published  => Future.successful(())
-      case _                                         => Future.failed(EServiceDescriptorNotActive(descriptor.id.toString))
+    descriptor.state match {
+      case CatalogManagementDependency.EServiceDescriptorState.DEPRECATED => Future.successful(())
+      case CatalogManagementDependency.EServiceDescriptorState.PUBLISHED  => Future.successful(())
+      case _                                                              => Future.failed(EServiceDescriptorNotActive(descriptor.id))
     }
 
   private def getDescriptor(eService: EService, descriptorId: UUID): Future[EServiceDescriptor] =
     eService.descriptors
       .find(_.id == descriptorId)
-      .toFuture(DescriptorNotFound(eService.id.toString, descriptorId.toString))
+      .toFuture(DescriptorNotFound(eService.id, descriptorId))
 
   private def manageError(error: Throwable): Route = error match {
     case ex @ UnauthenticatedError     => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
@@ -114,4 +115,48 @@ final case class AuthApiServiceImpl(
     case ex: InvalidAccessTokenRequest => createToken400(Problem(Option(ex.errors.mkString(", ")), 400, ex.getMessage))
     case ex                            => createToken400(Problem(Option(ex.getMessage), 400, "Something went wrong during access token request"))
   }
+
+  def toResponseJWT(claims: JWTClaimsSet): Future[ValidJWT] = {
+    Try {
+      ValidJWT(
+        iss = claims.getIssuer,
+        sub = claims.getSubject,
+        aud = claims.getAudience.asScala.toSeq,
+        exp = claims.getExpirationTime.toInstant.atOffset(ZoneOffset.UTC),
+        nbf = claims.getNotBeforeTime.toInstant.atOffset(ZoneOffset.UTC),
+        iat = claims.getIssueTime.toInstant.atOffset(ZoneOffset.UTC),
+        jti = claims.getJWTID
+      )
+    }.toFuture
+  }
+
+  /** Code: 200, Message: Client created, DataType: ValidJWT
+    * Code: 401, Message: Unauthorized, DataType: Problem
+    * Code: 400, Message: Bad request, DataType: Problem
+    */
+  override def validateToken()(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerValidJWT: ToEntityMarshaller[ValidJWT],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result: Future[ValidJWT] = for {
+      bearer     <- tokenFromContext(contexts)
+      claims     <- jwtValidator.validateBearer(bearer)
+      validToken <- toResponseJWT(claims)
+    } yield validToken
+
+    onComplete(result) {
+      case Success(tk) => validateToken200(tk)
+      case Failure(ex) => manageError(ex)
+    }
+  }
+
+  private[this] def tokenFromContext(context: Seq[(String, String)]): Future[String] =
+    Future.fromTry(
+      context
+        .find(_._1 == "bearer")
+        .map(header => header._2)
+        .toRight(new RuntimeException("Bearer Token not provided"))
+        .toTry
+    )
 }

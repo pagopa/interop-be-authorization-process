@@ -120,7 +120,6 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
     jwt
   }
 
-  @SuppressWarnings(Array("org.wartremover.warts.StringPlusAny"))
   private def toBase64(jwt: SignedJWT): String = {
     s"""${jwt.getHeader.toBase64URL}.${jwt.getPayload.toBase64URL}.${jwt.getSignature}"""
   }

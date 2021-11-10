@@ -38,8 +38,8 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     invoke(request, "Client creation")
   }
 
-  override def getClient(clientId: String): Future[Client] = {
-    val request: ApiRequest[Client] = clientApi.getClient(clientId)
+  override def getClient(clientId: UUID): Future[Client] = {
+    val request: ApiRequest[Client] = clientApi.getClient(clientId.toString)
     invoke(request, "Client retrieve")
   }
 
@@ -54,8 +54,8 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     invoke(request, "Client list")
   }
 
-  override def deleteClient(clientId: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = clientApi.deleteClient(clientId)
+  override def deleteClient(clientId: UUID): Future[Unit] = {
+    val request: ApiRequest[Unit] = clientApi.deleteClient(clientId.toString)
     invoke(request, "Client delete")
   }
 
@@ -87,16 +87,6 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
   override def deleteKey(clientId: UUID, kid: String): Future[Unit] = {
     val request: ApiRequest[Unit] = keyApi.deleteClientKeyById(clientId, kid)
     invoke(request, "Key Delete")
-  }
-
-  override def enableKey(clientId: UUID, kid: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = keyApi.enableKeyById(clientId, kid)
-    invoke(request, "Key enable")
-  }
-
-  override def disableKey(clientId: UUID, kid: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = keyApi.disableKeyById(clientId, kid)
-    invoke(request, "Key disable")
   }
 
   override def getClientKeys(clientId: UUID): Future[KeysResponse] = {

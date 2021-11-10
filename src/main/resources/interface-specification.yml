@@ -79,6 +79,34 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /as/token/validate:
+    post:
+      security:
+        - bearerAuth: [ ]
+      tags:
+        - auth
+      summary: JWT validation
+      description: Validates the access token passed as Authorization header
+      operationId: validateToken
+      responses:
+        "200":
+          description: Client created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidJWT'
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "400":
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /clients:
     post:
       tags:
@@ -136,16 +164,18 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: operatorTaxCode
+        - name: operatorId
           in: query
           description: ID of operator that MUST be related to the Client
           schema:
             type: string
-        - name: institutionId
+            format: uuid
+        - name: consumerId
           in: query
-          description: ID of institution that MUST be related to the Client
+          description: ID of Consumer that MUST be related to the Client
           schema:
             type: string
+            format: uuid
       responses:
         "200":
           description: Request succeed
@@ -332,19 +362,79 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  '/clients/{clientId}/relationships/{relationshipId}':
+    parameters:
+      - name: clientId
+        in: path
+        description: The Client id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: relationshipId
+        in: path
+        description: The identifier of the relationship between the security operator and the consumer
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      description: Retrieves a Client Operator relationship
+      tags:
+        - client
+      summary: Get a Client Operator Relationship
+      operationId: getClientOperatorRelationshipById
+      responses:
+        "200":
+          description: Client Operator relationship retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Operator'
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "404":
+          description: Client or Operator not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    delete:
+      description: Removes an operator relationship from a Client
+      tags:
+        - client
+      summary: Remove an operator relationship from a Client
+      operationId: removeClientOperatorRelationship
+      responses:
+        "204":
+          description: Operator relationship removed
+        "400":
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        "404":
+          description: Client or operator not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
     post:
       tags:
         - client
-      summary: Add an Operator to a Client
-      operationId: addOperator
-      parameters:
-        - name: clientId
-          in: path
-          description: The Client id
-          required: true
-          schema:
-            type: string
-            format: uuid
+      summary: Binds an Operator relationship to a Client
+      operationId: clientOperatorRelationshipBinding
       responses:
         "201":
           description: Operator added
@@ -370,95 +460,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-      requestBody:
-        required: true
-        description: An Operator seed
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OperatorSeed'
-      description: Adds an Operator to a Client
-  '/clients/{clientId}/operators/{operatorTaxCode}':
-    get:
-      description: Retrieves a Client Operator
-      tags:
-        - client
-      summary: Get a Client Operator
-      operationId: getClientOperatorByExternalId
-      parameters:
-        - name: clientId
-          in: path
-          description: The Client id
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: operatorTaxCode
-          in: path
-          description: The Operator Tax Code
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Client Operator retrieved
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Operator'
-        "401":
-          description: Unauthorized
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        "404":
-          description: Client or Operator not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-    delete:
-      description: Removes an operator from a Client
-      tags:
-        - client
-      summary: Remove an operator from a Client
-      operationId: removeClientOperator
-      parameters:
-        - name: clientId
-          in: path
-          description: The Client id
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: operatorTaxCode
-          in: path
-          description: The Operator Tax Code
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: Operator removed
-        "400":
-          description: Bad Request
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        "401":
-          description: Unauthorized
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        "404":
-          description: Client or operator not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
+      description: Binds a security operator belonging to a consumer to a Client
   '/clients/{clientId}/keys':
     post:
       tags:
@@ -660,79 +662,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/clients/{clientId}/keys/{keyId}/enable':
-    patch:
-      tags:
-        - client
-      summary: Enables a client key by key identifier (kid).
-      description: 'Given a client and a disabled key identifier it enables the corresponding key, if any'
-      operationId: enableKeyById
-      parameters:
-        - name: clientId
-          in: path
-          description: ID of the client holding the key
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: keyId
-          in: path
-          description: the unique identifier of the key (kid) to enable
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: the corresponding key has been enabled.
-        "401":
-          description: Unauthorized
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        "404":
-          description: Key not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-  '/clients/{clientId}/keys/{keyId}/disable':
-    patch:
-      tags:
-        - client
-      summary: Disable a client key by key identifier (kid).
-      description: 'Given a client and an enabled key identifier it disables the corresponding key, if any'
-      operationId: disableKeyById
-      parameters:
-        - name: clientId
-          in: path
-          description: ID of the client holding the key
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: keyId
-          in: path
-          description: the unique identifier of the key (kid) to disable
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: the corresponding key has been disabled.
-        "401":
-          description: Unauthorized
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        "404":
-          description: Key not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-  '/clients/{clientId}/operators/{taxCode}/keys':
+  '/clients/{clientId}/operators/{operatorId}/keys':
     parameters:
       - name: clientId
         in: path
@@ -741,16 +671,17 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: taxCode
+      - name: operatorId
         in: path
         required: true
-        description: Tax Code of the Opeartor that the added keys MUST belong to
+        description: ID of the Opeartor that the added keys MUST belong to
         schema:
           type: string
+          format: uuid
     get:
       tags:
         - operator
-      summary: Returns a set of keys by operator Tax Code and client ID.
+      summary: Returns a set of keys by operator ID and client ID.
       description: 'Given an operator and a client it returns its corresponding set of keys, if any'
       operationId: getClientOperatorKeys
       responses:
@@ -772,14 +703,15 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/operators/{taxCode}/keys':
+  '/operators/{operatorId}/keys':
     parameters:
-      - name: taxCode
+      - name: operatorId
         in: path
         required: true
-        description: Tax Code of the Opeartor that the added keys MUST belong to
+        description: ID of the Opeartor that the added keys MUST belong to
         schema:
           type: string
+          format: uuid
     post:
       tags:
         - operator
@@ -827,8 +759,8 @@ paths:
     get:
       tags:
         - operator
-      summary: Returns a set of keys by operator Tax Code.
-      description: 'Given an operator tax code it returns its corresponding set of keys, if any'
+      summary: Returns a set of keys by operator ID.
+      description: 'Given an operator ID it returns its corresponding set of keys, if any'
       operationId: getOperatorKeys
       responses:
         "200":
@@ -849,11 +781,11 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/operators/{taxCode}/keys/{keyId}':
+  '/operators/{operatorId}/keys/{keyId}':
     parameters:
-      - name: taxCode
+      - name: operatorId
         in: path
-        description: Operator Tax Code owning the key
+        description: Operator ID owning the key
         required: true
         schema:
           type: string
@@ -909,76 +841,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/operators/{taxCode}/keys/{keyId}/enable':
-    patch:
-      tags:
-        - operator
-      summary: Enables an operator key by key identifier (kid).
-      description: 'Given an operator and a disabled key identifier it enables the corresponding key, if any'
-      operationId: enableOperatorKeyById
-      parameters:
-        - name: taxCode
-          in: path
-          description: Operator Tax Code owning the key
-          required: true
-          schema:
-            type: string
-        - name: keyId
-          in: path
-          description: the unique identifier of the key (kid) to enable
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: the corresponding key has been enabled.
-        "401":
-          description: Unauthorized
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        "404":
-          description: Key not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-  '/operators/{taxCode}/keys/{keyId}/disable':
-    patch:
-      tags:
-        - operator
-      summary: Disable an operator key by key identifier (kid).
-      description: 'Given an operator and an enabled key identifier it disables the corresponding key, if any'
-      operationId: disableOperatorKeyById
-      parameters:
-        - name: taxCode
-          in: path
-          description: Opeartor TaxCode owning the key
-          required: true
-          schema:
-            type: string
-        - name: keyId
-          in: path
-          description: the unique identifier of the key (kid) to disable
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: the corresponding key has been disabled.
-        "401":
-          description: Unauthorized
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        "404":
-          description: Key not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
   /.well-known/jwks.json:
     get:
       security: []
@@ -1022,7 +884,7 @@ components:
         grant_type:
           type: string
           enum:
-            - client_credentials
+            - CLIENT_CREDENTIALS
     ClientCredentialsResponse:
       type: object
       required:
@@ -1034,10 +896,7 @@ components:
           type: string
           format: jws
         token_type:
-          type: string
-          enum:
-            - Bearer
-            - Pop
+          $ref: '#/components/schemas/TokenType'
         expires_in:
           type: integer
           format: int64
@@ -1049,8 +908,9 @@ components:
         eServiceId:
           type: string
           format: uuid
-        consumerInstitutionId:
+        consumerId:
           type: string
+          format: uuid
         name:
           type: string
         purposes:
@@ -1059,7 +919,7 @@ components:
           type: string
       required:
         - eServiceId
-        - consumerInstitutionId
+        - consumerId
         - name
         - purposes
     Client:
@@ -1081,9 +941,8 @@ components:
           type: string
         description:
           type: string
-        status:
-          type: string
-          enum: [ 'active', 'suspended' ]
+        state:
+          $ref: '#/components/schemas/ClientState'
         operators:
           $ref: '#/components/schemas/Operators'
           uniqueItems: true
@@ -1095,7 +954,7 @@ components:
         - agreement
         - name
         - purposes
-        - status
+        - state
     EService:
       description: Models an E-Service
       type: object
@@ -1120,13 +979,13 @@ components:
         id:
           type: string
           format: uuid
-        status:
-          type: string
+        state:
+          $ref: '#/components/schemas/EServiceDescriptorState'
         version:
           type: string
       required:
         - id
-        - status
+        - state
         - version
     Agreement:
       description: Models an Agreement
@@ -1135,36 +994,57 @@ components:
         id:
           type: string
           format: uuid
-        status:
-          type: string
+        state:
+          $ref: '#/components/schemas/AgreementState'
         descriptor:
           $ref: '#/components/schemas/Descriptor'
       required:
         - id
-        - status
+        - state
         - descriptor
+    ValidJWT:
+      description: Models a JWT payload
+      type: object
+      properties:
+        iss:
+          type: string
+        sub:
+          type: string
+        aud:
+          type: array
+          items:
+            type: string
+        exp:
+          type: string
+          format: date-time
+        nbf:
+          type: string
+          format: date-time
+        iat:
+          type: string
+          format: date-time
+        jti:
+          type: string
+      additionalProperties: true
+      required:
+        - iss
+        - sub
+        - aud
+        - exp
+        - nbf
+        - iat
+        - jti
     Clients:
       type: object
       items:
         $ref: '#/components/schemas/Client'
-    OperatorSeed:
-      description: Models the seed for an Operator-Client relationship to be persisted
-      type: object
-      properties:
-        taxCode:
-          type: string
-        name:
-          type: string
-        surname:
-          type: string
-      required:
-        - taxCode
-        - name
-        - surname
     Operator:
       description: Models a Client Operator
       type: object
       properties:
+        id:
+          type: string
+          format: uuid
         taxCode:
           type: string
         name:
@@ -1172,20 +1052,20 @@ components:
         surname:
           type: string
         role:
-          type: string
+          $ref: '#/components/schemas/OperatorRole'
         platformRole:
           type: string
-        status:
-          type: string
-          enum: [ 'active', 'suspended' ]
+        state:
+          $ref: '#/components/schemas/OperatorState'
       required:
+        - id
         - taxCode
         - name
         - surname
         - email
         - role
         - platformRole
-        - status
+        - state
     Operators:
       type: object
       items:
@@ -1279,13 +1159,8 @@ components:
       properties:
         key:
           $ref: '#/components/schemas/Key'
-        status:
-          type: string
-          description: 'Key status'
-          enum: [ 'active', 'disabled', 'deleted' ]
       required:
         - key
-        - status
     EncodedClientKey:
       type: object
       properties:
@@ -1311,23 +1186,20 @@ components:
       description: 'Models the seed for a public key to be persisted'
       type: object
       properties:
-        operatorTaxCode:
+        operatorId:
           type: string
+          format: uuid
           description: 'Represents the identifier of the platform security operator that is uploading the key'
         key:
           type: string
           description: 'Base64 UTF-8 encoding of a public key in PEM format'
         use:
-          type: string
-          description: 'The expected use for this key.'
-          enum:
-            - sig
-            - enc
+          $ref: '#/components/schemas/KeyUse'
         alg:
           type: string
           description: 'The algorithm type of the key.'
       required:
-        - operatorTaxCode
+        - operatorId
         - key
         - use
         - alg
@@ -1346,11 +1218,7 @@ components:
           type: string
           description: 'Base64 UTF-8 encoding of a public key in PEM format'
         use:
-          type: string
-          description: 'The expected use for this key.'
-          enum:
-            - sig
-            - enc
+          $ref: '#/components/schemas/KeyUse'
         alg:
           type: string
           description: 'The algorithm type of the key.'
@@ -1359,6 +1227,55 @@ components:
         - key
         - use
         - alg
+    KeyUse:
+      type: string
+      description: Represents the Use field of key
+      enum:
+        - SIG
+        - ENC
+    TokenType:
+      type: string
+      description: Represents the token type
+      enum:
+        - BEARER
+        - POP
+    ClientState:
+      type: string
+      description: Represents the Client state
+      enum:
+        - ACTIVE
+        - SUSPENDED
+    OperatorState:
+      type: string
+      description: Represents the Client Operator state
+      enum:
+        - ACTIVE
+        - SUSPENDED
+        - DELETED
+    OperatorRole:
+      type: string
+      description: Represents the generic available role types for the relationship
+      enum:
+        - MANAGER
+        - DELEGATE
+        - OPERATOR
+    EServiceDescriptorState:
+      type: string
+      description: EService Descriptor State Enum
+      enum:
+        - DRAFT
+        - PUBLISHED
+        - DEPRECATED
+        - SUSPENDED
+        - ARCHIVED
+    AgreementState:
+      type: string
+      description: Agreement State
+      enum:
+        - ACTIVE
+        - PENDING
+        - SUSPENDED
+        - INACTIVE
     Organization:
       description: Models an Organization
       type: object

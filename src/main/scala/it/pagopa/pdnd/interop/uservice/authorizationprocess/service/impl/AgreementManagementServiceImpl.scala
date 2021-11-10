@@ -3,13 +3,14 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.AgreementApi
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.invoker.{ApiRequest, BearerToken}
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.Agreement
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums.Status
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementState
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
   AgreementManagementInvoker,
   AgreementManagementService
 }
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class AgreementManagementServiceImpl(invoker: AgreementManagementInvoker, api: AgreementApi)(implicit
@@ -20,23 +21,23 @@ class AgreementManagementServiceImpl(invoker: AgreementManagementInvoker, api: A
 
   override def getAgreements(
     bearerToken: String,
-    consumerId: String,
-    eserviceId: String,
-    status: Option[Status]
+    consumerId: UUID,
+    eserviceId: UUID,
+    state: Option[AgreementState]
   ): Future[Seq[Agreement]] = {
     val request: ApiRequest[Seq[Agreement]] =
-      api.getAgreements(consumerId = Some(consumerId), eserviceId = Some(eserviceId), status = status.map(_.toString))(
+      api.getAgreements(consumerId = Some(consumerId.toString), eserviceId = Some(eserviceId.toString), state = state)(
         BearerToken(bearerToken)
       )
     invoker
       .execute[Seq[Agreement]](request)
       .map { x =>
-        logger.info(s"Retrieving active agreements for $consumerId status code > ${x.code.toString}")
-        logger.info(s"Retrieving active agreements for $consumerId content > ${x.content.toString}")
+        logger.info(s"Retrieving active agreements for ${consumerId.toString} status code > ${x.code.toString}")
+        logger.info(s"Retrieving active agreements for ${consumerId.toString} content > ${x.content.toString}")
         x.content
       }
       .recoverWith { case ex =>
-        logger.error(s"Retrieving active agreements for $consumerId, error > ${ex.getMessage}")
+        logger.error(s"Retrieving active agreements for ${consumerId.toString}, error > ${ex.getMessage}")
         Future.failed[Seq[Agreement]](ex)
       }
   }

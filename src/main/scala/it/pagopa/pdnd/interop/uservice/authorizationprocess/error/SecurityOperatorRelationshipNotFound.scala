@@ -1,6 +1,8 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.error
 
-final case class SecurityOperatorRelationshipNotFound(consumerId: String, operatorTaxCode: String)
+import java.util.UUID
+
+final case class SecurityOperatorRelationshipNotFound(consumerId: UUID, relationshipId: UUID)
     extends Throwable(
-      s"Security operator relationship not found for consumer $consumerId and tax code $operatorTaxCode"
+      s"Security operator relationship not found for consumer ${consumerId.toString} and relationship ${relationshipId.toString}"
     )

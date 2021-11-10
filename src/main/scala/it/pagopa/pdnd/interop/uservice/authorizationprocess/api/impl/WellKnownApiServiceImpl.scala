@@ -11,7 +11,6 @@ import spray.json._
 
 import scala.util.{Failure, Success, Try}
 
-@SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Product"))
 final case class WellKnownApiServiceImpl(vaultService: VaultService) extends WellKnownApiService {
 
   /** Code: 200, Message: PDND public keys in JWK format., DataType: KeysResponse

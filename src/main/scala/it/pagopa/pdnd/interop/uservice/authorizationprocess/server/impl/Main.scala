@@ -33,6 +33,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   JWTValidatorImpl,
   M2MAuthorizationServiceImpl,
   PartyManagementServiceImpl,
+  UserRegistryManagementServiceImpl,
   VaultServiceImpl
 }
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.api.{EServiceApi => CatalogManagementApi}
@@ -41,6 +42,7 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{
   KeyApi => AuthorizationKeyApi
 }
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.{PartyApi => PartyManagementApi}
+import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.api.{UserApi => UserRegistryManagementApi}
 import kamon.Kamon
 
 import scala.concurrent.Future
@@ -63,6 +65,13 @@ trait PartyManagementAPI {
   val partyManagementService = new PartyManagementServiceImpl(
     PartyManagementInvoker(),
     PartyManagementApi(ApplicationConfiguration.getPartyManagementURL)
+  )
+}
+
+trait UserRegistryManagementAPI {
+  val userRegistryManagementService: UserRegistryManagementServiceImpl = UserRegistryManagementServiceImpl(
+    UserRegistryManagementInvoker(),
+    UserRegistryManagementApi(ApplicationConfiguration.getUserRegistryManagementURL)
   )
 }
 
@@ -93,8 +102,8 @@ trait JWTGeneratorDependency { self: VaultServiceDependency =>
   val jwtGenerator: JWTGeneratorImpl = JWTGeneratorImpl(vaultService)
 }
 
-trait JWTValidatorDependency { self: AuthorizationManagementAPI =>
-  val jwtValidator: JWTValidatorImpl = JWTValidatorImpl(authorizationManagementService)
+trait JWTValidatorDependency { self: AuthorizationManagementAPI with VaultServiceDependency =>
+  val jwtValidator: JWTValidatorImpl = JWTValidatorImpl(authorizationManagementService, vaultService)
 }
 
 object Main
@@ -107,7 +116,8 @@ object Main
     with PartyManagementAPI
     with JWTGeneratorDependency
     with JWTValidatorDependency
-    with M2MAuthorizationService {
+    with M2MAuthorizationService
+    with UserRegistryManagementAPI {
 
   Kamon.init()
 
@@ -129,7 +139,8 @@ object Main
       authorizationManagementService,
       agreementManagementService,
       catalogManagementService,
-      partyManagementService
+      partyManagementService,
+      userRegistryManagementService
     ),
     ClientApiMarshallerImpl,
     SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
