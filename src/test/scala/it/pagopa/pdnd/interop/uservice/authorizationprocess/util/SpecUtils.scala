@@ -38,6 +38,11 @@ import scala.concurrent.Future
 
 trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
+  System.setProperty("CATALOG_MANAGEMENT_URL", "localhost")
+  System.setProperty("KEY_MANAGEMENT_URL", "localhost")
+  System.setProperty("PARTY_MANAGEMENT_URL", "localhost")
+  System.setProperty("AGREEMENT_MANAGEMENT_URL", "localhost")
+
   val mockJwtValidator: JWTValidator                                     = mock[JWTValidator]
   val mockJwtGenerator: JWTGenerator                                     = mock[JWTGenerator]
   val mockAgreementManagementService: AgreementManagementService         = mock[AgreementManagementService]
@@ -65,7 +70,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     certification = NONE,
     extras = UserExtras(email = None, birthDate = None)
   )
-  val operatorSeed: OperatorSeed = OperatorSeed(user.externalId, user.name, user.surname)
+  val relationshipId: String = UUID.randomUUID().toString
 
   val activeDescriptor: CatalogManagementDescriptor = CatalogManagementDescriptor(
     id = UUID.randomUUID(),
@@ -103,7 +108,10 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     description = "Organization description",
     digitalAddress = "or2@test.pec.pagopa.it",
     id = organizationId,
-    attributes = Seq.empty
+    attributes = Seq.empty,
+    code = None,
+    fiscalCode = "123",
+    products = Set("PDND")
   )
 
   val consumer: PartyManagementOrganization = PartyManagementOrganization(
@@ -111,7 +119,10 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     description = "Organization description",
     digitalAddress = "org2@test.pec.pagopa.it",
     id = consumerId,
-    attributes = Seq.empty
+    attributes = Seq.empty,
+    code = None,
+    fiscalCode = "123",
+    products = Set("PDND")
   )
 
   val client: AuthManagementClient =
@@ -142,8 +153,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     from = user.id,
     to = organization.id,
     role = PartyRelationshipEnums.Role.Operator,
-    platformRole = "aPlatformRole",
-    status = PartyRelationshipEnums.Status.Active
+    productRole = "aPlatformRole",
+    status = PartyRelationshipEnums.Status.Active,
+    products = Set("PDND")
   )
 
   val relationships: PartyRelationships = PartyRelationships(Seq(relationship))

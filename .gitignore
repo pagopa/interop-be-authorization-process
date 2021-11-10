@@ -11,7 +11,9 @@ target
 .idea
 .openapi-generator
 generated/target
+generated/src
 client/target
+client/src
 client/project/build.properties
 .bsp
 .DS_Store

@@ -57,8 +57,9 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     from = user.id,
     to = UUID.randomUUID(),
     role = RelationshipEnums.Role.Operator,
-    platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR,
-    status = RelationshipEnums.Status.Active
+    productRole = PartyManagementService.ROLE_SECURITY_OPERATOR,
+    status = RelationshipEnums.Status.Active,
+    products = Set("PDND")
   )
 
   val relationship2: Relationship = Relationship(
@@ -66,8 +67,9 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     from = user.id,
     to = UUID.randomUUID(),
     role = RelationshipEnums.Role.Operator,
-    platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR,
-    status = RelationshipEnums.Status.Active
+    productRole = PartyManagementService.ROLE_SECURITY_OPERATOR,
+    status = RelationshipEnums.Status.Active,
+    products = Set("PDND")
   )
 
   val relationship3: Relationship = Relationship(
@@ -75,8 +77,9 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     from = user.id,
     to = UUID.randomUUID(),
     role = RelationshipEnums.Role.Manager,
-    platformRole = "admin",
-    status = RelationshipEnums.Status.Active
+    productRole = "admin",
+    status = RelationshipEnums.Status.Active,
+    products = Set("PDND")
   )
 
   override val relationships: Relationships = Relationships(Seq(relationship1, relationship2, relationship3))
