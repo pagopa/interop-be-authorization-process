@@ -75,13 +75,13 @@ spec:
                   name: key-paths
                   key: PDND_INTEROP_KEYS
             - name: AGREEMENT_MANAGEMENT_URL
-              value: {{agreementManagementUrl}}
+              value: "{{agreementManagementUrl}}"
             - name: CATALOG_MANAGEMENT_URL
-              value: {{catalogManagementUrl}}
+              value: "{{catalogManagementUrl}}"
             - name: KEY_MANAGEMENT_URL
-              value: {{keyManagementUrl}}
+              value: "{{keyManagementUrl}}"
             - name: PARTY_MANAGEMENT_URL
-              value: {{partyManagementUrl}}
+              value: "{{partyManagementUrl}}"
       volumes:
       - name: snapshots-volume
         emptyDir: {}
