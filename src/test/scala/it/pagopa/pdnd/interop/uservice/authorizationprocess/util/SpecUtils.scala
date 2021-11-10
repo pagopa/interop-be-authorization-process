@@ -7,25 +7,9 @@ import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => Agre
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
-  Attributes,
-  EService => CatalogManagementEService,
-  EServiceDescriptor => CatalogManagementDescriptor
-}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{
-  OtherPrimeInfo,
-  Client => AuthManagementClient,
-  ClientKey => AuthManagementClientKey,
-  Key => AuthManagementKey
-}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagementDependency}
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
-  Organization => PartyManagementOrganization,
-  Relationship => PartyRelationship,
-  Relationships => PartyRelationships
-}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{NONE, User, UserExtras}
 import org.scalamock.scalatest.MockFactory
@@ -69,7 +53,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   )
   val relationshipId: String = UUID.randomUUID().toString
 
-  val activeDescriptor: CatalogManagementDescriptor = CatalogManagementDescriptor(
+  val activeDescriptor: CatalogManagementDependency.EServiceDescriptor = CatalogManagementDependency.EServiceDescriptor(
     id = UUID.randomUUID(),
     version = "1",
     description = None,
@@ -80,13 +64,13 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     voucherLifespan = 10
   )
 
-  val eService: CatalogManagementEService = CatalogManagementEService(
+  val eService: CatalogManagementDependency.EService = CatalogManagementDependency.EService(
     id = eServiceId,
     producerId = organizationId,
     name = "Service name",
     description = "Service description",
     technology = CatalogManagementDependency.EServiceTechnology.REST,
-    attributes = Attributes(Seq.empty, Seq.empty, Seq.empty),
+    attributes = CatalogManagementDependency.Attributes(Seq.empty, Seq.empty, Seq.empty),
     descriptors = Seq(activeDescriptor)
   )
 
@@ -100,7 +84,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     verifiedAttributes = Seq.empty
   )
 
-  val organization: PartyManagementOrganization = PartyManagementOrganization(
+  val organization: PartyManagementDependency.Organization = PartyManagementDependency.Organization(
     institutionId = institutionId,
     description = "Organization description",
     digitalAddress = "or2@test.pec.pagopa.it",
@@ -111,7 +95,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     products = Set("PDND")
   )
 
-  val consumer: PartyManagementOrganization = PartyManagementOrganization(
+  val consumer: PartyManagementDependency.Organization = PartyManagementDependency.Organization(
     institutionId = "some-external-id2",
     description = "Organization description",
     digitalAddress = "org2@test.pec.pagopa.it",
@@ -122,8 +106,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     products = Set("PDND")
   )
 
-  val client: AuthManagementClient =
-    AuthManagementClient(
+  val client: AuthorizationManagementDependency.Client =
+    AuthorizationManagementDependency.Client(
       id = UUID.randomUUID(),
       eServiceId = eServiceId,
       consumerId = consumerId,
@@ -145,7 +129,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       state = OperatorState.ACTIVE
     )
 
-  val relationship: PartyRelationship = PartyRelationship(
+  val relationship: PartyManagementDependency.Relationship = PartyManagementDependency.Relationship(
     id = UUID.randomUUID(),
     from = user.id,
     to = organization.id,
@@ -155,11 +139,12 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     products = Set("PDND")
   )
 
-  val relationships: PartyRelationships = PartyRelationships(Seq(relationship))
+  val relationships: PartyManagementDependency.Relationships =
+    PartyManagementDependency.Relationships(Seq(relationship))
 
-  val createdKey: AuthManagementClientKey = AuthManagementClientKey(
+  val createdKey: AuthorizationManagementDependency.ClientKey = AuthorizationManagementDependency.ClientKey(
     relationshipId = UUID.randomUUID(),
-    key = AuthManagementKey(
+    key = AuthorizationManagementDependency.Key(
       kty = "1",
       keyOps = Some(Seq("2")),
       use = Some("3"),
@@ -181,15 +166,15 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       dp = Some("19"),
       dq = Some("20"),
       qi = Some("21"),
-      oth = Some(Seq(OtherPrimeInfo("22", "23", "24")))
+      oth = Some(Seq(AuthorizationManagementDependency.OtherPrimeInfo("22", "23", "24")))
     )
   )
 
   def mockClientComposition(
     withOperators: Boolean,
     client: keymanagement.client.model.Client = client,
-    relationship: PartyRelationship = relationship,
-    eService: CatalogManagementEService = eService,
+    relationship: PartyManagementDependency.Relationship = relationship,
+    eService: CatalogManagementDependency.EService = eService,
     agreements: Seq[AgreementManagerAgreement] = Seq(agreement)
   ): Unit = {
 
