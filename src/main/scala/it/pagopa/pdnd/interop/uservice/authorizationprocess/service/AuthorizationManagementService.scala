@@ -1,17 +1,17 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.EnumParameterError
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
   ClientKey => ApiClientKey,
+  ClientState => ApiClientState,
   Key => ApiKey,
   KeySeed => ApiKeySeed,
+  KeyUse => ApiKeyUse,
   OtherPrimeInfo => ApiOtherPrimeInfo
 }
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model._
 
 import java.util.UUID
 import scala.concurrent.Future
-import scala.util.Try
 
 trait AuthorizationManagementService {
 
@@ -41,8 +41,6 @@ trait AuthorizationManagementService {
   def getClientKeys(clientId: UUID): Future[KeysResponse]
   def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed]): Future[KeysResponse]
   def deleteKey(clientId: UUID, kid: String): Future[Unit]
-  def enableKey(clientId: UUID, kid: String): Future[Unit]
-  def disableKey(clientId: UUID, kid: String): Future[Unit]
   def getEncodedClientKey(clientId: UUID, kid: String): Future[EncodedClientKey]
 }
 
@@ -50,9 +48,8 @@ object AuthorizationManagementService {
 
   def keyToApi(clientKey: ClientKey): ApiClientKey = {
     import clientKey.key
-    ApiClientKey(
-      status = clientKey.status.toString,
-      key = ApiKey(
+    ApiClientKey(key =
+      ApiKey(
         kty = key.kty,
         key_ops = key.keyOps,
         use = key.use,
@@ -82,10 +79,24 @@ object AuthorizationManagementService {
   def primeInfoToApi(info: OtherPrimeInfo): ApiOtherPrimeInfo =
     ApiOtherPrimeInfo(r = info.r, d = info.d, t = info.t)
 
-  def toClientKeySeed(keySeed: ApiKeySeed, relationshipId: UUID): Either[EnumParameterError, KeySeed] =
-    Try(KeySeedEnums.Use.withName(keySeed.use)).toEither
-      .map(use => KeySeed(relationshipId = relationshipId, key = keySeed.key, use = use, alg = keySeed.alg))
-      .left
-      .map(_ => EnumParameterError("use", KeySeedEnums.Use.values.toSeq.map(_.toString)))
+  def toDependencyKeySeed(keySeed: ApiKeySeed, relationshipId: UUID): KeySeed =
+    KeySeed(
+      relationshipId = relationshipId,
+      key = keySeed.key,
+      use = keyUseToDependency(keySeed.use),
+      alg = keySeed.alg
+    )
+
+  def keyUseToDependency(use: ApiKeyUse): KeyUse =
+    use match {
+      case ApiKeyUse.SIG => KeyUse.SIG
+      case ApiKeyUse.ENC => KeyUse.ENC
+    }
+
+  def clientStateToApi(state: ClientState): ApiClientState =
+    state match {
+      case ClientState.ACTIVE    => ApiClientState.ACTIVE
+      case ClientState.SUSPENDED => ApiClientState.SUSPENDED
+    }
 
 }

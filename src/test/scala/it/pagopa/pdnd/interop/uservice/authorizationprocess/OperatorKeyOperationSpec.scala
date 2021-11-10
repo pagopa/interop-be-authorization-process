@@ -7,8 +7,8 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{ManagementClient, PartyManagementService}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
 import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{ClientEnums, KeysResponse}
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Relationship, RelationshipEnums, Relationships}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -24,9 +24,8 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
   val kid: String = "some-kid"
 
-  val apiClientKey: ClientKey = ClientKey(
-    status = createdKey.status.toString,
-    key = Key(
+  val apiClientKey: ClientKey = ClientKey(key =
+    Key(
       kty = createdKey.key.kty,
       key_ops = createdKey.key.keyOps,
       use = createdKey.key.use,
@@ -52,37 +51,38 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     )
   )
 
-  val relationship1: Relationship = Relationship(
+  val relationship1: PartyManagementDependency.Relationship = PartyManagementDependency.Relationship(
     id = UUID.randomUUID(),
     from = user.id,
     to = UUID.randomUUID(),
-    role = RelationshipEnums.Role.Operator,
+    role = PartyManagementDependency.PartyRole.OPERATOR,
     productRole = PartyManagementService.ROLE_SECURITY_OPERATOR,
-    status = RelationshipEnums.Status.Active,
+    state = PartyManagementDependency.RelationshipState.ACTIVE,
     products = Set("PDND")
   )
 
-  val relationship2: Relationship = Relationship(
+  val relationship2: PartyManagementDependency.Relationship = PartyManagementDependency.Relationship(
     id = UUID.randomUUID(),
     from = user.id,
     to = UUID.randomUUID(),
-    role = RelationshipEnums.Role.Operator,
+    role = PartyManagementDependency.PartyRole.OPERATOR,
     productRole = PartyManagementService.ROLE_SECURITY_OPERATOR,
-    status = RelationshipEnums.Status.Active,
+    state = PartyManagementDependency.RelationshipState.ACTIVE,
     products = Set("PDND")
   )
 
-  val relationship3: Relationship = Relationship(
+  val relationship3: PartyManagementDependency.Relationship = PartyManagementDependency.Relationship(
     id = UUID.randomUUID(),
     from = user.id,
     to = UUID.randomUUID(),
-    role = RelationshipEnums.Role.Manager,
+    role = PartyManagementDependency.PartyRole.MANAGER,
     productRole = "admin",
-    status = RelationshipEnums.Status.Active,
+    state = PartyManagementDependency.RelationshipState.ACTIVE,
     products = Set("PDND")
   )
 
-  override val relationships: Relationships = Relationships(Seq(relationship1, relationship2, relationship3))
+  override val relationships: PartyManagementDependency.Relationships =
+    PartyManagementDependency.Relationships(Seq(relationship1, relationship2, relationship3))
 
   val client1: ManagementClient = keymanagement.client.model.Client(
     id = UUID.randomUUID(),
@@ -92,7 +92,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     description = None,
     relationships = Set(relationship1.id),
     purposes = "purpose1",
-    status = ClientEnums.Status.Active
+    state = AuthorizationManagementDependency.ClientState.ACTIVE
   )
   val client2: ManagementClient = keymanagement.client.model.Client(
     id = UUID.randomUUID(),
@@ -102,7 +102,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     description = None,
     relationships = Set(relationship2.id),
     purposes = "purpose2",
-    status = ClientEnums.Status.Active
+    state = AuthorizationManagementDependency.ClientState.ACTIVE
   )
 
   "Retrieve key" should {
@@ -165,12 +165,20 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
       (mockAuthorizationManagementService.getClientKeys _)
         .expects(client1.id)
         .once()
-        .returns(Future.successful(KeysResponse(Seq(createdKey.copy(relationshipId = relationship1.id)))))
+        .returns(
+          Future.successful(
+            AuthorizationManagementDependency.KeysResponse(Seq(createdKey.copy(relationshipId = relationship1.id)))
+          )
+        )
 
       (mockAuthorizationManagementService.getClientKeys _)
         .expects(client2.id)
         .once()
-        .returns(Future.successful(KeysResponse(Seq(createdKey.copy(relationshipId = relationship2.id)))))
+        .returns(
+          Future.successful(
+            AuthorizationManagementDependency.KeysResponse(Seq(createdKey.copy(relationshipId = relationship2.id)))
+          )
+        )
 
       val expected = Seq(apiClientKey, apiClientKey)
 

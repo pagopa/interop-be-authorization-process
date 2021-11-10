@@ -6,19 +6,16 @@ import akka.http.scaladsl.server.Route
 import com.nimbusds.jose.JOSEException
 import com.nimbusds.jwt.JWTClaimsSet
 import it.pagopa.pdnd.interop.uservice.agreementmanagement
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.TryOps
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, OptionOps, expireIn, toUuid}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{
-  EService,
-  EServiceDescriptor,
-  EServiceDescriptorEnums
-}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.ClientEnums
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{EService, EServiceDescriptor}
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagementDependency}
 
 import java.text.ParseException
 import java.time.ZoneOffset
@@ -64,7 +61,7 @@ final case class AuthApiServiceImpl(
           m2mToken,
           client.consumerId,
           client.eServiceId,
-          Some(AgreementEnums.Status.Active)
+          Some(AgreementManagementDependency.AgreementState.ACTIVE)
         )
         activeAgreement <- getActiveAgreement(agreements, client.eServiceId, client.consumerId)
         eservice        <- catalogManagementService.getEService(m2mToken, client.eServiceId)
@@ -75,7 +72,7 @@ final case class AuthApiServiceImpl(
       } yield token
 
     onComplete(token) {
-      case Success(tk) => createToken200(ClientCredentialsResponse(tk, "bearer", expireIn))
+      case Success(tk) => createToken200(ClientCredentialsResponse(tk, TokenType.BEARER, expireIn))
       case Failure(ex) => manageError(ex)
     }
   }
@@ -93,16 +90,16 @@ final case class AuthApiServiceImpl(
   }
 
   private def clientMustBeActive(client: ManagementClient): Future[Unit] =
-    client.status match {
-      case ClientEnums.Status.Active => Future.successful(())
-      case _                         => Future.failed(ClientNotActive(client.id))
+    client.state match {
+      case AuthorizationManagementDependency.ClientState.ACTIVE => Future.successful(())
+      case _                                                    => Future.failed(ClientNotActive(client.id))
     }
 
   private def descriptorMustBeActive(descriptor: EServiceDescriptor): Future[Unit] =
-    descriptor.status match {
-      case EServiceDescriptorEnums.Status.Deprecated => Future.successful(())
-      case EServiceDescriptorEnums.Status.Published  => Future.successful(())
-      case _                                         => Future.failed(EServiceDescriptorNotActive(descriptor.id))
+    descriptor.state match {
+      case CatalogManagementDependency.EServiceDescriptorState.DEPRECATED => Future.successful(())
+      case CatalogManagementDependency.EServiceDescriptorState.PUBLISHED  => Future.successful(())
+      case _                                                              => Future.failed(EServiceDescriptorNotActive(descriptor.id))
     }
 
   private def getDescriptor(eService: EService, descriptorId: UUID): Future[EServiceDescriptor] =

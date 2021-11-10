@@ -89,16 +89,6 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     invoke(request, "Key Delete")
   }
 
-  override def enableKey(clientId: UUID, kid: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = keyApi.enableKeyById(clientId, kid)
-    invoke(request, "Key enable")
-  }
-
-  override def disableKey(clientId: UUID, kid: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = keyApi.disableKeyById(clientId, kid)
-    invoke(request, "Key disable")
-  }
-
   override def getClientKeys(clientId: UUID): Future[KeysResponse] = {
     val request: ApiRequest[KeysResponse] = keyApi.getClientKeys(clientId)
     invoke(request, "Client keys retrieve")

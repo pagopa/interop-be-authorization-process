@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.AgreementApi
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.invoker.{ApiRequest, BearerToken}
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.Agreement
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementEnums.Status
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementState
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
   AgreementManagementInvoker,
   AgreementManagementService
@@ -23,14 +23,12 @@ class AgreementManagementServiceImpl(invoker: AgreementManagementInvoker, api: A
     bearerToken: String,
     consumerId: UUID,
     eserviceId: UUID,
-    status: Option[Status]
+    state: Option[AgreementState]
   ): Future[Seq[Agreement]] = {
     val request: ApiRequest[Seq[Agreement]] =
-      api.getAgreements(
-        consumerId = Some(consumerId.toString),
-        eserviceId = Some(eserviceId.toString),
-        status = status.map(_.toString)
-      )(BearerToken(bearerToken))
+      api.getAgreements(consumerId = Some(consumerId.toString), eserviceId = Some(eserviceId.toString), state = state)(
+        BearerToken(bearerToken)
+      )
     invoker
       .execute[Seq[Agreement]](request)
       .map { x =>
