@@ -20,9 +20,6 @@ spec:
       containers:
         - name: {{name}}
           image: {{repository}}/services/{{name}}:{{version}}
-          volumeMounts:
-            - mountPath: /opt/docker/snapshots
-              name: snapshots-volume
           imagePullPolicy: Always
           readinessProbe:
             httpGet:
