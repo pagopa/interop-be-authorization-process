@@ -11,7 +11,8 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => Catalo
 import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
-import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{NONE, User, UserExtras}
+import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{User, UserExtras}
+import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.Certification.NONE
 import org.scalamock.scalatest.MockFactory
 
 import java.util.UUID
@@ -90,8 +91,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     digitalAddress = "or2@test.pec.pagopa.it",
     id = organizationId,
     attributes = Seq.empty,
-    code = None,
-    fiscalCode = "123",
+    taxCode = "123",
     products = Set("PDND")
   )
 
@@ -101,8 +101,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     digitalAddress = "org2@test.pec.pagopa.it",
     id = consumerId,
     attributes = Seq.empty,
-    code = None,
-    fiscalCode = "123",
+    taxCode = "123",
     products = Set("PDND")
   )
 
