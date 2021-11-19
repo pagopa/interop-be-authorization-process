@@ -82,9 +82,8 @@ spec:
               value: "{{keyManagementUrl}}"
             - name: PARTY_MANAGEMENT_URL
               value: "{{partyManagementUrl}}"
-      volumes:
-      - name: snapshots-volume
-        emptyDir: {}
+            - name: USER_REGISTRY_MANAGEMENT_URL
+              value: "{{userRegistryManagementUrl}}"
 ---
 apiVersion: v1
 kind: Service
