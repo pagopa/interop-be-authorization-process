@@ -24,6 +24,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   System.setProperty("KEY_MANAGEMENT_URL", "localhost")
   System.setProperty("PARTY_MANAGEMENT_URL", "localhost")
   System.setProperty("AGREEMENT_MANAGEMENT_URL", "localhost")
+  System.setProperty("USER_REGISTRY_MANAGEMENT_URL", "localhost")
 
   val mockJwtValidator: JWTValidator                                     = mock[JWTValidator]
   val mockJwtGenerator: JWTGenerator                                     = mock[JWTGenerator]

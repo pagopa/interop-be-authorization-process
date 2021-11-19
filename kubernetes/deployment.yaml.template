@@ -82,6 +82,8 @@ spec:
               value: "{{keyManagementUrl}}"
             - name: PARTY_MANAGEMENT_URL
               value: "{{partyManagementUrl}}"
+            - name: USER_REGISTRY_MANAGEMENT_URL
+              value: "{{userRegistryManagementUrl}}"
       volumes:
       - name: snapshots-volume
         emptyDir: {}
