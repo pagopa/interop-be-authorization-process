@@ -211,8 +211,9 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
   }
 
   def execForEachOperatorClientExpectations(): Unit = {
-    (mockPartyManagementService.getRelationshipsByPersonId _)
-      .expects(personId, None)
+    (mockPartyManagementService
+      .getRelationshipsByPersonId(_: UUID, _: Option[String])(_: String))
+      .expects(personId, None, bearerToken)
       .once()
       .returns(Future.successful(relationships))
 

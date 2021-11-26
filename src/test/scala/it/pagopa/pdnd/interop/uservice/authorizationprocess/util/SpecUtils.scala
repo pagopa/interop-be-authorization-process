@@ -2,6 +2,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.util
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
+import it.pagopa.pdnd.interop.commons.vault.service.VaultService
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement => AgreementManagerAgreement}
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl._
@@ -25,6 +26,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   System.setProperty("PARTY_MANAGEMENT_URL", "localhost")
   System.setProperty("AGREEMENT_MANAGEMENT_URL", "localhost")
   System.setProperty("USER_REGISTRY_MANAGEMENT_URL", "localhost")
+  System.setProperty("VAULT_ADDR", "localhost")
+  System.setProperty("VAULT_TOKEN", "TokenIlGurriero")
+  System.setProperty("PDND_INTEROP_KEYS", "test/keys")
 
   val mockJwtValidator: JWTValidator                                     = mock[JWTValidator]
   val mockJwtGenerator: JWTGenerator                                     = mock[JWTGenerator]
@@ -183,19 +187,22 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       .once()
       .returns(Future.successful(eService))
 
-    (mockPartyManagementService.getOrganization _)
-      .expects(eService.producerId)
+    (mockPartyManagementService
+      .getOrganization(_: UUID)(_: String))
+      .expects(eService.producerId, bearerToken)
       .once()
       .returns(Future.successful(organization))
 
-    (mockPartyManagementService.getOrganization _)
-      .expects(client.consumerId)
+    (mockPartyManagementService
+      .getOrganization(_: UUID)(_: String))
+      .expects(client.consumerId, bearerToken)
       .once()
       .returns(Future.successful(consumer))
 
     if (withOperators) {
-      (mockPartyManagementService.getRelationshipById _)
-        .expects(relationship.id)
+      (mockPartyManagementService
+        .getRelationshipById(_: UUID)(_: String))
+        .expects(relationship.id, bearerToken)
         .once()
         .returns(Future.successful(relationship))
 

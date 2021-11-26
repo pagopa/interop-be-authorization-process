@@ -2,12 +2,12 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 
 import com.nimbusds.jose.{JWSAlgorithm, JWSVerifier}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.TryOps
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, toUuid}
+import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{StringOps, TryOps}
+import it.pagopa.pdnd.interop.commons.vault.service.VaultService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
   AuthorizationManagementService,
   JWTValidator,
-  VaultService
+  VaultSecretPaths
 }
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -29,7 +29,7 @@ final case class JWTValidatorImpl(keyManager: AuthorizationManagementService, va
     for {
       info <- extractJwtInfo(clientAssertion, clientAssertionType, grantType, clientId)
       (jwt, kid, clientId) = info
-      clientUUid <- toUuid(clientId).toFuture
+      clientUUid <- clientId.toFutureUUID
       publicKey  <- keyManager.getKey(clientUUid, kid)
       verifier   <- getVerifier(jwt.getHeader.getAlgorithm, publicKey.key)
       _ = logger.info("Verify signature")
@@ -52,16 +52,16 @@ final case class JWTValidatorImpl(keyManager: AuthorizationManagementService, va
   private def getPublicKey(algorithm: JWSAlgorithm, kid: String): Future[JWSVerifier] = algorithm match {
     case JWSAlgorithm.RS256 | JWSAlgorithm.RS384 | JWSAlgorithm.RS512 =>
       val result = for {
-        vaultPath <- VaultService.extractKeyPath("rsa", "public")
-        keys = vaultService.getSecret(vaultPath)
+        vaultPath <- Try { VaultSecretPaths.extractPublicKeysPath("rsa") }
+        keys = vaultService.readBase64EncodedData(vaultPath)
         publicKey <- Try(keys(kid))
       } yield publicKey
       result.toFuture.flatMap(key => rsa(key))
 
     case JWSAlgorithm.ES256 =>
       val result = for {
-        vaultPath <- VaultService.extractKeyPath("ec", "public")
-        keys = vaultService.getSecret(vaultPath)
+        vaultPath <- Try { VaultSecretPaths.extractPublicKeysPath("ec") }
+        keys = vaultService.readBase64EncodedData(vaultPath)
         publicKey <- Try(keys(kid))
       } yield publicKey
       result.toFuture.flatMap(key => ec(key))

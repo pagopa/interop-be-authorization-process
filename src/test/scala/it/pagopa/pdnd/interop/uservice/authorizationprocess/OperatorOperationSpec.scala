@@ -43,8 +43,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       val activeRelationship: PartyManagementDependency.Relationship =
         relationship.copy(productRole = PartyManagementService.ROLE_SECURITY_OPERATOR)
 
-      (mockPartyManagementService.getRelationshipById _)
-        .expects(UUID.fromString(relationshipId))
+      (mockPartyManagementService
+        .getRelationshipById(_: UUID)(_: String))
+        .expects(UUID.fromString(relationshipId), bearerToken)
         .once()
         .returns(Future.successful(activeRelationship))
 
@@ -114,8 +115,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
-      (mockPartyManagementService.getRelationshipById _)
-        .expects(UUID.fromString(relationshipId))
+      (mockPartyManagementService
+        .getRelationshipById(_: UUID)(_: String))
+        .expects(UUID.fromString(relationshipId), bearerToken)
         .once()
         .returns(Future.successful(operatorRelationship))
 
@@ -170,8 +172,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
-      (mockPartyManagementService.getRelationshipById _)
-        .expects(operatorRelationship.id)
+      (mockPartyManagementService
+        .getRelationshipById(_: UUID)(_: String))
+        .expects(operatorRelationship.id, bearerToken)
         .once()
         .returns(Future.successful(operatorRelationship))
 
@@ -226,8 +229,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
 
-      (mockPartyManagementService.getRelationshipById _)
-        .expects(relationship.id)
+      (mockPartyManagementService
+        .getRelationshipById(_: UUID)(_: String))
+        .expects(relationship.id, bearerToken)
         .once()
         .returns(Future.successful(relationship))
 

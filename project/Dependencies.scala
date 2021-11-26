@@ -36,6 +36,10 @@ object Dependencies {
 
     lazy val userRegistryManagement =
       namespace %% "pdnd-interop-uservice-user-registry-management-client" % userRegistryManagementVersion
+
+    lazy val commons = namespace %% "pdnd-interop-commons-utils" % commonsVersion
+    lazy val jwt     = namespace %% "pdnd-interop-commons-jwt"   % commonsVersion
+    lazy val vault   = namespace %% "pdnd-interop-commons-vault" % commonsVersion
   }
 
   private[this] object nimbus {
@@ -52,11 +56,6 @@ object Dependencies {
     lazy val namespace = "org.bouncycastle"
     lazy val provider  = namespace % "bcprov-jdk15on" % bouncycastleVersion
     lazy val kix       = namespace % "bcpkix-jdk15on" % bouncycastleVersion
-  }
-
-  private[this] object vault {
-    lazy val namespace = "com.bettercloud"
-    lazy val driver    = namespace % "vault-java-driver" % vaultDriverVersion
   }
 
   private[this] object scalpb {
@@ -139,11 +138,13 @@ object Dependencies {
       nimbus.joseJwt                % Compile,
       openapi4j.operationValidator  % Compile,
       pagopa.agreementManagement    % Compile,
+      pagopa.commons                % Compile,
       pagopa.catalogManagement      % Compile,
+      pagopa.jwt                    % Compile,
       pagopa.keyManagement          % Compile,
       pagopa.partyManagement        % Compile,
       pagopa.userRegistryManagement % Compile,
-      vault.driver                  % Compile,
+      pagopa.vault                  % Compile,
       scalpb.core                   % "protobuf",
       akka.httpTestkit              % Test,
       akka.streamTestkit            % Test,

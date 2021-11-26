@@ -3,6 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Route
 import cats.implicits._
+import it.pagopa.pdnd.interop.commons.vault.service.VaultService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.WellKnownApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
@@ -21,14 +22,14 @@ final case class WellKnownApiServiceImpl(vaultService: VaultService) extends Wel
     toEntityMarshallerKeysResponse: ToEntityMarshaller[KeysResponse],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
-    val rsaPublicKey: Try[Map[String, String]] = {
-      val path = VaultService.extractKeyPath("rsa", "public")
-      path.map(vaultService.getSecret)
+    val rsaPublicKey: Try[Map[String, String]] = Try {
+      val path = VaultSecretPaths.extractPublicKeysPath("rsa")
+      vaultService.readBase64EncodedData(path)
     }
 
-    val ecPublicKey: Try[Map[String, String]] = {
-      val path = VaultService.extractKeyPath("ec", "public")
-      path.map(vaultService.getSecret)
+    val ecPublicKey: Try[Map[String, String]] = Try {
+      val path = VaultSecretPaths.extractPublicKeysPath("ec")
+      vaultService.readBase64EncodedData(path)
     }
 
     val result: Try[Seq[Key]] = for {
