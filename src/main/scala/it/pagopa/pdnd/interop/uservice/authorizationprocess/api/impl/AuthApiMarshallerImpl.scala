@@ -4,7 +4,8 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiMarshaller
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.uuidFormat
+import it.pagopa.pdnd.interop.commons.utils.SprayCommonFormats.uuidFormat
+
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 
 import java.util.UUID

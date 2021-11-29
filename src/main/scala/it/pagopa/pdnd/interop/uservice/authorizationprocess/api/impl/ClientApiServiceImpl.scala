@@ -7,7 +7,9 @@ import cats.implicits._
 import it.pagopa.pdnd.interop.uservice._
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.ClientApiService
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, OptionOps, toUuid}
+import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
+import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getFutureBearer
+import it.pagopa.pdnd.interop.commons.utils.errors.MissingBearer
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AuthorizationManagementService.clientStateToApi
@@ -53,7 +55,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
     val result = for {
-      bearerToken <- extractBearer(contexts)
+      bearerToken <- getFutureBearer(contexts)
       _           <- catalogManagementService.getEService(bearerToken, clientSeed.eServiceId)
       client <- authorizationManagementService.createClient(
         clientSeed.eServiceId,
@@ -66,8 +68,8 @@ final case class ClientApiServiceImpl(
     } yield apiClient
 
     onComplete(result) {
-      case Success(client)                    => createClient201(client)
-      case Failure(ex @ UnauthenticatedError) => createClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Success(client)             => createClient201(client)
+      case Failure(ex @ MissingBearer) => createClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: CatalogManagementApiError[_]) if ex.code == 404 =>
         createClient404(Problem(Some(s"E-Service id ${clientSeed.eServiceId.toString} not found"), 404, "Not found"))
       case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on client creation"))
@@ -85,15 +87,15 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
     val result = for {
-      bearerToken <- extractBearer(contexts)
-      clientUuid  <- toUuid(clientId).toFuture
+      bearerToken <- getFutureBearer(contexts)
+      clientUuid  <- clientId.toFutureUUID
       client      <- authorizationManagementService.getClient(clientUuid)
       apiClient   <- getClient(bearerToken, client)
     } yield apiClient
 
     onComplete(result) {
-      case Success(client)                    => getClient200(client)
-      case Failure(ex @ UnauthenticatedError) => getClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Success(client)             => getClient200(client)
+      case Failure(ex @ MissingBearer) => getClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClient404(Problem(Some(ex.message), 404, "Client not found"))
       case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on client retrieve"))
@@ -118,12 +120,13 @@ final case class ClientApiServiceImpl(
   ): Route = {
     // TODO Improve multiple requests
     val result = for {
-      bearerToken  <- extractBearer(contexts)
-      eServiceUuid <- eServiceId.traverse(toUuid).toFuture
-      operatorUuid <- operatorId.traverse(toUuid).toFuture
-      consumerUuid <- consumerId.traverse(toUuid).toFuture
+      bearerToken  <- getFutureBearer(contexts)
+      eServiceUuid <- eServiceId.traverse(id => id.toFutureUUID)
+      operatorUuid <- operatorId.traverse(id => id.toFutureUUID)
+      consumerUuid <- consumerId.traverse(id => id.toFutureUUID)
       relationships <- operatorUuid.traverse(
-        partyManagementService.getRelationshipsByPersonId(_, Some(PartyManagementService.ROLE_SECURITY_OPERATOR))
+        partyManagementService
+          .getRelationshipsByPersonId(_, Some(PartyManagementService.ROLE_SECURITY_OPERATOR))(bearerToken)
       )
       clients <- relationships match {
         case None => authorizationManagementService.listClients(offset, limit, eServiceUuid, None, consumerUuid)
@@ -136,10 +139,10 @@ final case class ClientApiServiceImpl(
     } yield clientsDetails
 
     onComplete(result) {
-      case Success(clients)                   => listClients200(clients)
-      case Failure(ex: UUIDConversionError)   => listClients400(Problem(Option(ex.getMessage), 400, "Bad request"))
-      case Failure(ex @ UnauthenticatedError) => listClients401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex)                        => internalServerError(Problem(Option(ex.getMessage), 500, "Error on clients list"))
+      case Success(clients)                 => listClients200(clients)
+      case Failure(ex: UUIDConversionError) => listClients400(Problem(Option(ex.getMessage), 400, "Bad request"))
+      case Failure(ex @ MissingBearer)      => listClients401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex)                      => internalServerError(Problem(Option(ex.getMessage), 500, "Error on clients list"))
     }
   }
 
@@ -152,14 +155,14 @@ final case class ClientApiServiceImpl(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
     val result = for {
-      _          <- extractBearer(contexts)
-      clientUuid <- toUuid(clientId).toFuture
+      _          <- getFutureBearer(contexts)
+      clientUuid <- clientId.toFutureUUID
       _          <- authorizationManagementService.deleteClient(clientUuid)
     } yield ()
 
     onComplete(result) {
-      case Success(_)                         => deleteClient204
-      case Failure(ex @ UnauthenticatedError) => deleteClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Success(_)                  => deleteClient204
+      case Failure(ex @ MissingBearer) => deleteClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         deleteClient404(Problem(Option(ex.getMessage), 404, "Client not found"))
       case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on client deletion"))
@@ -177,11 +180,11 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
     val result = for {
-      bearerToken      <- extractBearer(contexts)
-      clientUUID       <- toUuid(clientId).toFuture
-      relationshipUUID <- toUuid(relationshipId).toFuture
+      bearerToken      <- getFutureBearer(contexts)
+      clientUUID       <- clientId.toFutureUUID
+      relationshipUUID <- relationshipId.toFutureUUID
       client           <- authorizationManagementService.getClient(clientUUID)
-      relationship     <- getSecurityRelationship(relationshipUUID)
+      relationship     <- getSecurityRelationship(relationshipUUID)(bearerToken)
       updatedClient <- client.relationships
         .find(_ === relationship.id)
         .fold(authorizationManagementService.addRelationship(clientUUID, relationship.id))(_ =>
@@ -192,7 +195,7 @@ final case class ClientApiServiceImpl(
 
     onComplete(result) {
       case Success(client) => clientOperatorRelationshipBinding201(client)
-      case Failure(ex @ UnauthenticatedError) =>
+      case Failure(ex @ MissingBearer) =>
         clientOperatorRelationshipBinding401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: UUIDConversionError) =>
         clientOperatorRelationshipBinding400(Problem(Option(ex.getMessage), 400, "Bad request"))
@@ -216,15 +219,15 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _                <- extractBearer(contexts)
-      clientUUID       <- toUuid(clientId).toFuture
-      relationshipUUID <- toUuid(relationshipId).toFuture
+      _                <- getFutureBearer(contexts)
+      clientUUID       <- clientId.toFutureUUID
+      relationshipUUID <- relationshipId.toFutureUUID
       _                <- authorizationManagementService.removeClientRelationship(clientUUID, relationshipUUID)
     } yield ()
 
     onComplete(result) {
       case Success(_) => removeClientOperatorRelationship204
-      case Failure(ex @ UnauthenticatedError) =>
+      case Failure(ex @ MissingBearer) =>
         removeClientOperatorRelationship401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: UUIDConversionError) =>
         removeClientOperatorRelationship400(Problem(Option(ex.getMessage), 400, "Bad request"))
@@ -245,14 +248,14 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _          <- extractBearer(contexts)
-      clientUuid <- toUuid(clientId).toFuture
+      _          <- getFutureBearer(contexts)
+      clientUuid <- clientId.toFutureUUID
       key        <- authorizationManagementService.getKey(clientUuid, keyId)
     } yield AuthorizationManagementService.keyToApi(key)
 
     onComplete(result) {
       case Success(key) => getClientKeyById200(key)
-      case Failure(ex @ UnauthenticatedError) =>
+      case Failure(ex @ MissingBearer) =>
         getClientKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClientKeyById404(Problem(Some(ex.message), 404, "Not found"))
@@ -270,14 +273,14 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _          <- extractBearer(contexts)
-      clientUuid <- toUuid(clientId).toFuture
+      _          <- getFutureBearer(contexts)
+      clientUuid <- clientId.toFutureUUID
       _          <- authorizationManagementService.deleteKey(clientUuid, keyId)
     } yield ()
 
     onComplete(result) {
       case Success(_) => deleteClientKeyById204
-      case Failure(ex @ UnauthenticatedError) =>
+      case Failure(ex @ MissingBearer) =>
         deleteClientKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         deleteClientKeyById404(Problem(Some(ex.message), 404, "Not found"))
@@ -296,10 +299,12 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _                <- extractBearer(contexts)
-      clientUuid       <- toUuid(clientId).toFuture
-      client           <- authorizationManagementService.getClient(clientUuid)
-      relationshipsIds <- keysSeeds.traverse(seed => securityOperatorRelationship(client.consumerId, seed.operatorId))
+      bearerToken <- getFutureBearer(contexts)
+      clientUuid  <- clientId.toFutureUUID
+      client      <- authorizationManagementService.getClient(clientUuid)
+      relationshipsIds <- keysSeeds.traverse(seed =>
+        securityOperatorRelationship(client.consumerId, seed.operatorId)(bearerToken)
+      )
       seeds <- keysSeeds
         .zip(relationshipsIds)
         .traverse {
@@ -313,9 +318,9 @@ final case class ClientApiServiceImpl(
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
-      case Success(keys)                      => createKeys201(keys)
-      case Failure(ex @ UnauthenticatedError) => createKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex: EnumParameterError)    => createKeys400(Problem(Option(ex.getMessage), 400, "Bad Request"))
+      case Success(keys)                   => createKeys201(keys)
+      case Failure(ex @ MissingBearer)     => createKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex: EnumParameterError) => createKeys400(Problem(Option(ex.getMessage), 400, "Bad Request"))
       case Failure(ex: SecurityOperatorRelationshipNotFound) =>
         createKeys403(Problem(Option(ex.getMessage), 403, "Forbidden"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
@@ -335,14 +340,14 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _            <- extractBearer(contexts)
-      clientUuid   <- toUuid(clientId).toFuture
+      _            <- getFutureBearer(contexts)
+      clientUuid   <- clientId.toFutureUUID
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
-      case Success(keys)                      => getClientKeys200(keys)
-      case Failure(ex @ UnauthenticatedError) => getClientKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Success(keys)               => getClientKeys200(keys)
+      case Failure(ex @ MissingBearer) => getClientKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClientKeys404(Problem(Some(ex.message), 404, "Not found"))
       case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on client keys retrieve"))
@@ -359,15 +364,15 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _          <- extractBearer(contexts)
-      clientUuid <- toUuid(clientId).toFuture
-      client     <- authorizationManagementService.getClient(clientUuid)
-      operators  <- operatorsFromClient(client)
+      bearerToken <- getFutureBearer(contexts)
+      clientUuid  <- clientId.toFutureUUID
+      client      <- authorizationManagementService.getClient(clientUuid)
+      operators   <- operatorsFromClient(client)(bearerToken)
     } yield operators
 
     onComplete(result) {
       case Success(keys) => getClientOperators200(keys)
-      case Failure(ex @ UnauthenticatedError) =>
+      case Failure(ex @ MissingBearer) =>
         getClientOperators401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClientOperators404(Problem(Some(ex.message), 404, "Not found"))
@@ -385,17 +390,17 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _                <- extractBearer(contexts)
-      clientUUID       <- toUuid(clientId).toFuture
-      relationshipUUID <- toUuid(relationshipId).toFuture
+      bearerToken      <- getFutureBearer(contexts)
+      clientUUID       <- clientId.toFutureUUID
+      relationshipUUID <- relationshipId.toFutureUUID
       client           <- authorizationManagementService.getClient(clientUUID)
       _                <- hasClientRelationship(client, relationshipUUID)
-      operator         <- operatorFromRelationship(relationshipUUID)
+      operator         <- operatorFromRelationship(relationshipUUID)(bearerToken)
     } yield operator
 
     onComplete(result) {
       case Success(operator) => getClientOperatorRelationshipById200(operator)
-      case Failure(ex @ UnauthenticatedError) =>
+      case Failure(ex @ MissingBearer) =>
         getClientOperatorRelationshipById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClientOperatorRelationshipById404(Problem(Some(ex.message), 404, "Not found"))
@@ -412,8 +417,8 @@ final case class ClientApiServiceImpl(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
     val result = for {
-      _          <- extractBearer(contexts)
-      clientUuid <- toUuid(clientId).toFuture
+      _          <- getFutureBearer(contexts)
+      clientUuid <- clientId.toFutureUUID
       _          <- authorizationManagementService.activateClient(clientUuid)
     } yield ()
 
@@ -421,7 +426,7 @@ final case class ClientApiServiceImpl(
       case Success(_) => activateClientById204
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 400 =>
         activateClientById400(Problem(Option(ex.getMessage), 400, "Bad Request"))
-      case Failure(ex @ UnauthenticatedError) =>
+      case Failure(ex @ MissingBearer) =>
         activateClientById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         activateClientById404(Problem(Option(ex.getMessage), 404, "Client not found"))
@@ -436,8 +441,8 @@ final case class ClientApiServiceImpl(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
     val result = for {
-      _          <- extractBearer(contexts)
-      clientUuid <- toUuid(clientId).toFuture
+      _          <- getFutureBearer(contexts)
+      clientUuid <- clientId.toFutureUUID
       _          <- authorizationManagementService.suspendClient(clientUuid)
     } yield ()
 
@@ -445,7 +450,7 @@ final case class ClientApiServiceImpl(
       case Success(_) => suspendClientById204
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 400 =>
         suspendClientById400(Problem(Option(ex.getMessage), 400, "Bad Request"))
-      case Failure(ex @ UnauthenticatedError) =>
+      case Failure(ex @ MissingBearer) =>
         suspendClientById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         suspendClientById404(Problem(Option(ex.getMessage), 404, "Client not found"))
@@ -456,16 +461,18 @@ final case class ClientApiServiceImpl(
   private[this] def getClient(bearerToken: String, client: KeyManagementDependency.Client): Future[Client] = {
     for {
       eService   <- catalogManagementService.getEService(bearerToken, client.eServiceId)
-      producer   <- partyManagementService.getOrganization(eService.producerId)
-      consumer   <- partyManagementService.getOrganization(client.consumerId)
-      operators  <- operatorsFromClient(client)
+      producer   <- partyManagementService.getOrganization(eService.producerId)(bearerToken)
+      consumer   <- partyManagementService.getOrganization(client.consumerId)(bearerToken)
+      operators  <- operatorsFromClient(client)(bearerToken)
       agreements <- agreementManagementService.getAgreements(bearerToken, consumer.id, eService.id, None)
       agreement  <- getLatestAgreement(agreements, eService).toFuture(ClientAgreementNotFoundError(client.id))
       client     <- clientToApi(client, eService, producer, consumer, agreement, operators)
     } yield client
   }
 
-  private[this] def getSecurityRelationship(relationshipId: UUID): Future[partymanagement.client.model.Relationship] = {
+  private[this] def getSecurityRelationship(
+    relationshipId: UUID
+  )(bearerToken: String): Future[partymanagement.client.model.Relationship] = {
 
     def isActiveSecurityOperatorRelationship(relationship: Relationship): Future[Boolean] = {
       val condition = relationship.productRole == PartyManagementService.ROLE_SECURITY_OPERATOR &&
@@ -479,19 +486,18 @@ final case class ClientApiServiceImpl(
     }
 
     for {
-      relationship <- partyManagementService.getRelationshipById(relationshipId)
+      relationship <- partyManagementService.getRelationshipById(relationshipId)(bearerToken)
       _            <- isActiveSecurityOperatorRelationship(relationship)
     } yield relationship
   }
 
-  private[this] def securityOperatorRelationship(
-    consumerId: UUID,
-    operatorId: UUID
+  private[this] def securityOperatorRelationship(consumerId: UUID, operatorId: UUID)(
+    bearerToken: String
   ): Future[Option[PartyManagementDependency.Relationship]] =
     for {
       relationships <-
         partyManagementService
-          .getRelationships(consumerId, operatorId, PartyManagementService.ROLE_SECURITY_OPERATOR)
+          .getRelationships(consumerId, operatorId, PartyManagementService.ROLE_SECURITY_OPERATOR)(bearerToken)
           .map(Some(_))
           // TODO This is dangerous because every error is treated as "missing party with given tax code"
           //  but currently there is no precise way to identify the error
@@ -502,8 +508,10 @@ final case class ClientApiServiceImpl(
       securityOperatorRel = activeRelationships.headOption // Only one expected
     } yield securityOperatorRel
 
-  private[this] def operatorsFromClient(client: KeyManagementDependency.Client): Future[Seq[Operator]] =
-    client.relationships.toSeq.traverse(operatorFromRelationship)
+  private[this] def operatorsFromClient(client: KeyManagementDependency.Client)(
+    bearerToken: String
+  ): Future[Seq[Operator]] =
+    client.relationships.toSeq.traverse(r => operatorFromRelationship(r)(bearerToken))
 
   private[this] def hasClientRelationship(
     client: keymanagement.client.model.Client,
@@ -513,9 +521,9 @@ final case class ClientApiServiceImpl(
       .find(r => r == relationshipId)
       .toFuture(SecurityOperatorRelationshipNotFound(client.consumerId, relationshipId))
 
-  private[this] def operatorFromRelationship(relationshipId: UUID): Future[Operator] =
+  private[this] def operatorFromRelationship(relationshipId: UUID)(bearerToken: String): Future[Operator] =
     for {
-      relationship  <- partyManagementService.getRelationshipById(relationshipId)
+      relationship  <- partyManagementService.getRelationshipById(relationshipId)(bearerToken)
       user          <- userRegistryManagementService.getUserById(relationship.from)
       operatorState <- relationshipStateToApi(relationship.state).toFuture
     } yield Operator(
@@ -593,14 +601,14 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _          <- extractBearer(contexts)
-      clientUuid <- toUuid(clientId).toFuture
+      _          <- getFutureBearer(contexts)
+      clientUuid <- clientId.toFutureUUID
       encodedKey <- authorizationManagementService.getEncodedClientKey(clientUuid, keyId)
     } yield EncodedClientKey(key = encodedKey.key)
 
     onComplete(result) {
       case Success(key) => getEncodedClientKeyById200(key)
-      case Failure(ex @ UnauthenticatedError) =>
+      case Failure(ex @ MissingBearer) =>
         getEncodedClientKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         getClientKeyById404(Problem(Some(ex.message), 404, "Not found"))

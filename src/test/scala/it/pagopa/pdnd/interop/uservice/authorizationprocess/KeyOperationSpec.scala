@@ -12,6 +12,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
@@ -132,8 +133,9 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .once()
         .returns(Future.successful(client))
 
-      (mockPartyManagementService.getRelationships _)
-        .expects(client.consumerId, user.id, PartyManagementService.ROLE_SECURITY_OPERATOR)
+      (mockPartyManagementService
+        .getRelationships(_: UUID, _: UUID, _: String)(_: String))
+        .expects(client.consumerId, user.id, PartyManagementService.ROLE_SECURITY_OPERATOR, bearerToken)
         .once()
         .returns(Future.successful(relationships))
 

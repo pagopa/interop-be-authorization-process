@@ -8,14 +8,15 @@ import com.nimbusds.jwt.JWTClaimsSet
 import it.pagopa.pdnd.interop.uservice.agreementmanagement
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.TryOps
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.{EitherOps, OptionOps, expireIn, toUuid}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.expireIn
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{EService, EServiceDescriptor}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{OptionOps, StringOps, TryOps}
+import it.pagopa.pdnd.interop.commons.utils.errors.MissingBearer
 
 import java.text.ParseException
 import java.time.ZoneOffset
@@ -54,7 +55,7 @@ final case class AuthApiServiceImpl(
         m2mToken  <- m2mAuthorizationService.token
         validated <- jwtValidator.validate(clientAssertion, clientAssertionType, grantType, clientId)
         (clientId, assertion) = validated
-        clientUuid <- toUuid(clientId).toFuture
+        clientUuid <- clientId.toFutureUUID
         client     <- authorizationManagementService.getClient(clientUuid)
         _          <- clientMustBeActive(client)
         agreements <- agreementManagementService.getAgreements(
@@ -108,7 +109,7 @@ final case class AuthApiServiceImpl(
       .toFuture(DescriptorNotFound(eService.id, descriptorId))
 
   private def manageError(error: Throwable): Route = error match {
-    case ex @ UnauthenticatedError     => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+    case ex @ MissingBearer            => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
     case ex: ParseException            => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
     case ex: JOSEException             => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
     case ex @ InvalidJWTSign           => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))

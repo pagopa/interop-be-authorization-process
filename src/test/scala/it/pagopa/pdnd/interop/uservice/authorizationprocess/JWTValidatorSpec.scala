@@ -34,7 +34,7 @@ class JWTValidatorSpec
       val audience = "1a55bd02-a25d-43fe-9a34-fea7b0c871c1"
       val bearer   = makeJWT(clientId, audience, "RSA", rsaKid, privateRsaKey)
 
-      (mockVaultService.getSecret _)
+      (mockVaultService.readBase64EncodedData _)
         .expects(*)
         .returns(Map(rsaKid -> publicRsaKey))
         .once()

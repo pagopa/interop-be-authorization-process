@@ -1,6 +1,7 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{PartyManagementInvoker, PartyManagementService}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.BearerToken
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.PartyApi
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.ApiRequest
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
@@ -21,39 +22,44 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  override def getOrganization(organizationId: UUID): Future[Organization] = {
-    val request: ApiRequest[Organization] = api.getOrganizationById(organizationId)
+  override def getOrganization(organizationId: UUID)(bearerToken: String): Future[Organization] = {
+    val request: ApiRequest[Organization] = api.getOrganizationById(organizationId)(BearerToken(bearerToken))
     invoke(request, "Retrieve Organization")
   }
 
-  override def getPerson(personId: UUID): Future[Person] = {
-    val request: ApiRequest[Person] = api.getPersonById(personId)
+  override def getPerson(personId: UUID)(bearerToken: String): Future[Person] = {
+    val request: ApiRequest[Person] = api.getPersonById(personId)(BearerToken(bearerToken))
     invoke(request, "Retrieve Person")
   }
 
-  override def getRelationships(organizationId: UUID, personId: UUID, platformRole: String): Future[Relationships] = {
+  override def getRelationships(organizationId: UUID, personId: UUID, platformRole: String)(
+    bearerToken: String
+  ): Future[Relationships] = {
     val request: ApiRequest[Relationships] =
-      api.getRelationships(Some(personId), Some(organizationId), Some(platformRole))
+      api.getRelationships(Some(personId), Some(organizationId), Some(platformRole))(BearerToken(bearerToken))
     invoke(request, "Retrieve Relationships")
   }
 
-  override def getRelationshipsByPersonId(personId: UUID, platformRole: Option[String]): Future[Relationships] = {
-    val request: ApiRequest[Relationships] = api.getRelationships(Some(personId), None, platformRole)
+  override def getRelationshipsByPersonId(personId: UUID, platformRole: Option[String])(
+    bearerToken: String
+  ): Future[Relationships] = {
+    val request: ApiRequest[Relationships] =
+      api.getRelationships(Some(personId), None, platformRole)(BearerToken(bearerToken))
     invoke(request, "Retrieve Relationships By Person Id")
   }
 
-  override def getRelationshipById(relationshipId: UUID): Future[Relationship] = {
-    val request: ApiRequest[Relationship] = api.getRelationshipById(relationshipId)
+  override def getRelationshipById(relationshipId: UUID)(bearerToken: String): Future[Relationship] = {
+    val request: ApiRequest[Relationship] = api.getRelationshipById(relationshipId)(BearerToken(bearerToken))
     invoke(request, "Retrieve Relationship By Id")
   }
 
-  def createPerson(seed: PersonSeed): Future[Person] = {
-    val request: ApiRequest[Person] = api.createPerson(seed)
+  def createPerson(seed: PersonSeed)(bearerToken: String): Future[Person] = {
+    val request: ApiRequest[Person] = api.createPerson(seed)(BearerToken(bearerToken))
     invoke(request, "Creating Person")
   }
 
-  def createRelationship(seed: RelationshipSeed): Future[Relationship] = {
-    val createRequest: ApiRequest[Relationship] = api.createRelationship(seed)
+  def createRelationship(seed: RelationshipSeed)(bearerToken: String): Future[Relationship] = {
+    val createRequest: ApiRequest[Relationship] = api.createRelationship(seed)(BearerToken(bearerToken))
     invoke(createRequest, "Creating Relationship")
   }
 

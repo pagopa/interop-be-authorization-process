@@ -9,23 +9,17 @@ object ApplicationConfiguration {
     config.getInt("uservice-authorization-process.port")
   }
 
-  def getKeyManagementUrl: String = {
-    val keyManagementUrl: String = config.getString("services.key-management")
-    s"$keyManagementUrl/pdnd-interop-uservice-key-management/0.0.1"
-  }
-
-  def getAgreementManagementURL: String = config.getString("services.agreement-management")
-
-  def getCatalogManagementURL: String = config.getString("services.catalog-management")
-
+  def getKeyManagementURL: String           = config.getString("services.key-management")
+  def getAgreementManagementURL: String     = config.getString("services.agreement-management")
+  def getCatalogManagementURL: String       = config.getString("services.catalog-management")
   def getAuthorizationManagementURL: String = config.getString("services.key-management")
-
-  def getPartyManagementURL: String = config.getString("services.party-management")
-
-  def getUserRegistryManagementURL: String = config.getString("services.user-registry-management")
+  def getPartyManagementURL: String         = config.getString("services.party-management")
+  def getUserRegistryManagementURL: String  = config.getString("services.user-registry-management")
 
   def getPdndIdIssuer: String = {
     config.getString("uservice-authorization-process.issuer")
   }
+
+  def getVaultSecretsRootPath: String = config.getString("uservice-authorization-process.vault-root-path")
 
 }

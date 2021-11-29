@@ -4,8 +4,9 @@ import com.nimbusds.jose.crypto.{ECDSASigner, Ed25519Signer, RSASSASigner}
 import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jose.{JOSEObjectType, JWSAlgorithm, JWSHeader, JWSSigner}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
+import it.pagopa.pdnd.interop.commons.vault.service.VaultService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.token.TokenSeed
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{JWTGenerator, VaultService}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{JWTGenerator, VaultSecretPaths}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.Date
@@ -21,14 +22,14 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
 //   TODO - use a def instead of a val, but this approach generate to many calls to the vault
 //   TODO - use a refreshing cache, more complex
 
-  val rsaPrivateKey: Try[Map[String, String]] = {
-    val path = VaultService.extractKeyPath("rsa", "private")
-    path.map(vaultService.getSecret)
+  val rsaPrivateKey: Try[Map[String, String]] = Try {
+    val path = VaultSecretPaths.extractPrivateKeysPath("rsa")
+    vaultService.readBase64EncodedData(path)
   }
 
-  val ecPrivateKey: Try[Map[String, String]] = {
-    val path = VaultService.extractKeyPath("ec", "private")
-    path.map(vaultService.getSecret)
+  val ecPrivateKey: Try[Map[String, String]] = Try {
+    val path = VaultSecretPaths.extractPrivateKeysPath("ec")
+    vaultService.readBase64EncodedData(path)
   }
   //  TODO:End
 

@@ -3,7 +3,10 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.server.impl
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
-import com.bettercloud.vault.Vault
+import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.{Authenticator, PassThroughAuthenticator}
+import it.pagopa.pdnd.interop.commons.utils.CORSSupport
+import it.pagopa.pdnd.interop.commons.vault.service.VaultService
+import it.pagopa.pdnd.interop.commons.vault.service.impl.{DefaultVaultClient, DefaultVaultService}
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{
   AuthApiMarshallerImpl,
@@ -16,13 +19,8 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{
   WellKnownApiServiceImpl
 }
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.{AuthApi, ClientApi, OperatorApi, WellKnownApi}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{
-  Authenticator,
-  PassThroughAuthenticator,
-  classicActorSystem,
-  executionContext
-}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.{ApplicationConfiguration, CorsSupport}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.ApplicationConfiguration
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{classicActorSystem, executionContext}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.server.Controller
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
@@ -33,8 +31,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
   JWTValidatorImpl,
   M2MAuthorizationServiceImpl,
   PartyManagementServiceImpl,
-  UserRegistryManagementServiceImpl,
-  VaultServiceImpl
+  UserRegistryManagementServiceImpl
 }
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.api.{EServiceApi => CatalogManagementApi}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{
@@ -47,28 +44,28 @@ import kamon.Kamon
 
 import scala.concurrent.Future
 
-trait AgreementManagementAPI {
+trait AgreementManagementDependency {
   val agreementManagementService = new AgreementManagementServiceImpl(
     AgreementManagementInvoker(),
     AgreementManagementApi(ApplicationConfiguration.getAgreementManagementURL)
   )
 }
 
-trait CatalogManagementAPI {
+trait CatalogManagementDependency {
   val catalogManagementService = new CatalogManagementServiceImpl(
     CatalogManagementInvoker(),
     CatalogManagementApi(ApplicationConfiguration.getCatalogManagementURL)
   )
 }
 
-trait PartyManagementAPI {
+trait PartyManagementDependency {
   val partyManagementService = new PartyManagementServiceImpl(
     PartyManagementInvoker(),
     PartyManagementApi(ApplicationConfiguration.getPartyManagementURL)
   )
 }
 
-trait UserRegistryManagementAPI {
+trait UserRegistryManagementDependency {
   val userRegistryManagementService: UserRegistryManagementServiceImpl = UserRegistryManagementServiceImpl(
     UserRegistryManagementInvoker(),
     UserRegistryManagementApi(ApplicationConfiguration.getUserRegistryManagementURL)
@@ -79,7 +76,7 @@ trait M2MAuthorizationService {
   val m2mAuthorizationService: M2MAuthorizationServiceImpl = M2MAuthorizationServiceImpl()
 }
 
-trait AuthorizationManagementAPI {
+trait AuthorizationManagementDependency {
   val authorizationManagementClientApi: AuthorizationClientApi = AuthorizationClientApi(
     ApplicationConfiguration.getAuthorizationManagementURL
   )
@@ -94,30 +91,29 @@ trait AuthorizationManagementAPI {
 }
 
 trait VaultServiceDependency {
-  lazy val vault: Vault              = getVaultClient
-  val vaultService: VaultServiceImpl = VaultServiceImpl(vault)
+  val vaultService: VaultService = new DefaultVaultService with DefaultVaultClient.DefaultClientInstance
 }
 
 trait JWTGeneratorDependency { self: VaultServiceDependency =>
   val jwtGenerator: JWTGeneratorImpl = JWTGeneratorImpl(vaultService)
 }
 
-trait JWTValidatorDependency { self: AuthorizationManagementAPI with VaultServiceDependency =>
+trait JWTValidatorDependency { self: AuthorizationManagementDependency with VaultServiceDependency =>
   val jwtValidator: JWTValidatorImpl = JWTValidatorImpl(authorizationManagementService, vaultService)
 }
 
 object Main
     extends App
-    with CorsSupport
+    with CORSSupport
     with VaultServiceDependency
-    with AgreementManagementAPI
-    with AuthorizationManagementAPI
-    with CatalogManagementAPI
-    with PartyManagementAPI
+    with AgreementManagementDependency
+    with AuthorizationManagementDependency
+    with CatalogManagementDependency
+    with PartyManagementDependency
     with JWTGeneratorDependency
     with JWTValidatorDependency
     with M2MAuthorizationService
-    with UserRegistryManagementAPI {
+    with UserRegistryManagementDependency {
 
   Kamon.init()
 
