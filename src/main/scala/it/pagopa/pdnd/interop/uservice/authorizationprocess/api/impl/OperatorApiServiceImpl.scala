@@ -4,7 +4,8 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
-import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{ContextsOps, OptionOps, StringOps}
+import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{OptionOps, StringOps}
+import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getFutureBearer
 import it.pagopa.pdnd.interop.commons.utils.errors.MissingBearer
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.OperatorApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
@@ -37,7 +38,7 @@ final case class OperatorApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      bearerToken  <- contexts.getFutureBearer
+      bearerToken  <- getFutureBearer(contexts)
       operatorUuid <- operatorId.toFutureUUID
       relationships <- partyManagementService.getRelationshipsByPersonId(
         operatorUuid,
@@ -85,7 +86,7 @@ final case class OperatorApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      bearerToken  <- contexts.getFutureBearer
+      bearerToken  <- getFutureBearer(contexts)
       operatorUuid <- operatorId.toFutureUUID
       _ <- collectFirstForEachOperatorClient(
         operatorUuid,
@@ -114,7 +115,7 @@ final case class OperatorApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      bearerToken  <- contexts.getFutureBearer
+      bearerToken  <- getFutureBearer(contexts)
       operatorUuid <- operatorId.toFutureUUID
       key <- collectFirstForEachOperatorClient(
         operatorUuid,
@@ -143,7 +144,7 @@ final case class OperatorApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      bearerToken  <- contexts.getFutureBearer
+      bearerToken  <- getFutureBearer(contexts)
       operatorUuid <- operatorId.toFutureUUID
       keysResponse <- collectAllForEachOperatorClient(
         operatorUuid,
@@ -176,7 +177,7 @@ final case class OperatorApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      bearerToken   <- contexts.getFutureBearer
+      bearerToken   <- getFutureBearer(contexts)
       operatorUuid  <- operatorId.toFutureUUID
       relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, None)(bearerToken)
       clientUuid    <- clientId.toFutureUUID

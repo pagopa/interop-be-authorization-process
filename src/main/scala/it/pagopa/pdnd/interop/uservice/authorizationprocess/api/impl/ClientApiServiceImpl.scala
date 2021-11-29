@@ -7,7 +7,8 @@ import cats.implicits._
 import it.pagopa.pdnd.interop.uservice._
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.ClientApiService
-import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{ContextsOps, EitherOps, OptionOps, StringOps}
+import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
+import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getFutureBearer
 import it.pagopa.pdnd.interop.commons.utils.errors.MissingBearer
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
@@ -54,7 +55,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
     val result = for {
-      bearerToken <- contexts.getFutureBearer
+      bearerToken <- getFutureBearer(contexts)
       _           <- catalogManagementService.getEService(bearerToken, clientSeed.eServiceId)
       client <- authorizationManagementService.createClient(
         clientSeed.eServiceId,
@@ -86,7 +87,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
     val result = for {
-      bearerToken <- contexts.getFutureBearer
+      bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       client      <- authorizationManagementService.getClient(clientUuid)
       apiClient   <- getClient(bearerToken, client)
@@ -119,7 +120,7 @@ final case class ClientApiServiceImpl(
   ): Route = {
     // TODO Improve multiple requests
     val result = for {
-      bearerToken  <- contexts.getFutureBearer
+      bearerToken  <- getFutureBearer(contexts)
       eServiceUuid <- eServiceId.traverse(id => id.toFutureUUID)
       operatorUuid <- operatorId.traverse(id => id.toFutureUUID)
       consumerUuid <- consumerId.traverse(id => id.toFutureUUID)
@@ -154,7 +155,7 @@ final case class ClientApiServiceImpl(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
     val result = for {
-      _          <- contexts.getFutureBearer
+      _          <- getFutureBearer(contexts)
       clientUuid <- clientId.toFutureUUID
       _          <- authorizationManagementService.deleteClient(clientUuid)
     } yield ()
@@ -179,7 +180,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
     val result = for {
-      bearerToken      <- contexts.getFutureBearer
+      bearerToken      <- getFutureBearer(contexts)
       clientUUID       <- clientId.toFutureUUID
       relationshipUUID <- relationshipId.toFutureUUID
       client           <- authorizationManagementService.getClient(clientUUID)
@@ -218,7 +219,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _                <- contexts.getFutureBearer
+      _                <- getFutureBearer(contexts)
       clientUUID       <- clientId.toFutureUUID
       relationshipUUID <- relationshipId.toFutureUUID
       _                <- authorizationManagementService.removeClientRelationship(clientUUID, relationshipUUID)
@@ -247,7 +248,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _          <- contexts.getFutureBearer
+      _          <- getFutureBearer(contexts)
       clientUuid <- clientId.toFutureUUID
       key        <- authorizationManagementService.getKey(clientUuid, keyId)
     } yield AuthorizationManagementService.keyToApi(key)
@@ -272,7 +273,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _          <- contexts.getFutureBearer
+      _          <- getFutureBearer(contexts)
       clientUuid <- clientId.toFutureUUID
       _          <- authorizationManagementService.deleteKey(clientUuid, keyId)
     } yield ()
@@ -298,7 +299,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      bearerToken <- contexts.getFutureBearer
+      bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       client      <- authorizationManagementService.getClient(clientUuid)
       relationshipsIds <- keysSeeds.traverse(seed =>
@@ -339,7 +340,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _            <- contexts.getFutureBearer
+      _            <- getFutureBearer(contexts)
       clientUuid   <- clientId.toFutureUUID
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
@@ -363,7 +364,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      bearerToken <- contexts.getFutureBearer
+      bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       client      <- authorizationManagementService.getClient(clientUuid)
       operators   <- operatorsFromClient(client)(bearerToken)
@@ -389,7 +390,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      bearerToken      <- contexts.getFutureBearer
+      bearerToken      <- getFutureBearer(contexts)
       clientUUID       <- clientId.toFutureUUID
       relationshipUUID <- relationshipId.toFutureUUID
       client           <- authorizationManagementService.getClient(clientUUID)
@@ -416,7 +417,7 @@ final case class ClientApiServiceImpl(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
     val result = for {
-      _          <- contexts.getFutureBearer
+      _          <- getFutureBearer(contexts)
       clientUuid <- clientId.toFutureUUID
       _          <- authorizationManagementService.activateClient(clientUuid)
     } yield ()
@@ -440,7 +441,7 @@ final case class ClientApiServiceImpl(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
     val result = for {
-      _          <- contexts.getFutureBearer
+      _          <- getFutureBearer(contexts)
       clientUuid <- clientId.toFutureUUID
       _          <- authorizationManagementService.suspendClient(clientUuid)
     } yield ()
@@ -600,7 +601,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     val result = for {
-      _          <- contexts.getFutureBearer
+      _          <- getFutureBearer(contexts)
       clientUuid <- clientId.toFutureUUID
       encodedKey <- authorizationManagementService.getEncodedClientKey(clientUuid, keyId)
     } yield EncodedClientKey(key = encodedKey.key)
