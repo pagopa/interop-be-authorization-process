@@ -71,6 +71,11 @@ spec:
                 secretKeyRef:
                   name: key-paths
                   key: PDND_INTEROP_KEYS
+            - name: USER_REGISTRY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: user-registry-api-key
+                  key: USER_REGISTRY_API_KEY
             - name: AGREEMENT_MANAGEMENT_URL
               value: "{{agreementManagementUrl}}"
             - name: CATALOG_MANAGEMENT_URL

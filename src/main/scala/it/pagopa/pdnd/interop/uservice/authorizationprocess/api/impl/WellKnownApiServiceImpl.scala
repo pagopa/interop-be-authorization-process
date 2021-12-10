@@ -1,6 +1,7 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl
 
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import cats.implicits._
 import it.pagopa.pdnd.interop.commons.vault.service.VaultService
@@ -41,7 +42,9 @@ final case class WellKnownApiServiceImpl(vaultService: VaultService) extends Wel
     result match {
       case Success(keys) => getWellKnownKeys200(KeysResponse(keys))
       case Failure(ex) =>
-        getWellKnownKeys400(Problem(Option(ex.getMessage), 400, "Something goes wrong trying to get well-known keys"))
+        getWellKnownKeys400(
+          problemOf(StatusCodes.BadRequest, "0029", ex, "Something goes wrong trying to get well-known keys")
+        )
     }
 
   }

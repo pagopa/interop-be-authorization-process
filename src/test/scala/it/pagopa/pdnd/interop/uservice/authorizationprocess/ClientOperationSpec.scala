@@ -223,8 +223,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val consumerId    = consumer.id
 
       (mockPartyManagementService
-        .getRelationshipsByPersonId(_: UUID, _: Option[String])(_: String))
-        .expects(operatorId, Some(PartyManagementService.ROLE_SECURITY_OPERATOR), bearerToken)
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
+        .expects(operatorId, Seq(PartyManagementService.ROLE_SECURITY_OPERATOR), bearerToken)
         .once()
         .returns(Future.successful(Relationships(Seq(relationship))))
 

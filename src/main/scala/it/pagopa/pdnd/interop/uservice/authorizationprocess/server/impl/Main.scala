@@ -40,6 +40,7 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{
 }
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.{PartyApi => PartyManagementApi}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.api.{UserApi => UserRegistryManagementApi}
+import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.invoker.ApiKeyValue
 import kamon.Kamon
 
 import scala.concurrent.Future
@@ -66,6 +67,7 @@ trait PartyManagementDependency {
 }
 
 trait UserRegistryManagementDependency {
+  implicit val apiKey: ApiKeyValue = ApiKeyValue(ApplicationConfiguration.userRegistryApiKey)
   val userRegistryManagementService: UserRegistryManagementServiceImpl = UserRegistryManagementServiceImpl(
     UserRegistryManagementInvoker(),
     UserRegistryManagementApi(ApplicationConfiguration.getUserRegistryManagementURL)

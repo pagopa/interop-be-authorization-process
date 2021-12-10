@@ -9,6 +9,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.Authorizatio
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.CatalogManagementService.descriptorStateToApi
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService.{
+  relationshipProductToApi,
   relationshipRoleToApi,
   relationshipStateToApi
 }
@@ -41,7 +42,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(client))
 
       val activeRelationship: PartyManagementDependency.Relationship =
-        relationship.copy(productRole = PartyManagementService.ROLE_SECURITY_OPERATOR)
+        relationship.copy(product = relationship.product.copy(role = PartyManagementService.ROLE_SECURITY_OPERATOR))
 
       (mockPartyManagementService
         .getRelationshipById(_: UUID)(_: String))
@@ -74,7 +75,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         purposes = client.purposes,
         description = client.description,
         state = clientStateToApi(client.state),
-        operators = Some(Seq(operator.copy(platformRole = PartyManagementService.ROLE_SECURITY_OPERATOR)))
+        operators = Some(
+          Seq(operator.copy(product = operator.product.copy(role = PartyManagementService.ROLE_SECURITY_OPERATOR)))
+        )
       )
 
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, relationshipId) ~> check {
@@ -106,8 +109,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "fail if operator is already assigned" in {
       val operatorRelationship: PartyManagementDependency.Relationship = relationship.copy(
         state = PartyManagementDependency.RelationshipState.ACTIVE,
-        productRole = PartyManagementService.ROLE_SECURITY_OPERATOR,
-        products = Set("PDND")
+        product = relationship.product.copy(id = "PDND", role = PartyManagementService.ROLE_SECURITY_OPERATOR)
       )
 
       (mockAuthorizationManagementService.getClient _)
@@ -163,8 +165,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "succeed" in {
       val operatorRelationship: PartyManagementDependency.Relationship = relationship.copy(
         state = PartyManagementDependency.RelationshipState.ACTIVE,
-        productRole = PartyManagementService.ROLE_SECURITY_OPERATOR,
-        products = Set("PDND")
+        product = relationship.product.copy(id = "PDND", role = PartyManagementService.ROLE_SECURITY_OPERATOR)
       )
 
       (mockAuthorizationManagementService.getClient _)
@@ -190,7 +191,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
           name = user.name,
           surname = user.surname,
           role = relationshipRoleToApi(operatorRelationship.role),
-          platformRole = operatorRelationship.productRole,
+          product = relationshipProductToApi(operatorRelationship.product),
           state = relationshipStateToApi(operatorRelationship.state)
             .getOrElse(throw new RuntimeException("Unexpected state during test"))
         )
@@ -247,7 +248,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
           name = user.name,
           surname = user.surname,
           role = relationshipRoleToApi(relationship.role),
-          platformRole = relationship.productRole,
+          product = relationshipProductToApi(relationship.product),
           state = relationshipStateToApi(relationship.state).getOrElse(
             throw new RuntimeException("Unexpected state during test")
           )

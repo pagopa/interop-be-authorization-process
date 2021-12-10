@@ -1,6 +1,7 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl
 
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
 import com.nimbusds.jose.JOSEException
@@ -109,12 +110,14 @@ final case class AuthApiServiceImpl(
       .toFuture(DescriptorNotFound(eService.id, descriptorId))
 
   private def manageError(error: Throwable): Route = error match {
-    case ex @ MissingBearer            => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-    case ex: ParseException            => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-    case ex: JOSEException             => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-    case ex @ InvalidJWTSign           => createToken401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-    case ex: InvalidAccessTokenRequest => createToken400(Problem(Option(ex.errors.mkString(", ")), 400, ex.getMessage))
-    case ex                            => createToken400(Problem(Option(ex.getMessage), 400, "Something went wrong during access token request"))
+    case ex @ MissingBearer  => createToken401(problemOf(StatusCodes.Unauthorized, "0001", ex))
+    case ex: ParseException  => createToken401(problemOf(StatusCodes.Unauthorized, "0002", ex))
+    case ex: JOSEException   => createToken401(problemOf(StatusCodes.Unauthorized, "0003", ex))
+    case ex @ InvalidJWTSign => createToken401(problemOf(StatusCodes.Unauthorized, "0004", ex))
+    case ex: InvalidAccessTokenRequest =>
+      createToken400(problemOf(StatusCodes.BadRequest, "0005", ex, ex.errors.mkString(", ")))
+    case ex =>
+      createToken400(problemOf(StatusCodes.BadRequest, "0006", ex, "Something went wrong during access token request"))
   }
 
   def toResponseJWT(claims: JWTClaimsSet): Future[ValidJWT] = {

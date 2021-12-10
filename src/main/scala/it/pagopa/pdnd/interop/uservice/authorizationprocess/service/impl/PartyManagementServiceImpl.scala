@@ -32,19 +32,33 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
     invoke(request, "Retrieve Person")
   }
 
-  override def getRelationships(organizationId: UUID, personId: UUID, platformRole: String)(
+  override def getRelationships(organizationId: UUID, personId: UUID, productRole: String)(
     bearerToken: String
   ): Future[Relationships] = {
     val request: ApiRequest[Relationships] =
-      api.getRelationships(Some(personId), Some(organizationId), Some(platformRole))(BearerToken(bearerToken))
+      api.getRelationships(
+        from = Some(personId),
+        to = Some(organizationId),
+        roles = Seq.empty,
+        states = Seq.empty,
+        products = Seq.empty,
+        productRoles = Seq(productRole)
+      )(BearerToken(bearerToken))
     invoke(request, "Retrieve Relationships")
   }
 
-  override def getRelationshipsByPersonId(personId: UUID, platformRole: Option[String])(
+  override def getRelationshipsByPersonId(personId: UUID, productRoles: Seq[String])(
     bearerToken: String
   ): Future[Relationships] = {
     val request: ApiRequest[Relationships] =
-      api.getRelationships(Some(personId), None, platformRole)(BearerToken(bearerToken))
+      api.getRelationships(
+        from = Some(personId),
+        to = None,
+        roles = Seq.empty,
+        states = Seq.empty,
+        products = Seq.empty,
+        productRoles = productRoles
+      )(BearerToken(bearerToken))
     invoke(request, "Retrieve Relationships By Person Id")
   }
 
