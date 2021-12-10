@@ -1,6 +1,7 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl
 
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
@@ -67,13 +68,15 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(keys) => createOperatorKeys201(keys)
       case Failure(ex @ MissingBearer) =>
-        createOperatorKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex: EnumParameterError) => createOperatorKeys400(Problem(Option(ex.getMessage), 400, "Bad Request"))
+        createOperatorKeys401(problemOf(StatusCodes.Unauthorized, "0012", ex))
+      case Failure(ex: EnumParameterError) => createOperatorKeys400(problemOf(StatusCodes.BadRequest, "0013", ex))
       case Failure(ex: SecurityOperatorRelationshipNotFound) =>
-        createOperatorKeys403(Problem(Option(ex.getMessage), 403, "Forbidden"))
+        createOperatorKeys403(problemOf(StatusCodes.Forbidden, "0014", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        createOperatorKeys404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => complete(500, Problem(Option(ex.getMessage), 500, "Error on key creation"))
+        createOperatorKeys404(problemOf(StatusCodes.NotFound, "0015", ex))
+      case Failure(ex) =>
+        val error = problemOf(StatusCodes.InternalServerError, "0016", ex, "Error on key creation")
+        complete(error.status, error)
     }
   }
 
@@ -97,11 +100,13 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(_) => deleteOperatorKeyById204
       case Failure(ex @ MissingBearer) =>
-        deleteOperatorKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        deleteOperatorKeyById401(problemOf(StatusCodes.Unauthorized, "0007", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        deleteOperatorKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(_ @NoResultsError) => deleteOperatorKeyById404(Problem(None, 404, "Not found"))
-      case Failure(ex)                => complete((500, Problem(Option(ex.getMessage), 500, "Error on operator key delete")))
+        deleteOperatorKeyById404(problemOf(StatusCodes.NotFound, "0008", ex))
+      case Failure(_ @NoResultsError) => deleteOperatorKeyById404(problemOf(StatusCodes.NotFound, "0009"))
+      case Failure(ex) =>
+        val error = problemOf(StatusCodes.InternalServerError, "0010", ex, "Error on operator key delete")
+        complete((error.status, error))
     }
   }
 
@@ -126,11 +131,13 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(result) => getOperatorKeyById200(result)
       case Failure(ex @ MissingBearer) =>
-        getOperatorKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        getOperatorKeyById401(problemOf(StatusCodes.Unauthorized, "0017", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        getOperatorKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(_ @NoResultsError) => deleteOperatorKeyById404(Problem(None, 404, "Not found"))
-      case Failure(ex)                => complete((500, Problem(Option(ex.getMessage), 500, "Error on key retrieve")))
+        getOperatorKeyById404(problemOf(StatusCodes.NotFound, "0018", ex))
+      case Failure(ex @ NoResultsError) => deleteOperatorKeyById404(problemOf(StatusCodes.NotFound, "0019", ex))
+      case Failure(ex) =>
+        val error = problemOf(StatusCodes.InternalServerError, "0020", ex, "Error on key retrieve")
+        complete((error.status, error))
     }
   }
 
@@ -159,11 +166,13 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(result) => getOperatorKeys200(result)
       case Failure(ex @ MissingBearer) =>
-        getOperatorKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        getOperatorKeys401(problemOf(StatusCodes.Unauthorized, "0021", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        getOperatorKeys404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(_ @NoResultsError) => getOperatorKeys404(Problem(None, 404, "Not found"))
-      case Failure(ex)                => complete((500, Problem(Option(ex.getMessage), 500, "Error on keys retrieve")))
+        getOperatorKeys404(problemOf(StatusCodes.NotFound, "0022", ex))
+      case Failure(ex @ NoResultsError) => getOperatorKeys404(problemOf(StatusCodes.NotFound, "0023", ex))
+      case Failure(ex) =>
+        val error = problemOf(StatusCodes.InternalServerError, "0024", ex, "Error on keys retrieve")
+        complete((error.status, error))
     }
   }
 
@@ -189,11 +198,13 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(result) => getClientOperatorKeys200(result)
       case Failure(ex @ MissingBearer) =>
-        getClientOperatorKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        getClientOperatorKeys401(problemOf(StatusCodes.Unauthorized, "0025", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        getClientOperatorKeys404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(_ @NoResultsError) => getClientOperatorKeys404(Problem(None, 404, "Not found"))
-      case Failure(ex)                => complete((500, Problem(Option(ex.getMessage), 500, "Error on keys retrieve")))
+        getClientOperatorKeys404(problemOf(StatusCodes.NotFound, "0026", ex))
+      case Failure(ex @ NoResultsError) => getClientOperatorKeys404(problemOf(StatusCodes.NotFound, "0027", ex))
+      case Failure(ex) =>
+        val error = problemOf(StatusCodes.InternalServerError, "0028", ex, "Error on keys retrieve")
+        complete((error.status, error))
     }
   }
 

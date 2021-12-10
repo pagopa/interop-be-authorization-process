@@ -1,13 +1,15 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.api
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.model.StatusCode
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
-import it.pagopa.pdnd.interop.commons.utils.SprayCommonFormats.{uuidFormat, offsetDateTimeFormat}
+import it.pagopa.pdnd.interop.commons.utils.SprayCommonFormats.{offsetDateTimeFormat, uuidFormat}
 
 package object impl extends SprayJsonSupport with DefaultJsonProtocol {
 
-  implicit val problemFormat: RootJsonFormat[Problem] = jsonFormat3(Problem)
+  implicit val problemErrorFormat: RootJsonFormat[ProblemError] = jsonFormat2(ProblemError)
+  implicit val problemFormat: RootJsonFormat[Problem]           = jsonFormat5(Problem)
   implicit val clientCredentialsResponseFormat: RootJsonFormat[ClientCredentialsResponse] = jsonFormat3(
     ClientCredentialsResponse
   )
@@ -28,4 +30,17 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val keysResponseFormat: RootJsonFormat[KeysResponse]         = jsonFormat1(KeysResponse)
   implicit val validJWTFormat: RootJsonFormat[ValidJWT]                 = jsonFormat7(ValidJWT)
 
+  def problemOf(
+    httpError: StatusCode,
+    errorCode: String,
+    exception: Throwable = new RuntimeException(),
+    defaultMessage: String = "Unknown error"
+  ): Problem =
+    Problem(
+      `type` = "about:blank",
+      status = httpError.intValue,
+      title = httpError.defaultMessage,
+      errors =
+        Seq(ProblemError(code = s"007-$errorCode", detail = Option(exception.getMessage).getOrElse(defaultMessage)))
+    )
 }

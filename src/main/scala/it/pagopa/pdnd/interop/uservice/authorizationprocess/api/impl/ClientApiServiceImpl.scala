@@ -1,6 +1,7 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl
 
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
@@ -69,10 +70,13 @@ final case class ClientApiServiceImpl(
 
     onComplete(result) {
       case Success(client)             => createClient201(client)
-      case Failure(ex @ MissingBearer) => createClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex @ MissingBearer) => createClient401(problemOf(StatusCodes.Unauthorized, "0030", ex))
       case Failure(ex: CatalogManagementApiError[_]) if ex.code == 404 =>
-        createClient404(Problem(Some(s"E-Service id ${clientSeed.eServiceId.toString} not found"), 404, "Not found"))
-      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on client creation"))
+        createClient404(
+          problemOf(StatusCodes.NotFound, "0031", ex, s"E-Service id ${clientSeed.eServiceId.toString} not found")
+        )
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0032", ex, "Error on client creation"))
     }
   }
 
@@ -95,10 +99,11 @@ final case class ClientApiServiceImpl(
 
     onComplete(result) {
       case Success(client)             => getClient200(client)
-      case Failure(ex @ MissingBearer) => getClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex @ MissingBearer) => getClient401(problemOf(StatusCodes.Unauthorized, "0033", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        getClient404(Problem(Some(ex.message), 404, "Client not found"))
-      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on client retrieve"))
+        getClient404(problemOf(StatusCodes.NotFound, "0034", ex, "Client not found"))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.Unauthorized, "0035", ex, "Error on client retrieve"))
     }
   }
 
@@ -140,9 +145,10 @@ final case class ClientApiServiceImpl(
 
     onComplete(result) {
       case Success(clients)                 => listClients200(clients)
-      case Failure(ex: UUIDConversionError) => listClients400(Problem(Option(ex.getMessage), 400, "Bad request"))
-      case Failure(ex @ MissingBearer)      => listClients401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex)                      => internalServerError(Problem(Option(ex.getMessage), 500, "Error on clients list"))
+      case Failure(ex: UUIDConversionError) => listClients400(problemOf(StatusCodes.BadRequest, "0036", ex))
+      case Failure(ex @ MissingBearer)      => listClients401(problemOf(StatusCodes.Unauthorized, "0037", ex))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0038", ex, "Error on clients list"))
     }
   }
 
@@ -162,10 +168,11 @@ final case class ClientApiServiceImpl(
 
     onComplete(result) {
       case Success(_)                  => deleteClient204
-      case Failure(ex @ MissingBearer) => deleteClient401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex @ MissingBearer) => deleteClient401(problemOf(StatusCodes.Unauthorized, "0039", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        deleteClient404(Problem(Option(ex.getMessage), 404, "Client not found"))
-      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on client deletion"))
+        deleteClient404(problemOf(StatusCodes.NotFound, "0040", ex, "Client not found"))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0041", ex, "Error on client deletion"))
     }
   }
 
@@ -196,16 +203,17 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(client) => clientOperatorRelationshipBinding201(client)
       case Failure(ex @ MissingBearer) =>
-        clientOperatorRelationshipBinding401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        clientOperatorRelationshipBinding401(problemOf(StatusCodes.Unauthorized, "0042", ex))
       case Failure(ex: UUIDConversionError) =>
-        clientOperatorRelationshipBinding400(Problem(Option(ex.getMessage), 400, "Bad request"))
+        clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, "0043", ex))
       case Failure(ex: SecurityOperatorRelationshipNotActive) =>
-        clientOperatorRelationshipBinding400(Problem(Option(ex.getMessage), 400, "Bad request"))
+        clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, "0044", ex))
       case Failure(ex: OperatorRelationshipAlreadyAssigned) =>
-        clientOperatorRelationshipBinding400(Problem(Option(ex.getMessage), 400, "Bad request"))
+        clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, "0045", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        clientOperatorRelationshipBinding404(Problem(Some(ex.message), 404, "Client not found"))
-      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on operator addition"))
+        clientOperatorRelationshipBinding404(problemOf(StatusCodes.NotFound, "0046", ex, "Client not found"))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0047", ex, "Error on operator addition"))
     }
   }
 
@@ -228,12 +236,13 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => removeClientOperatorRelationship204
       case Failure(ex @ MissingBearer) =>
-        removeClientOperatorRelationship401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        removeClientOperatorRelationship401(problemOf(StatusCodes.Unauthorized, "0048", ex))
       case Failure(ex: UUIDConversionError) =>
-        removeClientOperatorRelationship400(Problem(Option(ex.getMessage), 400, "Bad request"))
+        removeClientOperatorRelationship400(problemOf(StatusCodes.BadRequest, "0049", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        removeClientOperatorRelationship404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on operator removal"))
+        removeClientOperatorRelationship404(problemOf(StatusCodes.NotFound, "0050", ex))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0051", ex, "Error on operator removal"))
     }
   }
 
@@ -256,10 +265,11 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(key) => getClientKeyById200(key)
       case Failure(ex @ MissingBearer) =>
-        getClientKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        getClientKeyById401(problemOf(StatusCodes.Unauthorized, "0052", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        getClientKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on key retrieve"))
+        getClientKeyById404(problemOf(StatusCodes.NotFound, "0053", ex))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0054", ex, "Error on key retrieve"))
     }
   }
 
@@ -281,10 +291,11 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => deleteClientKeyById204
       case Failure(ex @ MissingBearer) =>
-        deleteClientKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        deleteClientKeyById401(problemOf(StatusCodes.Unauthorized, "0055", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        deleteClientKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on key delete"))
+        deleteClientKeyById404(problemOf(StatusCodes.NotFound, "0056", ex))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0057", ex, "Error on key delete"))
     }
   }
 
@@ -319,13 +330,14 @@ final case class ClientApiServiceImpl(
 
     onComplete(result) {
       case Success(keys)                   => createKeys201(keys)
-      case Failure(ex @ MissingBearer)     => createKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
-      case Failure(ex: EnumParameterError) => createKeys400(Problem(Option(ex.getMessage), 400, "Bad Request"))
+      case Failure(ex @ MissingBearer)     => createKeys401(problemOf(StatusCodes.Unauthorized, "0058", ex))
+      case Failure(ex: EnumParameterError) => createKeys400(problemOf(StatusCodes.BadRequest, "0059", ex))
       case Failure(ex: SecurityOperatorRelationshipNotFound) =>
-        createKeys403(Problem(Option(ex.getMessage), 403, "Forbidden"))
+        createKeys403(problemOf(StatusCodes.Forbidden, "0060", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        createKeys404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on key creation"))
+        createKeys404(problemOf(StatusCodes.NotFound, "0061", ex))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0062", ex, "Error on key creation"))
     }
   }
 
@@ -347,10 +359,11 @@ final case class ClientApiServiceImpl(
 
     onComplete(result) {
       case Success(keys)               => getClientKeys200(keys)
-      case Failure(ex @ MissingBearer) => getClientKeys401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+      case Failure(ex @ MissingBearer) => getClientKeys401(problemOf(StatusCodes.Unauthorized, "0063", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        getClientKeys404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on client keys retrieve"))
+        getClientKeys404(problemOf(StatusCodes.NotFound, "0064", ex))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0065", ex, "Error on client keys retrieve"))
     }
   }
 
@@ -373,10 +386,11 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(keys) => getClientOperators200(keys)
       case Failure(ex @ MissingBearer) =>
-        getClientOperators401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        getClientOperators401(problemOf(StatusCodes.Unauthorized, "0066", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        getClientOperators404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => complete((500, Problem(Option(ex.getMessage), 500, "Error on client keys retrieve")))
+        getClientOperators404(problemOf(StatusCodes.NotFound, "0067", ex))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0068", ex, "Error on client keys retrieve"))
     }
   }
 
@@ -401,12 +415,13 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(operator) => getClientOperatorRelationshipById200(operator)
       case Failure(ex @ MissingBearer) =>
-        getClientOperatorRelationshipById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        getClientOperatorRelationshipById401(problemOf(StatusCodes.Unauthorized, "0069", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        getClientOperatorRelationshipById404(Problem(Some(ex.message), 404, "Not found"))
+        getClientOperatorRelationshipById404(problemOf(StatusCodes.NotFound, "0070", ex))
       case Failure(ex: SecurityOperatorRelationshipNotFound) =>
-        getClientOperatorRelationshipById404(Problem(Option(ex.getMessage), 404, "Not found"))
-      case Failure(ex) => complete((500, Problem(Option(ex.getMessage), 500, "Error on client keys retrieve")))
+        getClientOperatorRelationshipById404(problemOf(StatusCodes.NotFound, "0071", ex))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0072", ex, "Error on client keys retrieve"))
     }
   }
 
@@ -425,12 +440,13 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => activateClientById204
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 400 =>
-        activateClientById400(Problem(Option(ex.getMessage), 400, "Bad Request"))
+        activateClientById400(problemOf(StatusCodes.BadRequest, "0073", ex))
       case Failure(ex @ MissingBearer) =>
-        activateClientById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        activateClientById401(problemOf(StatusCodes.Unauthorized, "0074", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        activateClientById404(Problem(Option(ex.getMessage), 404, "Client not found"))
-      case Failure(ex) => complete((500, Problem(Option(ex.getMessage), 500, "Error on client activation")))
+        activateClientById404(problemOf(StatusCodes.NotFound, "0075", ex))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0076", ex, "Error on client activation"))
     }
   }
 
@@ -449,12 +465,13 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => suspendClientById204
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 400 =>
-        suspendClientById400(Problem(Option(ex.getMessage), 400, "Bad Request"))
+        suspendClientById400(problemOf(StatusCodes.BadRequest, "0077", ex))
       case Failure(ex @ MissingBearer) =>
-        suspendClientById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        suspendClientById401(problemOf(StatusCodes.Unauthorized, "0078", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        suspendClientById404(Problem(Option(ex.getMessage), 404, "Client not found"))
-      case Failure(ex) => complete((500, Problem(Option(ex.getMessage), 500, "Error on client suspension")))
+        suspendClientById404(problemOf(StatusCodes.NotFound, "0079", ex))
+      case Failure(ex) =>
+        internalServerError(problemOf(StatusCodes.InternalServerError, "0080", ex, "Error on client suspension"))
     }
   }
 
@@ -609,10 +626,10 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(key) => getEncodedClientKeyById200(key)
       case Failure(ex @ MissingBearer) =>
-        getEncodedClientKeyById401(Problem(Option(ex.getMessage), 401, "Not authorized"))
+        getEncodedClientKeyById401(problemOf(StatusCodes.Unauthorized, "0081", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        getClientKeyById404(Problem(Some(ex.message), 404, "Not found"))
-      case Failure(ex) => internalServerError(Problem(Option(ex.getMessage), 500, "Error on key retrieve"))
+        getClientKeyById404(problemOf(StatusCodes.NotFound, "0082", ex))
+      case Failure(ex) => internalServerError(problemOf(StatusCodes.NotFound, "0083", ex, "Error on key retrieve"))
     }
   }
 }
