@@ -56,9 +56,10 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     from = user.id,
     to = UUID.randomUUID(),
     role = PartyManagementDependency.PartyRole.OPERATOR,
-    productRole = PartyManagementService.ROLE_SECURITY_OPERATOR,
+    product = PartyManagementDependency
+      .RelationshipProduct("PDND", PartyManagementService.ROLE_SECURITY_OPERATOR, timestamp),
     state = PartyManagementDependency.RelationshipState.ACTIVE,
-    products = Set("PDND")
+    createdAt = timestamp
   )
 
   val relationship2: PartyManagementDependency.Relationship = PartyManagementDependency.Relationship(
@@ -66,9 +67,10 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     from = user.id,
     to = UUID.randomUUID(),
     role = PartyManagementDependency.PartyRole.OPERATOR,
-    productRole = PartyManagementService.ROLE_SECURITY_OPERATOR,
+    product = PartyManagementDependency
+      .RelationshipProduct("PDND", PartyManagementService.ROLE_SECURITY_OPERATOR, timestamp),
     state = PartyManagementDependency.RelationshipState.ACTIVE,
-    products = Set("PDND")
+    createdAt = timestamp
   )
 
   val relationship3: PartyManagementDependency.Relationship = PartyManagementDependency.Relationship(
@@ -76,9 +78,9 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     from = user.id,
     to = UUID.randomUUID(),
     role = PartyManagementDependency.PartyRole.MANAGER,
-    productRole = "admin",
+    product = PartyManagementDependency.RelationshipProduct("PDND", "admin", timestamp),
     state = PartyManagementDependency.RelationshipState.ACTIVE,
-    products = Set("PDND")
+    createdAt = timestamp
   )
 
   override val relationships: PartyManagementDependency.Relationships =
@@ -212,8 +214,8 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
   def execForEachOperatorClientExpectations(): Unit = {
     (mockPartyManagementService
-      .getRelationshipsByPersonId(_: UUID, _: Option[String])(_: String))
-      .expects(personId, None, bearerToken)
+      .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
+      .expects(personId, Seq.empty, bearerToken)
       .once()
       .returns(Future.successful(relationships))
 

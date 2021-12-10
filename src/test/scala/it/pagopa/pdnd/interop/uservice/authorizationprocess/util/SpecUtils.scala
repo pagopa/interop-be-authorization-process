@@ -16,6 +16,7 @@ import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{User
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.Certification.NONE
 import org.scalamock.scalatest.MockFactory
 
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.Future
 
@@ -38,6 +39,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
   val mockUserRegistryManagementService: UserRegistryManagementService   = mock[UserRegistryManagementService]
   val mockVaultService: VaultService                                     = mock[VaultService]
+
+  val timestamp: OffsetDateTime = OffsetDateTime.now()
 
   val bearerToken: String   = "token"
   val eServiceId: UUID      = UUID.randomUUID()
@@ -96,8 +99,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     digitalAddress = "or2@test.pec.pagopa.it",
     id = organizationId,
     attributes = Seq.empty,
-    taxCode = "123",
-    products = Set("PDND")
+    taxCode = "123"
   )
 
   val consumer: PartyManagementDependency.Organization = PartyManagementDependency.Organization(
@@ -106,8 +108,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     digitalAddress = "org2@test.pec.pagopa.it",
     id = consumerId,
     attributes = Seq.empty,
-    taxCode = "123",
-    products = Set("PDND")
+    taxCode = "123"
   )
 
   val client: AuthorizationManagementDependency.Client =
@@ -129,7 +130,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       name = user.name,
       surname = user.surname,
       role = OperatorRole.OPERATOR,
-      platformRole = "aPlatformRole",
+      product = RelationshipProduct("PDND", "aPlatformRole", timestamp),
       state = OperatorState.ACTIVE
     )
 
@@ -138,9 +139,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     from = user.id,
     to = organization.id,
     role = PartyManagementDependency.PartyRole.OPERATOR,
-    productRole = "aPlatformRole",
+    product = PartyManagementDependency.RelationshipProduct("PDND", "aPlatformRole", timestamp),
     state = PartyManagementDependency.RelationshipState.ACTIVE,
-    products = Set("PDND")
+    createdAt = timestamp
   )
 
   val relationships: PartyManagementDependency.Relationships =
