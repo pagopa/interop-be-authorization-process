@@ -3,7 +3,8 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
   Organization => ApiOrganization,
   OperatorState => ApiOperatorState,
-  OperatorRole => ApiOperatorRole
+  OperatorRole => ApiOperatorRole,
+  RelationshipProduct => ApiOperatorRelationshipProduct
 }
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model._
 
@@ -14,12 +15,10 @@ trait PartyManagementService {
 
   def getOrganization(organizationId: UUID)(bearerToken: String): Future[Organization]
   def getPerson(personId: UUID)(bearerToken: String): Future[Person]
-  def getRelationships(organizationId: UUID, personId: UUID, platformRole: String)(
+  def getRelationships(organizationId: UUID, personId: UUID, productRole: String)(
     bearerToken: String
   ): Future[Relationships]
-  def getRelationshipsByPersonId(personId: UUID, platformRole: Option[String])(
-    bearerToken: String
-  ): Future[Relationships]
+  def getRelationshipsByPersonId(personId: UUID, productRole: Seq[String])(bearerToken: String): Future[Relationships]
   def getRelationshipById(relationshipId: UUID)(bearerToken: String): Future[Relationship]
   def createRelationship(seed: RelationshipSeed)(bearerToken: String): Future[Relationship]
   def createPerson(seed: PersonSeed)(bearerToken: String): Future[Person]
@@ -49,5 +48,8 @@ object PartyManagementService {
       case PartyRole.DELEGATE => ApiOperatorRole.DELEGATE
       case PartyRole.OPERATOR => ApiOperatorRole.OPERATOR
     }
+
+  def relationshipProductToApi(product: RelationshipProduct): ApiOperatorRelationshipProduct =
+    ApiOperatorRelationshipProduct(id = product.id, role = product.role, createdAt = product.createdAt)
 
 }

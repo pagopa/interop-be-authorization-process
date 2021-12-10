@@ -1053,8 +1053,8 @@ components:
           type: string
         role:
           $ref: '#/components/schemas/OperatorRole'
-        platformRole:
-          type: string
+        product:
+          $ref: '#/components/schemas/RelationshipProduct'
         state:
           $ref: '#/components/schemas/OperatorState'
       required:
@@ -1064,12 +1064,26 @@ components:
         - surname
         - email
         - role
-        - platformRole
+        - product
         - state
     Operators:
       type: object
       items:
         $ref: '#/components/schemas/Operator'
+    RelationshipProduct:
+      type: object
+      properties:
+        id:
+          type: string
+        role:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - role
+        - createdAt
     Key:
       description: 'Models a JWK'
       type: object

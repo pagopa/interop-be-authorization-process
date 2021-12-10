@@ -43,7 +43,7 @@ final case class OperatorApiServiceImpl(
       operatorUuid <- operatorId.toFutureUUID
       relationships <- partyManagementService.getRelationshipsByPersonId(
         operatorUuid,
-        Some(PartyManagementService.ROLE_SECURITY_OPERATOR)
+        Seq(PartyManagementService.ROLE_SECURITY_OPERATOR)
       )(bearerToken)
       keysResponse <- operatorKeySeeds.traverse { seed =>
         for {
@@ -188,7 +188,7 @@ final case class OperatorApiServiceImpl(
     val result = for {
       bearerToken   <- getFutureBearer(contexts)
       operatorUuid  <- operatorId.toFutureUUID
-      relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, None)(bearerToken)
+      relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)(bearerToken)
       clientUuid    <- clientId.toFutureUUID
       clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)
       operatorKeys = clientKeys.keys.filter(key => relationships.items.exists(_.id == key.relationshipId))
@@ -213,7 +213,7 @@ final case class OperatorApiServiceImpl(
   private def collectAllForEachOperatorClient[T](operatorId: UUID, f: (ManagementClient, Relationships) => Future[T])(
     bearerToken: String
   ): Future[Seq[T]] = for {
-    relationships <- partyManagementService.getRelationshipsByPersonId(operatorId, None)(bearerToken)
+    relationships <- partyManagementService.getRelationshipsByPersonId(operatorId, Seq.empty)(bearerToken)
     clients <- relationships.items.flatTraverse(relationship =>
       authorizationManagementService.listClients(
         relationshipId = Some(relationship.id),

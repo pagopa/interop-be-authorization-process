@@ -15,6 +15,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AuthorizationManagementService.clientStateToApi
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService.{
+  relationshipProductToApi,
   relationshipRoleToApi,
   relationshipStateToApi
 }
@@ -131,7 +132,7 @@ final case class ClientApiServiceImpl(
       consumerUuid <- consumerId.traverse(id => id.toFutureUUID)
       relationships <- operatorUuid.traverse(
         partyManagementService
-          .getRelationshipsByPersonId(_, Some(PartyManagementService.ROLE_SECURITY_OPERATOR))(bearerToken)
+          .getRelationshipsByPersonId(_, Seq(PartyManagementService.ROLE_SECURITY_OPERATOR))(bearerToken)
       )
       clients <- relationships match {
         case None => authorizationManagementService.listClients(offset, limit, eServiceUuid, None, consumerUuid)
@@ -492,7 +493,7 @@ final case class ClientApiServiceImpl(
   )(bearerToken: String): Future[partymanagement.client.model.Relationship] = {
 
     def isActiveSecurityOperatorRelationship(relationship: Relationship): Future[Boolean] = {
-      val condition = relationship.productRole == PartyManagementService.ROLE_SECURITY_OPERATOR &&
+      val condition = relationship.product.role == PartyManagementService.ROLE_SECURITY_OPERATOR &&
         relationship.role == PartyManagementDependency.PartyRole.OPERATOR &&
         relationship.state == PartyManagementDependency.RelationshipState.ACTIVE
       if (condition) {
@@ -549,7 +550,7 @@ final case class ClientApiServiceImpl(
       name = user.name,
       surname = user.surname,
       role = relationshipRoleToApi(relationship.role),
-      platformRole = relationship.productRole,
+      product = relationshipProductToApi(relationship.product),
       state = operatorState
     )
 
