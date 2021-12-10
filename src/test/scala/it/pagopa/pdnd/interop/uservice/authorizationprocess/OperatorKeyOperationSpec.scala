@@ -20,7 +20,9 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
   import clientApiMarshaller._
 
   val service: OperatorApiServiceImpl =
-    OperatorApiServiceImpl(mockAuthorizationManagementService, mockPartyManagementService)(ExecutionContext.global)
+    OperatorApiServiceImpl(mockAuthorizationManagementService, mockPartyManagementService, mockJwtReader)(
+      ExecutionContext.global
+    )
 
   val kid: String = "some-kid"
 
@@ -213,6 +215,12 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
   }
 
   def execForEachOperatorClientExpectations(): Unit = {
+    (mockJwtReader
+      .getClaims(_: String))
+      .expects(bearerToken)
+      .returning(mockSubject(UUID.randomUUID().toString))
+      .once()
+
     (mockPartyManagementService
       .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
       .expects(personId, Seq.empty, bearerToken)

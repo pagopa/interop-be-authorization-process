@@ -23,7 +23,8 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     mockAgreementManagementService,
     mockCatalogManagementService,
     mockPartyManagementService,
-    mockUserRegistryManagementService
+    mockUserRegistryManagementService,
+    mockJwtReader
   )(ExecutionContext.global)
 
   val apiClientKey: ClientKey = ClientKey(key =
@@ -56,6 +57,12 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
   "Retrieve key" should {
     "succeed" in {
       val kid = "some-kid"
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.getKey _)
         .expects(client.id, kid)
         .once()
@@ -79,6 +86,12 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
 
     "fail if client or key do not exist" in {
       val kid = "some-kid"
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.getKey _)
         .expects(*, *)
         .once()
@@ -92,6 +105,12 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
 
   "Retrieve all client keys" should {
     "succeed" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.getClientKeys _)
         .expects(client.id)
         .once()
@@ -113,6 +132,12 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     }
 
     "fail if client or key do not exist" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.getClientKeys _)
         .expects(*)
         .once()
@@ -127,6 +152,12 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
   "Create client keys" should {
     "succeed" in {
       val keySeeds: Seq[KeySeed] = Seq(KeySeed(operatorId = user.id, key = "key", use = KeyUse.SIG, alg = "123"))
+
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
 
       (mockAuthorizationManagementService.getClient _)
         .expects(client.id)
@@ -160,6 +191,12 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     }
 
     "fail if client or key do not exist" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.getClient _)
         .expects(client.id)
         .once()
@@ -174,6 +211,12 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
   "Delete key" should {
     "succeed" in {
       val kid = "some-kid"
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.deleteKey _)
         .expects(client.id, kid)
         .once()
@@ -194,6 +237,12 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
 
     "fail if client or key do not exist" in {
       val kid = "some-kid"
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.deleteKey _)
         .expects(*, *)
         .once()

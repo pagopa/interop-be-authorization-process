@@ -1,10 +1,15 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.server.impl
 
+import akka.actor.CoordinatedShutdown
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
+import it.pagopa.pdnd.interop.commons.jwt.{JWTConfiguration, PublicKeysHolder}
+import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
+import it.pagopa.pdnd.interop.commons.jwt.service.impl.DefaultJWTReader
 import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.{Authenticator, PassThroughAuthenticator}
 import it.pagopa.pdnd.interop.commons.utils.CORSSupport
+import it.pagopa.pdnd.interop.commons.utils.TypeConversions.TryOps
 import it.pagopa.pdnd.interop.commons.vault.service.VaultService
 import it.pagopa.pdnd.interop.commons.vault.service.impl.{DefaultVaultClient, DefaultVaultService}
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
@@ -44,6 +49,9 @@ import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.invoker.Api
 import kamon.Kamon
 
 import scala.concurrent.Future
+import scala.util.{Failure, Success}
+//shuts down the actor system in case of startup errors
+case object StartupErrorShutdown extends CoordinatedShutdown.Reason
 
 trait AgreementManagementDependency {
   val agreementManagementService = new AgreementManagementServiceImpl(
@@ -117,52 +125,73 @@ object Main
     with M2MAuthorizationService
     with UserRegistryManagementDependency {
 
-  Kamon.init()
+  val dependenciesLoaded: Future[JWTReader] = for {
+    keyset <- JWTConfiguration.jwtReader.loadKeyset().toFuture
+    jwtValidator = new DefaultJWTReader with PublicKeysHolder {
+      var publicKeyset = keyset
+    }
+  } yield jwtValidator
 
-  val authApi: AuthApi = new AuthApi(
-    AuthApiServiceImpl(
-      jwtValidator,
-      jwtGenerator,
-      authorizationManagementService,
-      agreementManagementService,
-      catalogManagementService,
-      m2mAuthorizationService
-    ),
-    AuthApiMarshallerImpl,
-    SecurityDirectives.authenticateOAuth2("SecurityRealm", PassThroughAuthenticator)
-  )
-
-  val clientApi: ClientApi = new ClientApi(
-    ClientApiServiceImpl(
-      authorizationManagementService,
-      agreementManagementService,
-      catalogManagementService,
-      partyManagementService,
-      userRegistryManagementService
-    ),
-    ClientApiMarshallerImpl,
-    SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
-  )
-
-  val operatorApi: OperatorApi = new OperatorApi(
-    OperatorApiServiceImpl(authorizationManagementService, partyManagementService),
-    OperatorApiMarshallerImpl,
-    SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
-  )
-
-  val wellKnownApi: WellKnownApi = new WellKnownApi(
-    WellKnownApiServiceImpl(vaultService = vaultService),
-    WellKnownApiMarshallerImpl,
-    SecurityDirectives.authenticateOAuth2("SecurityRealm", PassThroughAuthenticator)
-  )
-
-  locally {
-    val _ = AkkaManagement.get(classicActorSystem).start()
+  dependenciesLoaded.transformWith {
+    case Success(jwtValidator) => launchApp(jwtValidator)
+    case Failure(ex) => {
+      classicActorSystem.log.error(s"Startup error: ${ex.getMessage}")
+      classicActorSystem.log.error(s"${ex.getStackTrace.mkString("\n")}")
+      CoordinatedShutdown(classicActorSystem).run(StartupErrorShutdown)
+    }
   }
 
-  val controller: Controller = new Controller(authApi, clientApi, operatorApi, wellKnownApi)
+  private def launchApp(jwtReader: JWTReader): Future[Http.ServerBinding] = {
+    Kamon.init()
 
-  val bindingFuture: Future[Http.ServerBinding] =
-    Http().newServerAt("0.0.0.0", ApplicationConfiguration.serverPort).bind(corsHandler(controller.routes))
+    val authApi: AuthApi = new AuthApi(
+      AuthApiServiceImpl(
+        jwtValidator,
+        jwtGenerator,
+        authorizationManagementService,
+        agreementManagementService,
+        catalogManagementService,
+        m2mAuthorizationService
+      ),
+      AuthApiMarshallerImpl,
+      SecurityDirectives.authenticateOAuth2("SecurityRealm", PassThroughAuthenticator)
+    )
+
+    val clientApi: ClientApi = new ClientApi(
+      ClientApiServiceImpl(
+        authorizationManagementService,
+        agreementManagementService,
+        catalogManagementService,
+        partyManagementService,
+        userRegistryManagementService,
+        jwtReader
+      ),
+      ClientApiMarshallerImpl,
+      SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
+    )
+
+    val operatorApi: OperatorApi = new OperatorApi(
+      OperatorApiServiceImpl(authorizationManagementService, partyManagementService, jwtReader),
+      OperatorApiMarshallerImpl,
+      SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
+    )
+
+    val wellKnownApi: WellKnownApi = new WellKnownApi(
+      WellKnownApiServiceImpl(vaultService = vaultService),
+      WellKnownApiMarshallerImpl,
+      SecurityDirectives.authenticateOAuth2("SecurityRealm", PassThroughAuthenticator)
+    )
+
+    locally {
+      val _ = AkkaManagement.get(classicActorSystem).start()
+    }
+
+    val controller: Controller = new Controller(authApi, clientApi, operatorApi, wellKnownApi)
+
+    val server: Future[Http.ServerBinding] =
+      Http().newServerAt("0.0.0.0", ApplicationConfiguration.serverPort).bind(corsHandler(controller.routes))
+
+    server
+  }
 
 }

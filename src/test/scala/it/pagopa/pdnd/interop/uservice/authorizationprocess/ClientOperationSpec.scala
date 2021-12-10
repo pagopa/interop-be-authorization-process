@@ -29,11 +29,18 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     mockAgreementManagementService,
     mockCatalogManagementService,
     mockPartyManagementService,
-    mockUserRegistryManagementService
+    mockUserRegistryManagementService,
+    mockJwtReader
   )(ExecutionContext.global)
 
   "Client creation" should {
     "succeed" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockCatalogManagementService.getEService _)
         .expects(bearerToken, clientSeed.eServiceId)
         .once()
@@ -81,6 +88,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
 
     "fail if the E-Service does not exist" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockCatalogManagementService.getEService _)
         .expects(bearerToken, clientSeed.eServiceId)
         .once()
@@ -95,6 +108,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
   "Client retrieve" should {
     "succeed" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.getClient _)
         .expects(*)
         .once()
@@ -163,6 +182,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           state = AgreementManagementDependency.AgreementState.SUSPENDED
         )
 
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.getClient _)
         .expects(*)
         .once()
@@ -199,6 +224,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
 
     "fail if client does not exist" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.getClient _)
         .expects(*)
         .once()
@@ -221,6 +252,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val eServiceIdStr = eServiceUuid.map(_.toString)
       val operatorId    = operator.id
       val consumerId    = consumer.id
+
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
 
       (mockPartyManagementService
         .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
@@ -294,6 +331,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
   "Client delete" should {
     "succeed" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.deleteClient _)
         .expects(*)
         .once()
@@ -305,6 +348,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
 
     "fail if client does not exist" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.deleteClient _)
         .expects(*)
         .once()
@@ -318,6 +367,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
   "Client activation" should {
     "succeed" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.activateClient _)
         .expects(*)
         .once()
@@ -329,6 +384,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
 
     "fail if client does not exist" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.activateClient _)
         .expects(*)
         .once()
@@ -342,6 +403,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
   "Client suspension" should {
     "succeed" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.suspendClient _)
         .expects(*)
         .once()
@@ -353,6 +420,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
 
     "fail if client does not exist" in {
+      (mockJwtReader
+        .getClaims(_: String))
+        .expects(bearerToken)
+        .returning(mockSubject(UUID.randomUUID().toString))
+        .once()
+
       (mockAuthorizationManagementService.suspendClient _)
         .expects(*)
         .once()
