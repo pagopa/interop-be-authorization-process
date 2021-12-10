@@ -44,9 +44,10 @@ object PartyManagementService {
 
   def relationshipRoleToApi(role: PartyRole): ApiOperatorRole =
     role match {
-      case PartyRole.MANAGER  => ApiOperatorRole.MANAGER
-      case PartyRole.DELEGATE => ApiOperatorRole.DELEGATE
-      case PartyRole.OPERATOR => ApiOperatorRole.OPERATOR
+      case PartyRole.MANAGER      => ApiOperatorRole.MANAGER
+      case PartyRole.DELEGATE     => ApiOperatorRole.DELEGATE
+      case PartyRole.OPERATOR     => ApiOperatorRole.OPERATOR
+      case PartyRole.SUB_DELEGATE => ApiOperatorRole.SUB_DELEGATE
     }
 
   def relationshipProductToApi(product: RelationshipProduct): ApiOperatorRelationshipProduct =
