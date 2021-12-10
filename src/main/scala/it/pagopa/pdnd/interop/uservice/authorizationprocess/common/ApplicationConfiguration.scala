@@ -15,6 +15,7 @@ object ApplicationConfiguration {
   def getAuthorizationManagementURL: String = config.getString("services.key-management")
   def getPartyManagementURL: String         = config.getString("services.party-management")
   def getUserRegistryManagementURL: String  = config.getString("services.user-registry-management")
+  def userRegistryApiKey: String            = config.getString("services.user-registry-api-key")
 
   def getPdndIdIssuer: String = {
     config.getString("uservice-authorization-process.issuer")

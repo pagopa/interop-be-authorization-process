@@ -59,6 +59,7 @@ pipeline {
         VAULT_ADDR = credentials('vault-addr')
         VAULT_TOKEN = credentials('vault-token')
         PDND_INTEROP_KEYS = credentials('pdnd-interop-keys')
+        USER_REGISTRY_API_KEY = credentials('userRegistryApiKey')
         DOCKER_REPO = 'gateway.interop.pdnd.dev'
         //REPLICAS_NR = 1
       }
