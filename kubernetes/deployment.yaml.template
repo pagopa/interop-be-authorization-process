@@ -86,6 +86,8 @@ spec:
               value: "{{partyManagementUrl}}"
             - name: USER_REGISTRY_MANAGEMENT_URL
               value: "{{userRegistryManagementUrl}}"
+            - name: WELL_KNOWN_URL
+              value: "{{wellKnownURL}}"
 ---
 apiVersion: v1
 kind: Service

@@ -2,6 +2,8 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.util
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
+import com.nimbusds.jwt.JWTClaimsSet
+import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.commons.vault.service.VaultService
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement => AgreementManagerAgreement}
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
@@ -19,6 +21,7 @@ import org.scalamock.scalatest.MockFactory
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.Future
+import scala.util.Success
 
 trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
@@ -30,6 +33,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   System.setProperty("VAULT_ADDR", "localhost")
   System.setProperty("VAULT_TOKEN", "TokenIlGurriero")
   System.setProperty("PDND_INTEROP_KEYS", "test/keys")
+  System.setProperty("USER_REGISTRY_API_KEY", "meaow")
+  System.setProperty("WELL_KNOWN_URL", "localhost/.well-known")
 
   val mockJwtValidator: JWTValidator                                     = mock[JWTValidator]
   val mockJwtGenerator: JWTGenerator                                     = mock[JWTGenerator]
@@ -38,9 +43,12 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
   val mockUserRegistryManagementService: UserRegistryManagementService   = mock[UserRegistryManagementService]
+  val mockJwtReader: JWTReader                                           = mock[JWTReader]
   val mockVaultService: VaultService                                     = mock[VaultService]
 
   val timestamp: OffsetDateTime = OffsetDateTime.now()
+
+  def mockSubject(uuid: String) = Success(new JWTClaimsSet.Builder().subject(uuid).build())
 
   val bearerToken: String   = "token"
   val eServiceId: UUID      = UUID.randomUUID()
