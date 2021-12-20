@@ -5,7 +5,9 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
+import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
+import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.uservice._
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.ClientApiService
@@ -28,6 +30,7 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError =>
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => KeyManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
+import org.slf4j.LoggerFactory
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -42,6 +45,8 @@ final case class ClientApiServiceImpl(
   jwtReader: JWTReader
 )(implicit ec: ExecutionContext)
     extends ClientApiService {
+
+  val logger = Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
 
   def internalServerError(responseProblem: Problem)(implicit
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -58,6 +63,12 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
+    logger.info(
+      "Creating client {} for e-service {} and consumer {}",
+      clientSeed.name,
+      clientSeed.eServiceId,
+      clientSeed.consumerId
+    )
     val result = for {
       bearerToken <- validateClientBearer(contexts, jwtReader)
       _           <- catalogManagementService.getEService(bearerToken, clientSeed.eServiceId)
@@ -72,13 +83,35 @@ final case class ClientApiServiceImpl(
     } yield apiClient
 
     onComplete(result) {
-      case Success(client)             => createClient201(client)
-      case Failure(ex @ MissingBearer) => createClient401(problemOf(StatusCodes.Unauthorized, "0030", ex))
+      case Success(client) => createClient201(client)
+      case Failure(ex @ MissingBearer) =>
+        logger.error(
+          "Error in creating client {} for e-service {} and consumer {} - {}",
+          clientSeed.name,
+          clientSeed.eServiceId,
+          clientSeed.consumerId,
+          ex.getMessage
+        )
+        createClient401(problemOf(StatusCodes.Unauthorized, "0030", ex))
       case Failure(ex: CatalogManagementApiError[_]) if ex.code == 404 =>
+        logger.error(
+          "Error in creating client {} for e-service {} and consumer {} - {}",
+          clientSeed.name,
+          clientSeed.eServiceId,
+          clientSeed.consumerId,
+          ex.getMessage
+        )
         createClient404(
           problemOf(StatusCodes.NotFound, "0031", ex, s"E-Service id ${clientSeed.eServiceId.toString} not found")
         )
       case Failure(ex) =>
+        logger.error(
+          "Error in creating client {} for e-service {} and consumer {} - {}",
+          clientSeed.name,
+          clientSeed.eServiceId,
+          clientSeed.consumerId,
+          ex.getMessage
+        )
         internalServerError(problemOf(StatusCodes.InternalServerError, "0032", ex, "Error on client creation"))
     }
   }
@@ -93,6 +126,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
+    logger.info("Getting client {}", clientId)
     val result = for {
       bearerToken <- validateClientBearer(contexts, jwtReader)
       clientUuid  <- clientId.toFutureUUID
@@ -101,12 +135,19 @@ final case class ClientApiServiceImpl(
     } yield apiClient
 
     onComplete(result) {
-      case Success(client)             => getClient200(client)
-      case Failure(ex @ MissingBearer) => getClient401(problemOf(StatusCodes.Unauthorized, "0033", ex))
-      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+      case Success(client) => getClient200(client)
+      case Failure(ex @ MissingBearer) => {
+        logger.error("Error in getting client {} - {}", clientId, ex.getMessage)
+        getClient401(problemOf(StatusCodes.Unauthorized, "0033", ex))
+      }
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 => {
+        logger.error("Error in getting client {} - {}", clientId, ex.getMessage)
         getClient404(problemOf(StatusCodes.NotFound, "0034", ex, "Client not found"))
-      case Failure(ex) =>
+      }
+      case Failure(ex) => {
+        logger.error("Error in getting client {} - {}", clientId, ex.getMessage)
         internalServerError(problemOf(StatusCodes.Unauthorized, "0035", ex, "Error on client retrieve"))
+      }
     }
   }
 
@@ -126,6 +167,14 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClientarray: ToEntityMarshaller[Seq[Client]]
   ): Route = {
+    logger.info(
+      "Listing clients (offset: {} and limit: {}) for e-service {} and operator {} for consumer {}",
+      offset,
+      limit,
+      eServiceId,
+      operatorId,
+      consumerId
+    )
     // TODO Improve multiple requests
     val result = for {
       bearerToken  <- validateClientBearer(contexts, jwtReader)
@@ -147,11 +196,43 @@ final case class ClientApiServiceImpl(
     } yield clientsDetails
 
     onComplete(result) {
-      case Success(clients)                 => listClients200(clients)
-      case Failure(ex: UUIDConversionError) => listClients400(problemOf(StatusCodes.BadRequest, "0036", ex))
-      case Failure(ex @ MissingBearer)      => listClients401(problemOf(StatusCodes.Unauthorized, "0037", ex))
-      case Failure(ex) =>
+      case Success(clients) => listClients200(clients)
+      case Failure(ex: UUIDConversionError) => {
+        logger.error(
+          "Error while listing clients (offset: {} and limit: {}) for e-service {} and operator {} for consumer {}",
+          offset,
+          limit,
+          eServiceId,
+          operatorId,
+          consumerId,
+          ex.getMessage
+        )
+        listClients400(problemOf(StatusCodes.BadRequest, "0036", ex))
+      }
+      case Failure(ex @ MissingBearer) => {
+        logger.error(
+          "Error while listing clients (offset: {} and limit: {}) for e-service {} and operator {} for consumer {}",
+          offset,
+          limit,
+          eServiceId,
+          operatorId,
+          consumerId,
+          ex.getMessage
+        )
+        listClients401(problemOf(StatusCodes.Unauthorized, "0037", ex))
+      }
+      case Failure(ex) => {
+        logger.error(
+          "Error while listing clients (offset: {} and limit: {}) for e-service {} and operator {} for consumer {}",
+          offset,
+          limit,
+          eServiceId,
+          operatorId,
+          consumerId,
+          ex.getMessage
+        )
         internalServerError(problemOf(StatusCodes.InternalServerError, "0038", ex, "Error on clients list"))
+      }
     }
   }
 
@@ -163,6 +244,7 @@ final case class ClientApiServiceImpl(
   override def deleteClient(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
+    logger.info("Deleting client {}", clientId)
     val result = for {
       _          <- validateClientBearer(contexts, jwtReader)
       clientUuid <- clientId.toFutureUUID
@@ -170,11 +252,15 @@ final case class ClientApiServiceImpl(
     } yield ()
 
     onComplete(result) {
-      case Success(_)                  => deleteClient204
-      case Failure(ex @ MissingBearer) => deleteClient401(problemOf(StatusCodes.Unauthorized, "0039", ex))
+      case Success(_) => deleteClient204
+      case Failure(ex @ MissingBearer) =>
+        logger.error("Error while deleting client {} - {}", clientId, ex)
+        deleteClient401(problemOf(StatusCodes.Unauthorized, "0039", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while deleting client {} - {}", clientId, ex)
         deleteClient404(problemOf(StatusCodes.NotFound, "0040", ex, "Client not found"))
       case Failure(ex) =>
+        logger.error("Error while deleting client {} - {}", clientId, ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, "0041", ex, "Error on client deletion"))
     }
   }
@@ -189,6 +275,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
+    logger.info("Binding client {} with relationship {}", clientId, relationshipId)
     val result = for {
       bearerToken      <- validateClientBearer(contexts, jwtReader)
       clientUUID       <- clientId.toFutureUUID
@@ -206,16 +293,22 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(client) => clientOperatorRelationshipBinding201(client)
       case Failure(ex @ MissingBearer) =>
+        logger.error("Error while binding client {} with relationship {} - {}", clientId, relationshipId, ex.getMessage)
         clientOperatorRelationshipBinding401(problemOf(StatusCodes.Unauthorized, "0042", ex))
       case Failure(ex: UUIDConversionError) =>
+        logger.error("Error while binding client {} with relationship {} - {}", clientId, relationshipId, ex.getMessage)
         clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, "0043", ex))
       case Failure(ex: SecurityOperatorRelationshipNotActive) =>
+        logger.error("Error while binding client {} with relationship {} - {}", clientId, relationshipId, ex.getMessage)
         clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, "0044", ex))
       case Failure(ex: OperatorRelationshipAlreadyAssigned) =>
+        logger.error("Error while binding client {} with relationship {} - {}", clientId, relationshipId, ex.getMessage)
         clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, "0045", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while binding client {} with relationship {} - {}", clientId, relationshipId, ex.getMessage)
         clientOperatorRelationshipBinding404(problemOf(StatusCodes.NotFound, "0046", ex, "Client not found"))
       case Failure(ex) =>
+        logger.error("Error while binding client {} with relationship {} - {}", clientId, relationshipId, ex.getMessage)
         internalServerError(problemOf(StatusCodes.InternalServerError, "0047", ex, "Error on operator addition"))
     }
   }
@@ -229,6 +322,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Removing binding between client {} with relationship {}", clientId, relationshipId)
     val result = for {
       _                <- validateClientBearer(contexts, jwtReader)
       clientUUID       <- clientId.toFutureUUID
@@ -239,12 +333,36 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => removeClientOperatorRelationship204
       case Failure(ex @ MissingBearer) =>
+        logger.error(
+          "Removing binding between client {} with relationship {} - {}",
+          clientId,
+          relationshipId,
+          ex.getMessage
+        )
         removeClientOperatorRelationship401(problemOf(StatusCodes.Unauthorized, "0048", ex))
       case Failure(ex: UUIDConversionError) =>
+        logger.error(
+          "Removing binding between client {} with relationship {} - {}",
+          clientId,
+          relationshipId,
+          ex.getMessage
+        )
         removeClientOperatorRelationship400(problemOf(StatusCodes.BadRequest, "0049", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error(
+          "Removing binding between client {} with relationship {} - {}",
+          clientId,
+          relationshipId,
+          ex.getMessage
+        )
         removeClientOperatorRelationship404(problemOf(StatusCodes.NotFound, "0050", ex))
       case Failure(ex) =>
+        logger.error(
+          "Removing binding between client {} with relationship {} - {}",
+          clientId,
+          relationshipId,
+          ex.getMessage
+        )
         internalServerError(problemOf(StatusCodes.InternalServerError, "0051", ex, "Error on operator removal"))
     }
   }
@@ -259,6 +377,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerClientKey: ToEntityMarshaller[ClientKey],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Getting client {} key by id {}", clientId, keyId)
     val result = for {
       _          <- validateClientBearer(contexts, jwtReader)
       clientUuid <- clientId.toFutureUUID
@@ -268,10 +387,13 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(key) => getClientKeyById200(key)
       case Failure(ex @ MissingBearer) =>
+        logger.error("Error while getting client {} key by id {} - {}", clientId, keyId, ex.getMessage)
         getClientKeyById401(problemOf(StatusCodes.Unauthorized, "0052", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while getting client {} key by id {} - {}", clientId, keyId, ex.getMessage)
         getClientKeyById404(problemOf(StatusCodes.NotFound, "0053", ex))
       case Failure(ex) =>
+        logger.error("Error while getting client {} key by id {} - {}", clientId, keyId, ex.getMessage)
         internalServerError(problemOf(StatusCodes.InternalServerError, "0054", ex, "Error on key retrieve"))
     }
   }
@@ -285,6 +407,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Deleting client {} key by id {}", clientId, keyId)
     val result = for {
       _          <- validateClientBearer(contexts, jwtReader)
       clientUuid <- clientId.toFutureUUID
@@ -294,10 +417,13 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => deleteClientKeyById204
       case Failure(ex @ MissingBearer) =>
+        logger.error("Error while deleting client {} key by id {} - {}", clientId, keyId, ex.getMessage)
         deleteClientKeyById401(problemOf(StatusCodes.Unauthorized, "0055", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while deleting client {} key by id {} - {}", clientId, keyId, ex.getMessage)
         deleteClientKeyById404(problemOf(StatusCodes.NotFound, "0056", ex))
       case Failure(ex) =>
+        logger.error("Error while deleting client {} key by id {} - {}", clientId, keyId, ex.getMessage)
         internalServerError(problemOf(StatusCodes.InternalServerError, "0057", ex, "Error on key delete"))
     }
   }
@@ -312,6 +438,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Creating keys for client {}", clientId)
     val result = for {
       bearerToken <- validateClientBearer(contexts, jwtReader)
       clientUuid  <- clientId.toFutureUUID
@@ -332,14 +459,21 @@ final case class ClientApiServiceImpl(
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
-      case Success(keys)                   => createKeys201(keys)
-      case Failure(ex @ MissingBearer)     => createKeys401(problemOf(StatusCodes.Unauthorized, "0058", ex))
-      case Failure(ex: EnumParameterError) => createKeys400(problemOf(StatusCodes.BadRequest, "0059", ex))
+      case Success(keys) => createKeys201(keys)
+      case Failure(ex @ MissingBearer) =>
+        logger.error("Error while creating keys for client {} - {}", clientId, ex.getMessage)
+        createKeys401(problemOf(StatusCodes.Unauthorized, "0058", ex))
+      case Failure(ex: EnumParameterError) =>
+        logger.error("Error while creating keys for client {} - {}", clientId, ex.getMessage)
+        createKeys400(problemOf(StatusCodes.BadRequest, "0059", ex))
       case Failure(ex: SecurityOperatorRelationshipNotFound) =>
+        logger.error("Error while creating keys for client {} - {}", clientId, ex.getMessage)
         createKeys403(problemOf(StatusCodes.Forbidden, "0060", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while creating keys for client {} - {}", clientId, ex.getMessage)
         createKeys404(problemOf(StatusCodes.NotFound, "0061", ex))
       case Failure(ex) =>
+        logger.error("Error while creating keys for client {} - {}", clientId, ex.getMessage)
         internalServerError(problemOf(StatusCodes.InternalServerError, "0062", ex, "Error on key creation"))
     }
   }
@@ -354,6 +488,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Getting keys of client {}", clientId)
     val result = for {
       _            <- validateClientBearer(contexts, jwtReader)
       clientUuid   <- clientId.toFutureUUID
@@ -361,11 +496,15 @@ final case class ClientApiServiceImpl(
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
-      case Success(keys)               => getClientKeys200(keys)
-      case Failure(ex @ MissingBearer) => getClientKeys401(problemOf(StatusCodes.Unauthorized, "0063", ex))
+      case Success(keys) => getClientKeys200(keys)
+      case Failure(ex @ MissingBearer) =>
+        logger.error("Error while getting keys of client {} - {}", clientId, ex.getMessage)
+        getClientKeys401(problemOf(StatusCodes.Unauthorized, "0063", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while getting keys of client {} - {}", clientId, ex.getMessage)
         getClientKeys404(problemOf(StatusCodes.NotFound, "0064", ex))
       case Failure(ex) =>
+        logger.error("Error while getting keys of client {} - {}", clientId, ex.getMessage)
         internalServerError(problemOf(StatusCodes.InternalServerError, "0065", ex, "Error on client keys retrieve"))
     }
   }
@@ -379,6 +518,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerOperatorarray: ToEntityMarshaller[Seq[Operator]],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Getting operators of client {}", clientId)
     val result = for {
       bearerToken <- validateClientBearer(contexts, jwtReader)
       clientUuid  <- clientId.toFutureUUID
@@ -389,10 +529,13 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(keys) => getClientOperators200(keys)
       case Failure(ex @ MissingBearer) =>
+        logger.error("Error while getting operators of client {} - {}", clientId, ex.getMessage)
         getClientOperators401(problemOf(StatusCodes.Unauthorized, "0066", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while getting operators of client {} - {}", clientId, ex.getMessage)
         getClientOperators404(problemOf(StatusCodes.NotFound, "0067", ex))
       case Failure(ex) =>
+        logger.error("Error while getting operators of client {} - {}", clientId, ex.getMessage)
         internalServerError(problemOf(StatusCodes.InternalServerError, "0068", ex, "Error on client keys retrieve"))
     }
   }
@@ -406,6 +549,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerOperator: ToEntityMarshaller[Operator],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Getting operators of client {} by relationship {}", clientId, relationshipId)
     val result = for {
       bearerToken      <- validateClientBearer(contexts, jwtReader)
       clientUUID       <- clientId.toFutureUUID
@@ -418,12 +562,36 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(operator) => getClientOperatorRelationshipById200(operator)
       case Failure(ex @ MissingBearer) =>
+        logger.error(
+          "Error while getting operators of client {} by relationship {} - {}",
+          clientId,
+          relationshipId,
+          ex.getMessage
+        )
         getClientOperatorRelationshipById401(problemOf(StatusCodes.Unauthorized, "0069", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error(
+          "Error while getting operators of client {} by relationship {} - {}",
+          clientId,
+          relationshipId,
+          ex.getMessage
+        )
         getClientOperatorRelationshipById404(problemOf(StatusCodes.NotFound, "0070", ex))
       case Failure(ex: SecurityOperatorRelationshipNotFound) =>
+        logger.error(
+          "Error while getting operators of client {} by relationship {} - {}",
+          clientId,
+          relationshipId,
+          ex.getMessage
+        )
         getClientOperatorRelationshipById404(problemOf(StatusCodes.NotFound, "0071", ex))
       case Failure(ex) =>
+        logger.error(
+          "Error while getting operators of client {} by relationship {} - {}",
+          clientId,
+          relationshipId,
+          ex.getMessage
+        )
         internalServerError(problemOf(StatusCodes.InternalServerError, "0072", ex, "Error on client keys retrieve"))
     }
   }
@@ -434,6 +602,7 @@ final case class ClientApiServiceImpl(
   override def activateClientById(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
+    logger.info("Activate by client {}", clientId)
     val result = for {
       _          <- validateClientBearer(contexts, jwtReader)
       clientUuid <- clientId.toFutureUUID
@@ -443,12 +612,16 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => activateClientById204
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 400 =>
+        logger.error("Error while activating by client {} - {}", clientId, ex.getMessage)
         activateClientById400(problemOf(StatusCodes.BadRequest, "0073", ex))
       case Failure(ex @ MissingBearer) =>
+        logger.error("Error while activating by client {} - {}", clientId, ex.getMessage)
         activateClientById401(problemOf(StatusCodes.Unauthorized, "0074", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while activating by client {} - {}", clientId, ex.getMessage)
         activateClientById404(problemOf(StatusCodes.NotFound, "0075", ex))
       case Failure(ex) =>
+        logger.error("Error while activating by client {} - {}", clientId, ex.getMessage)
         internalServerError(problemOf(StatusCodes.InternalServerError, "0076", ex, "Error on client activation"))
     }
   }
@@ -459,6 +632,7 @@ final case class ClientApiServiceImpl(
   override def suspendClientById(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
+    logger.info("Suspend by client {}", clientId)
     val result = for {
       _          <- validateClientBearer(contexts, jwtReader)
       clientUuid <- clientId.toFutureUUID
@@ -468,12 +642,16 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => suspendClientById204
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 400 =>
+        logger.error("Error while suspending by client {}", clientId, ex.getMessage)
         suspendClientById400(problemOf(StatusCodes.BadRequest, "0077", ex))
       case Failure(ex @ MissingBearer) =>
+        logger.error("Error while suspending by client {} - {}", clientId, ex.getMessage)
         suspendClientById401(problemOf(StatusCodes.Unauthorized, "0078", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while suspending by client {} - {}", clientId, ex.getMessage)
         suspendClientById404(problemOf(StatusCodes.NotFound, "0079", ex))
       case Failure(ex) =>
+        logger.error("Error while suspending by client {} - {}", clientId, ex.getMessage)
         internalServerError(problemOf(StatusCodes.InternalServerError, "0080", ex, "Error on client suspension"))
     }
   }
@@ -620,6 +798,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerEncodedClientKey: ToEntityMarshaller[EncodedClientKey],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Getting encoded client {} key by key id {}", clientId, keyId)
     val result = for {
       _          <- validateClientBearer(contexts, jwtReader)
       clientUuid <- clientId.toFutureUUID
@@ -629,10 +808,14 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(key) => getEncodedClientKeyById200(key)
       case Failure(ex @ MissingBearer) =>
+        logger.error("Error while getting encoded client {} key by key id {} - {}", clientId, keyId, ex.getMessage)
         getEncodedClientKeyById401(problemOf(StatusCodes.Unauthorized, "0081", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while getting encoded client {} key by key id {} - {}", clientId, keyId, ex.getMessage)
         getClientKeyById404(problemOf(StatusCodes.NotFound, "0082", ex))
-      case Failure(ex) => internalServerError(problemOf(StatusCodes.NotFound, "0083", ex, "Error on key retrieve"))
+      case Failure(ex) =>
+        logger.error("Error while getting encoded client {} key by key id {} - {}", clientId, keyId, ex.getMessage)
+        internalServerError(problemOf(StatusCodes.NotFound, "0083", ex, "Error on key retrieve"))
     }
   }
 }
