@@ -5,7 +5,9 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
+import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
+import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{OptionOps, StringOps}
 import it.pagopa.pdnd.interop.commons.utils.errors.MissingBearer
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.OperatorApiService
@@ -17,6 +19,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
+import org.slf4j.LoggerFactory
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,6 +32,8 @@ final case class OperatorApiServiceImpl(
 )(implicit ec: ExecutionContext)
     extends OperatorApiService {
 
+  val logger = Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
+
   /** Code: 201, Message: Keys created, DataType: ClientKeys
     * Code: 400, Message: Bad Request, DataType: Problem
     * Code: 401, Message: Unauthorized, DataType: Problem
@@ -40,6 +45,7 @@ final case class OperatorApiServiceImpl(
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Creating operator keys {}", operatorId)
     val result = for {
       bearerToken  <- validateClientBearer(contexts, jwtReader)
       operatorUuid <- operatorId.toFutureUUID
@@ -70,13 +76,19 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(keys) => createOperatorKeys201(keys)
       case Failure(ex @ MissingBearer) =>
+        logger.error("Error while creating operator keys {} - {}", operatorId, ex.getMessage)
         createOperatorKeys401(problemOf(StatusCodes.Unauthorized, "0012", ex))
-      case Failure(ex: EnumParameterError) => createOperatorKeys400(problemOf(StatusCodes.BadRequest, "0013", ex))
+      case Failure(ex: EnumParameterError) =>
+        logger.error("Error while creating operator keys {} - {}", operatorId, ex.getMessage)
+        createOperatorKeys400(problemOf(StatusCodes.BadRequest, "0013", ex))
       case Failure(ex: SecurityOperatorRelationshipNotFound) =>
+        logger.error("Error while creating operator keys {} - {}", operatorId, ex.getMessage)
         createOperatorKeys403(problemOf(StatusCodes.Forbidden, "0014", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while creating operator keys {} - {}", operatorId, ex.getMessage)
         createOperatorKeys404(problemOf(StatusCodes.NotFound, "0015", ex))
       case Failure(ex) =>
+        logger.error("Error while creating operator keys {} - {}", operatorId, ex.getMessage)
         val error = problemOf(StatusCodes.InternalServerError, "0016", ex, "Error on key creation")
         complete(error.status, error)
     }
@@ -90,6 +102,7 @@ final case class OperatorApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Deleting operator {} key {}", operatorId, keyId)
     val result = for {
       bearerToken  <- validateClientBearer(contexts, jwtReader)
       operatorUuid <- operatorId.toFutureUUID
@@ -102,11 +115,16 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(_) => deleteOperatorKeyById204
       case Failure(ex @ MissingBearer) =>
+        logger.error("Error while deleting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
         deleteOperatorKeyById401(problemOf(StatusCodes.Unauthorized, "0007", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while deleting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
         deleteOperatorKeyById404(problemOf(StatusCodes.NotFound, "0008", ex))
-      case Failure(_ @NoResultsError) => deleteOperatorKeyById404(problemOf(StatusCodes.NotFound, "0009"))
+      case Failure(ex @ NoResultsError) =>
+        logger.error("Error while deleting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
+        deleteOperatorKeyById404(problemOf(StatusCodes.NotFound, "0009"))
       case Failure(ex) =>
+        logger.error("Error while deleting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
         val error = problemOf(StatusCodes.InternalServerError, "0010", ex, "Error on operator key delete")
         complete((error.status, error))
     }
@@ -121,6 +139,7 @@ final case class OperatorApiServiceImpl(
     toEntityMarshallerClientKey: ToEntityMarshaller[ClientKey],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Getting operator {} key {}", operatorId, keyId)
     val result = for {
       bearerToken  <- validateClientBearer(contexts, jwtReader)
       operatorUuid <- operatorId.toFutureUUID
@@ -133,11 +152,16 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(result) => getOperatorKeyById200(result)
       case Failure(ex @ MissingBearer) =>
+        logger.error("Error while getting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
         getOperatorKeyById401(problemOf(StatusCodes.Unauthorized, "0017", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while getting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
         getOperatorKeyById404(problemOf(StatusCodes.NotFound, "0018", ex))
-      case Failure(ex @ NoResultsError) => deleteOperatorKeyById404(problemOf(StatusCodes.NotFound, "0019", ex))
+      case Failure(ex @ NoResultsError) =>
+        logger.error("Error while getting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
+        deleteOperatorKeyById404(problemOf(StatusCodes.NotFound, "0019", ex))
       case Failure(ex) =>
+        logger.error("Error while getting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
         val error = problemOf(StatusCodes.InternalServerError, "0020", ex, "Error on key retrieve")
         complete((error.status, error))
     }
@@ -152,6 +176,7 @@ final case class OperatorApiServiceImpl(
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Getting operator {} keys", operatorId)
     val result = for {
       bearerToken  <- validateClientBearer(contexts, jwtReader)
       operatorUuid <- operatorId.toFutureUUID
@@ -168,11 +193,16 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(result) => getOperatorKeys200(result)
       case Failure(ex @ MissingBearer) =>
+        logger.error("Error while getting operator {} keys - {}", operatorId, ex.getMessage)
         getOperatorKeys401(problemOf(StatusCodes.Unauthorized, "0021", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while getting operator {} keys - {}", operatorId, ex.getMessage)
         getOperatorKeys404(problemOf(StatusCodes.NotFound, "0022", ex))
-      case Failure(ex @ NoResultsError) => getOperatorKeys404(problemOf(StatusCodes.NotFound, "0023", ex))
+      case Failure(ex @ NoResultsError) =>
+        logger.error("Error while getting operator {} keys - {}", operatorId, ex.getMessage)
+        getOperatorKeys404(problemOf(StatusCodes.NotFound, "0023", ex))
       case Failure(ex) =>
+        logger.error("Error while getting operator {} keys - {}", operatorId, ex.getMessage)
         val error = problemOf(StatusCodes.InternalServerError, "0024", ex, "Error on keys retrieve")
         complete((error.status, error))
     }
@@ -187,6 +217,7 @@ final case class OperatorApiServiceImpl(
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
+    logger.info("Getting client keys {} for operator {}", clientId, operatorId)
     val result = for {
       bearerToken   <- validateClientBearer(contexts, jwtReader)
       operatorUuid  <- operatorId.toFutureUUID
@@ -200,11 +231,16 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(result) => getClientOperatorKeys200(result)
       case Failure(ex @ MissingBearer) =>
+        logger.error("Error while getting client keys {} for operator {} - {}", clientId, operatorId, ex.getMessage)
         getClientOperatorKeys401(problemOf(StatusCodes.Unauthorized, "0025", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error while getting client keys {} for operator {} - {}", clientId, operatorId, ex.getMessage)
         getClientOperatorKeys404(problemOf(StatusCodes.NotFound, "0026", ex))
-      case Failure(ex @ NoResultsError) => getClientOperatorKeys404(problemOf(StatusCodes.NotFound, "0027", ex))
+      case Failure(ex @ NoResultsError) =>
+        logger.error("Error while getting client keys {} for operator {} - {}", clientId, operatorId, ex.getMessage)
+        getClientOperatorKeys404(problemOf(StatusCodes.NotFound, "0027", ex))
       case Failure(ex) =>
+        logger.error("Error while getting client keys {} for operator {} - {}", clientId, operatorId, ex.getMessage)
         val error = problemOf(StatusCodes.InternalServerError, "0028", ex, "Error on keys retrieve")
         complete((error.status, error))
     }

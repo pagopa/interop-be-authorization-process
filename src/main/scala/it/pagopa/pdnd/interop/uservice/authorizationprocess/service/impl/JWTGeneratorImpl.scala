@@ -65,7 +65,7 @@ final case class JWTGeneratorImpl(vaultService: VaultService) extends JWTGenerat
     )
 
     randomKey.flatMap { case (k, v) =>
-      logger.error(s"Using key $k to sign JWT for subject ${jwt.getJWTClaimsSet.getSubject}")
+      logger.info(s"Using key $k to sign JWT for subject ${jwt.getJWTClaimsSet.getSubject}")
       readPrivateKeyFromString(v)
     }
 
