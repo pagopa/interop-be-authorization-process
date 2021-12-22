@@ -85,7 +85,7 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
         response.content
       }
       .recoverWith { case ex =>
-        logger.error(s"$logMessage. Error: ${ex.getMessage}")
+        logger.error(s"$logMessage FAILED", ex)
         Future.failed[T](ex)
       }
 }

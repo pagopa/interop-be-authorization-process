@@ -115,7 +115,7 @@ final case class AuthApiServiceImpl(
       .toFuture(DescriptorNotFound(eService.id, descriptorId))
 
   private def manageError(error: Throwable)(implicit contexts: Seq[(String, String)]): Route = {
-    logger.error("Error while executing the request {}", error.getMessage)
+    logger.error("Error while executing the request", error)
     error match {
       case ex @ MissingBearer  => createToken401(problemOf(StatusCodes.Unauthorized, "0001", ex))
       case ex: ParseException  => createToken401(problemOf(StatusCodes.Unauthorized, "0002", ex))

@@ -37,7 +37,7 @@ class AgreementManagementServiceImpl(invoker: AgreementManagementInvoker, api: A
         x.content
       }
       .recoverWith { case ex =>
-        logger.error(s"Retrieving active agreements for ${consumerId.toString}, error > ${ex.getMessage}")
+        logger.error(s"Retrieving active agreements for ${consumerId.toString} FAILED", ex)
         Future.failed[Seq[Agreement]](ex)
       }
   }

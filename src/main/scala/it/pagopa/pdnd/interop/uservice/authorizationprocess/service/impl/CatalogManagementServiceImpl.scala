@@ -30,7 +30,7 @@ class CatalogManagementServiceImpl(invoker: CatalogManagementInvoker, api: EServ
         x.content
       }
       .recoverWith { case ex =>
-        logger.error(s"Retrieving E-Service, error > ${ex.getMessage}")
+        logger.error(s"Retrieving E-Service FAILED", ex)
         Future.failed[EService](ex)
       }
   }
