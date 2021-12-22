@@ -76,19 +76,20 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(keys) => createOperatorKeys201(keys)
       case Failure(ex @ MissingBearer) =>
-        logger.error("Error while creating operator keys {} - {}", operatorId, ex.getMessage)
+        logger.error("Error while creating operator keys {}", operatorId, ex)
         createOperatorKeys401(problemOf(StatusCodes.Unauthorized, "0012", ex))
       case Failure(ex: EnumParameterError) =>
-        logger.error("Error while creating operator keys {} - {}", operatorId, ex.getMessage)
+        logger.error("Error while creating operator keys {}", operatorId, ex)
         createOperatorKeys400(problemOf(StatusCodes.BadRequest, "0013", ex))
       case Failure(ex: SecurityOperatorRelationshipNotFound) =>
-        logger.error("Error while creating operator keys {} - {}", operatorId, ex.getMessage)
+        logger.error("Error while creating operator keys {}", operatorId, ex)
         createOperatorKeys403(problemOf(StatusCodes.Forbidden, "0014", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while creating operator keys {} - {}", operatorId, ex.getMessage)
+        logger.error("Error while creating operator keys {}", operatorId, ex)
         createOperatorKeys404(problemOf(StatusCodes.NotFound, "0015", ex))
       case Failure(ex) =>
-        logger.error("Error while creating operator keys {} - {}", operatorId, ex.getMessage)
+        logger.error("Error while creating operator keys {}", operatorId, ex)
+
         val error = problemOf(StatusCodes.InternalServerError, "0016", ex, "Error on key creation")
         complete(error.status, error)
     }
@@ -115,16 +116,16 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(_) => deleteOperatorKeyById204
       case Failure(ex @ MissingBearer) =>
-        logger.error("Error while deleting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
+        logger.error("Error while deleting operator {} key {}", operatorId, keyId, ex)
         deleteOperatorKeyById401(problemOf(StatusCodes.Unauthorized, "0007", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while deleting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
+        logger.error("Error while deleting operator {} key {}", operatorId, keyId, ex)
         deleteOperatorKeyById404(problemOf(StatusCodes.NotFound, "0008", ex))
       case Failure(ex @ NoResultsError) =>
-        logger.error("Error while deleting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
+        logger.error("Error while deleting operator {} key {}", operatorId, keyId, ex)
         deleteOperatorKeyById404(problemOf(StatusCodes.NotFound, "0009"))
       case Failure(ex) =>
-        logger.error("Error while deleting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
+        logger.error("Error while deleting operator {} key {}", operatorId, keyId, ex)
         val error = problemOf(StatusCodes.InternalServerError, "0010", ex, "Error on operator key delete")
         complete((error.status, error))
     }
@@ -152,16 +153,16 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(result) => getOperatorKeyById200(result)
       case Failure(ex @ MissingBearer) =>
-        logger.error("Error while getting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
+        logger.error("Error while getting operator {} key {}", operatorId, keyId, ex)
         getOperatorKeyById401(problemOf(StatusCodes.Unauthorized, "0017", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while getting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
+        logger.error("Error while getting operator {} key {}", operatorId, keyId, ex)
         getOperatorKeyById404(problemOf(StatusCodes.NotFound, "0018", ex))
       case Failure(ex @ NoResultsError) =>
-        logger.error("Error while getting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
+        logger.error("Error while getting operator {} key {}", operatorId, keyId, ex)
         deleteOperatorKeyById404(problemOf(StatusCodes.NotFound, "0019", ex))
       case Failure(ex) =>
-        logger.error("Error while getting operator {} key {} - {}", operatorId, keyId, ex.getMessage)
+        logger.error("Error while getting operator {} key {}", operatorId, keyId, ex)
         val error = problemOf(StatusCodes.InternalServerError, "0020", ex, "Error on key retrieve")
         complete((error.status, error))
     }
@@ -193,16 +194,16 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(result) => getOperatorKeys200(result)
       case Failure(ex @ MissingBearer) =>
-        logger.error("Error while getting operator {} keys - {}", operatorId, ex.getMessage)
+        logger.error("Error while getting operator {} keys", operatorId, ex)
         getOperatorKeys401(problemOf(StatusCodes.Unauthorized, "0021", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while getting operator {} keys - {}", operatorId, ex.getMessage)
+        logger.error("Error while getting operator {} keys", operatorId, ex)
         getOperatorKeys404(problemOf(StatusCodes.NotFound, "0022", ex))
       case Failure(ex @ NoResultsError) =>
-        logger.error("Error while getting operator {} keys - {}", operatorId, ex.getMessage)
+        logger.error("Error while getting operator {} keys", operatorId, ex)
         getOperatorKeys404(problemOf(StatusCodes.NotFound, "0023", ex))
       case Failure(ex) =>
-        logger.error("Error while getting operator {} keys - {}", operatorId, ex.getMessage)
+        logger.error("Error while getting operator {} keys", operatorId, ex)
         val error = problemOf(StatusCodes.InternalServerError, "0024", ex, "Error on keys retrieve")
         complete((error.status, error))
     }
@@ -231,16 +232,16 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(result) => getClientOperatorKeys200(result)
       case Failure(ex @ MissingBearer) =>
-        logger.error("Error while getting client keys {} for operator {} - {}", clientId, operatorId, ex.getMessage)
+        logger.error("Error while getting client keys {} for operator {}", clientId, operatorId, ex)
         getClientOperatorKeys401(problemOf(StatusCodes.Unauthorized, "0025", ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while getting client keys {} for operator {} - {}", clientId, operatorId, ex.getMessage)
+        logger.error("Error while getting client keys {} for operator {}", clientId, operatorId, ex)
         getClientOperatorKeys404(problemOf(StatusCodes.NotFound, "0026", ex))
       case Failure(ex @ NoResultsError) =>
-        logger.error("Error while getting client keys {} for operator {} - {}", clientId, operatorId, ex.getMessage)
+        logger.error("Error while getting client keys {} for operator {}", clientId, operatorId, ex)
         getClientOperatorKeys404(problemOf(StatusCodes.NotFound, "0027", ex))
       case Failure(ex) =>
-        logger.error("Error while getting client keys {} for operator {} - {}", clientId, operatorId, ex.getMessage)
+        logger.error("Error while getting client keys {} for operator {}", clientId, operatorId, ex)
         val error = problemOf(StatusCodes.InternalServerError, "0028", ex, "Error on keys retrieve")
         complete((error.status, error))
     }

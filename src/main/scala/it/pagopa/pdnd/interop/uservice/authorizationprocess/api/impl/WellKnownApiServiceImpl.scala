@@ -48,7 +48,7 @@ final case class WellKnownApiServiceImpl(vaultService: VaultService) extends Wel
     result match {
       case Success(keys) => getWellKnownKeys200(KeysResponse(keys))
       case Failure(ex) =>
-        logger.error("Error while getting well-known keys - {}", ex.getMessage)
+        logger.error("Error while getting well-known keys", ex)
         getWellKnownKeys400(
           problemOf(StatusCodes.BadRequest, "0029", ex, "Something goes wrong trying to get well-known keys")
         )
