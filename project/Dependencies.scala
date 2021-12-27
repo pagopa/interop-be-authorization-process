@@ -49,9 +49,9 @@ object Dependencies {
     lazy val joseJwt   = namespace % "nimbus-jose-jwt" % nimbusVersion
   }
 
-  private[this] object openapi4j {
-    lazy val namespace          = "org.openapi4j"
-    lazy val operationValidator = namespace % "openapi-operation-validator" % openapi4jVersion
+  private[this] object atlassian {
+    lazy val namespace        = "com.atlassian.oai"
+    lazy val swaggerValidator = namespace % "swagger-request-validator-core" % swaggerValidatorVersion
   }
 
   private[this] object bouncycastle {
@@ -131,6 +131,7 @@ object Dependencies {
       akka.serialization            % Compile,
       akka.slf4j                    % Compile,
       akka.stream                   % Compile,
+      atlassian.swaggerValidator    % Compile,
       bouncycastle.kix              % Compile,
       bouncycastle.provider         % Compile,
       cats.core                     % Compile,
@@ -139,7 +140,6 @@ object Dependencies {
       logback.classic               % Compile,
       mustache.mustache             % Compile,
       nimbus.joseJwt                % Compile,
-      openapi4j.operationValidator  % Compile,
       pagopa.agreementManagement    % Compile,
       pagopa.commons                % Compile,
       pagopa.catalogManagement      % Compile,
