@@ -53,7 +53,6 @@ import kamon.Kamon
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
-
 //shuts down the actor system in case of startup errors
 case object StartupErrorShutdown extends CoordinatedShutdown.Reason
 
@@ -211,5 +210,4 @@ object Main
 
     server
   }
-
 }
