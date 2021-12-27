@@ -6,13 +6,12 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.complete
 import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
-import com.atlassian.oai.validator.report.ValidationReport
-import it.pagopa.pdnd.interop.commons.jwt.{JWTConfiguration, PublicKeysHolder}
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.commons.jwt.service.impl.DefaultJWTReader
+import it.pagopa.pdnd.interop.commons.jwt.{JWTConfiguration, PublicKeysHolder}
 import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.{Authenticator, PassThroughAuthenticator}
-import it.pagopa.pdnd.interop.commons.utils.CORSSupport
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions.TryOps
+import it.pagopa.pdnd.interop.commons.utils.{CORSSupport, OpenapiUtils}
 import it.pagopa.pdnd.interop.commons.vault.service.VaultService
 import it.pagopa.pdnd.interop.commons.vault.service.impl.{DefaultVaultClient, DefaultVaultService}
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
@@ -51,12 +50,9 @@ import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.{PartyApi => P
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.api.{UserApi => UserRegistryManagementApi}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.invoker.ApiKeyValue
 import kamon.Kamon
-import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
-import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
 
 //shuts down the actor system in case of startup errors
 case object StartupErrorShutdown extends CoordinatedShutdown.Reason
@@ -133,8 +129,6 @@ object Main
     with M2MAuthorizationService
     with UserRegistryManagementDependency {
 
-  private val logger = LoggerFactory.getLogger(this.getClass)
-
   val dependenciesLoaded: Future[JWTReader] = for {
     keyset <- JWTConfiguration.jwtReader.loadKeyset().toFuture
     jwtValidator = new DefaultJWTReader with PublicKeysHolder {
@@ -203,7 +197,11 @@ object Main
       wellKnownApi,
       validationExceptionToRoute = Some(report => {
         val error =
-          problemOf(StatusCodes.BadRequest, "0000", defaultMessage = errorFromRequestValidationReport(report))
+          problemOf(
+            StatusCodes.BadRequest,
+            "0000",
+            defaultMessage = OpenapiUtils.errorFromRequestValidationReport(report)
+          )
         complete(error.status, error)(ClientApiMarshallerImpl.toEntityMarshallerProblem)
       })
     )
@@ -212,21 +210,6 @@ object Main
       Http().newServerAt("0.0.0.0", ApplicationConfiguration.serverPort).bind(corsHandler(controller.routes))
 
     server
-  }
-
-  private def errorFromRequestValidationReport(report: ValidationReport): String = {
-    val messageStrings = report.getMessages.asScala.foldLeft[List[String]](List.empty)((tail, m) => {
-      val context = m.getContext.toScala.map(c =>
-        Seq(c.getRequestMethod.toScala, c.getRequestPath.toScala, c.getLocation.toScala).flatten
-      )
-      s"""${m.getAdditionalInfo.asScala.mkString(",")}
-         |${m.getLevel} - ${m.getMessage}
-         |${context.getOrElse(Seq.empty).mkString(" - ")}
-         |""".stripMargin :: tail
-    })
-
-    logger.error("Request failed: {}", messageStrings.mkString)
-    report.getMessages().asScala.map(_.getMessage).mkString(", ")
   }
 
 }
