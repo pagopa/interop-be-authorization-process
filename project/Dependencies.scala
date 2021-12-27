@@ -49,11 +49,6 @@ object Dependencies {
     lazy val joseJwt   = namespace % "nimbus-jose-jwt" % nimbusVersion
   }
 
-  private[this] object atlassian {
-    lazy val namespace        = "com.atlassian.oai"
-    lazy val swaggerValidator = namespace % "swagger-request-validator-core" % swaggerValidatorVersion
-  }
-
   private[this] object bouncycastle {
     lazy val namespace = "org.bouncycastle"
     lazy val provider  = namespace % "bcprov-jdk15on" % bouncycastleVersion
@@ -131,7 +126,6 @@ object Dependencies {
       akka.serialization            % Compile,
       akka.slf4j                    % Compile,
       akka.stream                   % Compile,
-      atlassian.swaggerValidator    % Compile,
       bouncycastle.kix              % Compile,
       bouncycastle.provider         % Compile,
       cats.core                     % Compile,

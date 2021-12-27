@@ -15,7 +15,6 @@ object Versions {
   lazy val nimbusVersion            = "9.15.2"
   lazy val scalaMockVersion         = "5.1.0"
   lazy val scalatestVersion         = "3.2.10"
-  lazy val swaggerValidatorVersion  = "2.23.0"
 }
 
 object PDNDVersions {
