@@ -44,8 +44,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(client.id)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(client.id, bearerToken)
         .once()
         .returns(Future.successful(client))
 
@@ -58,8 +59,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .once()
         .returns(Future.successful(activeRelationship))
 
-      (mockAuthorizationManagementService.addRelationship _)
-        .expects(client.id, relationship.id)
+      (mockAuthorizationManagementService
+        .addRelationship(_: UUID, _: UUID)(_: String))
+        .expects(client.id, relationship.id, bearerToken)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
 
@@ -110,8 +112,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(*)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(*, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
@@ -132,8 +135,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(client.id)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(client.id, bearerToken)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
@@ -158,8 +162,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.removeClientRelationship _)
-        .expects(client.id, relationship.id)
+      (mockAuthorizationManagementService
+        .removeClientRelationship(_: UUID, _: UUID)(_: String))
+        .expects(client.id, relationship.id, bearerToken)
         .once()
         .returns(Future.successful(()))
 
@@ -183,8 +188,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.removeClientRelationship _)
-        .expects(client.id, relationship.id)
+      (mockAuthorizationManagementService
+        .removeClientRelationship(_: UUID, _: UUID)(_: String))
+        .expects(client.id, relationship.id, bearerToken)
         .once()
         .returns(Future.failed(new RuntimeException("error")))
 
@@ -207,8 +213,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(client.id)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(client.id, bearerToken)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
@@ -257,8 +264,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(client.id)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(client.id, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
@@ -276,8 +284,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(client.id)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(client.id, bearerToken)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
 
@@ -326,8 +335,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(client.id)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(client.id, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
@@ -343,8 +353,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(client.id)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(client.id, bearerToken)
         .once()
         .returns(Future.successful(client))
 

@@ -59,10 +59,10 @@ final case class AuthApiServiceImpl(
     val token: Future[String] =
       for {
         m2mToken  <- m2mAuthorizationService.token
-        validated <- jwtValidator.validate(clientAssertion, clientAssertionType, grantType, clientId)
+        validated <- jwtValidator.validate(clientAssertion, clientAssertionType, grantType, clientId)(m2mToken)
         (clientId, assertion) = validated
         clientUuid <- clientId.toFutureUUID
-        client     <- authorizationManagementService.getClient(clientUuid)
+        client     <- authorizationManagementService.getClient(clientUuid)(m2mToken)
         _          <- clientMustBeActive(client)
         agreements <- agreementManagementService.getAgreements(
           m2mToken,
