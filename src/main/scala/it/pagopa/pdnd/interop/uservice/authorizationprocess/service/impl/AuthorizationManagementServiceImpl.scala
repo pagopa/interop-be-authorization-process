@@ -1,5 +1,6 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.BearerToken
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
   AuthorizationManagementService,
   KeyManagementInvoker
@@ -24,7 +25,7 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     name: String,
     purposes: String,
     description: Option[String]
-  ): Future[Client] = {
+  )(bearer: String): Future[Client] = {
     val request: ApiRequest[Client] =
       clientApi.createClient(
         ClientSeed(
@@ -34,12 +35,12 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
           purposes = purposes,
           description = description
         )
-      )
+      )(BearerToken(bearer))
     invoke(request, "Client creation")
   }
 
-  override def getClient(clientId: UUID): Future[Client] = {
-    val request: ApiRequest[Client] = clientApi.getClient(clientId.toString)
+  override def getClient(clientId: UUID)(bearer: String): Future[Client] = {
+    val request: ApiRequest[Client] = clientApi.getClient(clientId.toString)(BearerToken(bearer))
     invoke(request, "Client retrieve")
   }
 
@@ -49,58 +50,60 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
     eServiceId: Option[UUID],
     relationshipId: Option[UUID],
     consumerId: Option[UUID]
-  ): Future[Seq[Client]] = {
-    val request: ApiRequest[Seq[Client]] = clientApi.listClients(offset, limit, eServiceId, relationshipId, consumerId)
+  )(bearer: String): Future[Seq[Client]] = {
+    val request: ApiRequest[Seq[Client]] =
+      clientApi.listClients(offset, limit, eServiceId, relationshipId, consumerId)(BearerToken(bearer))
     invoke(request, "Client list")
   }
 
-  override def deleteClient(clientId: UUID): Future[Unit] = {
-    val request: ApiRequest[Unit] = clientApi.deleteClient(clientId.toString)
+  override def deleteClient(clientId: UUID)(bearer: String): Future[Unit] = {
+    val request: ApiRequest[Unit] = clientApi.deleteClient(clientId.toString)(BearerToken(bearer))
     invoke(request, "Client delete")
   }
 
-  override def activateClient(clientId: UUID): Future[Unit] = {
-    val request: ApiRequest[Unit] = clientApi.activateClientById(clientId)
+  override def activateClient(clientId: UUID)(bearer: String): Future[Unit] = {
+    val request: ApiRequest[Unit] = clientApi.activateClientById(clientId)(BearerToken(bearer))
     invoke(request, "Client activation")
   }
 
-  override def suspendClient(clientId: UUID): Future[Unit] = {
-    val request: ApiRequest[Unit] = clientApi.suspendClientById(clientId)
+  override def suspendClient(clientId: UUID)(bearer: String): Future[Unit] = {
+    val request: ApiRequest[Unit] = clientApi.suspendClientById(clientId)(BearerToken(bearer))
     invoke(request, "Client suspension")
   }
 
-  override def addRelationship(clientId: UUID, relationshipId: UUID): Future[Client] = {
-    val request: ApiRequest[Client] = clientApi.addRelationship(clientId, PartyRelationshipSeed(relationshipId))
+  override def addRelationship(clientId: UUID, relationshipId: UUID)(bearer: String): Future[Client] = {
+    val request: ApiRequest[Client] =
+      clientApi.addRelationship(clientId, PartyRelationshipSeed(relationshipId))(BearerToken(bearer))
     invoke(request, "Operator addition to client")
   }
 
-  override def removeClientRelationship(clientId: UUID, relationshipId: UUID): Future[Unit] = {
-    val request: ApiRequest[Unit] = clientApi.removeClientRelationship(clientId, relationshipId)
+  override def removeClientRelationship(clientId: UUID, relationshipId: UUID)(bearer: String): Future[Unit] = {
+    val request: ApiRequest[Unit] = clientApi.removeClientRelationship(clientId, relationshipId)(BearerToken(bearer))
     invoke(request, "Operator removal from client")
   }
 
-  override def getKey(clientId: UUID, kid: String): Future[ClientKey] = {
-    val request: ApiRequest[ClientKey] = keyApi.getClientKeyById(clientId, kid)
+  override def getKey(clientId: UUID, kid: String)(bearer: String): Future[ClientKey] = {
+    val request: ApiRequest[ClientKey] = keyApi.getClientKeyById(clientId, kid)(BearerToken(bearer))
     invoke(request, "Key Retrieve")
   }
 
-  override def deleteKey(clientId: UUID, kid: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = keyApi.deleteClientKeyById(clientId, kid)
+  override def deleteKey(clientId: UUID, kid: String)(bearer: String): Future[Unit] = {
+    val request: ApiRequest[Unit] = keyApi.deleteClientKeyById(clientId, kid)(BearerToken(bearer))
     invoke(request, "Key Delete")
   }
 
-  override def getClientKeys(clientId: UUID): Future[KeysResponse] = {
-    val request: ApiRequest[KeysResponse] = keyApi.getClientKeys(clientId)
+  override def getClientKeys(clientId: UUID)(bearer: String): Future[KeysResponse] = {
+    val request: ApiRequest[KeysResponse] = keyApi.getClientKeys(clientId)(BearerToken(bearer))
     invoke(request, "Client keys retrieve")
   }
 
-  def getEncodedClientKey(clientId: UUID, kid: String): Future[EncodedClientKey] = {
-    val request: ApiRequest[EncodedClientKey] = keyApi.getEncodedClientKeyById(clientId, kid)
+  def getEncodedClientKey(clientId: UUID, kid: String)(bearer: String): Future[EncodedClientKey] = {
+    val request: ApiRequest[EncodedClientKey] = keyApi.getEncodedClientKeyById(clientId, kid)(BearerToken(bearer))
     invoke(request, "Key Retrieve")
   }
 
-  override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed]): Future[KeysResponse] = {
-    val request: ApiRequest[KeysResponse] = keyApi.createKeys(clientId, keysSeeds)
+  override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(bearer: String): Future[KeysResponse] = {
+    val request: ApiRequest[KeysResponse] = keyApi.createKeys(clientId, keysSeeds)(BearerToken(bearer))
     invoke(request, "Key creation")
   }
 

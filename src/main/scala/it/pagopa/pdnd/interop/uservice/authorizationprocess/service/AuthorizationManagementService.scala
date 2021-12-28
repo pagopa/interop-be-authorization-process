@@ -15,33 +15,29 @@ import scala.concurrent.Future
 
 trait AuthorizationManagementService {
 
-  def createClient(
-    eServiceId: UUID,
-    consumerId: UUID,
-    name: String,
-    purposes: String,
-    description: Option[String]
+  def createClient(eServiceId: UUID, consumerId: UUID, name: String, purposes: String, description: Option[String])(
+    bearer: String
   ): Future[ManagementClient]
-  def getClient(clientId: UUID): Future[ManagementClient]
+  def getClient(clientId: UUID)(bearer: String): Future[ManagementClient]
   def listClients(
     offset: Option[Int],
     limit: Option[Int],
     eServiceId: Option[UUID],
     relationshipId: Option[UUID],
     consumerId: Option[UUID]
-  ): Future[Seq[ManagementClient]]
-  def deleteClient(clientId: UUID): Future[Unit]
-  def activateClient(clientId: UUID): Future[Unit]
-  def suspendClient(clientId: UUID): Future[Unit]
+  )(bearer: String): Future[Seq[ManagementClient]]
+  def deleteClient(clientId: UUID)(bearer: String): Future[Unit]
+  def activateClient(clientId: UUID)(bearer: String): Future[Unit]
+  def suspendClient(clientId: UUID)(bearer: String): Future[Unit]
 
-  def addRelationship(clientId: UUID, relationshipId: UUID): Future[ManagementClient]
-  def removeClientRelationship(clientId: UUID, relationshipId: UUID): Future[Unit]
+  def addRelationship(clientId: UUID, relationshipId: UUID)(bearer: String): Future[ManagementClient]
+  def removeClientRelationship(clientId: UUID, relationshipId: UUID)(bearer: String): Future[Unit]
 
-  def getKey(clientId: UUID, kid: String): Future[ClientKey]
-  def getClientKeys(clientId: UUID): Future[KeysResponse]
-  def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed]): Future[KeysResponse]
-  def deleteKey(clientId: UUID, kid: String): Future[Unit]
-  def getEncodedClientKey(clientId: UUID, kid: String): Future[EncodedClientKey]
+  def getKey(clientId: UUID, kid: String)(bearer: String): Future[ClientKey]
+  def getClientKeys(clientId: UUID)(bearer: String): Future[KeysResponse]
+  def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(bearer: String): Future[KeysResponse]
+  def deleteKey(clientId: UUID, kid: String)(bearer: String): Future[Unit]
+  def getEncodedClientKey(clientId: UUID, kid: String)(bearer: String): Future[EncodedClientKey]
 }
 
 object AuthorizationManagementService {

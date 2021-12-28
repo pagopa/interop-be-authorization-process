@@ -11,6 +11,7 @@ import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.KeysResponse
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{KeySeed => KeyMgmtSeed}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -63,8 +64,9 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getKey _)
-        .expects(client.id, kid)
+      (mockAuthorizationManagementService
+        .getKey(_: UUID, _: String)(_: String))
+        .expects(client.id, kid, bearerToken)
         .once()
         .returns(Future.successful(createdKey))
 
@@ -92,8 +94,9 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getKey _)
-        .expects(*, *)
+      (mockAuthorizationManagementService
+        .getKey(_: UUID, _: String)(_: String))
+        .expects(*, *, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
@@ -111,8 +114,9 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClientKeys _)
-        .expects(client.id)
+      (mockAuthorizationManagementService
+        .getClientKeys(_: UUID)(_: String))
+        .expects(client.id, bearerToken)
         .once()
         .returns(Future.successful(KeysResponse(Seq(createdKey))))
 
@@ -138,8 +142,9 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClientKeys _)
-        .expects(*)
+      (mockAuthorizationManagementService
+        .getClientKeys(_: UUID)(_: String))
+        .expects(*, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
@@ -159,8 +164,9 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(client.id)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(client.id, bearerToken)
         .once()
         .returns(Future.successful(client))
 
@@ -170,8 +176,9 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .once()
         .returns(Future.successful(relationships))
 
-      (mockAuthorizationManagementService.createKeys _)
-        .expects(client.id, *)
+      (mockAuthorizationManagementService
+        .createKeys(_: UUID, _: Seq[KeyMgmtSeed])(_: String))
+        .expects(client.id, *, bearerToken)
         .once()
         .returns(Future.successful(KeysResponse(Seq(createdKey))))
 
@@ -197,8 +204,9 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(client.id)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(client.id, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
 
@@ -217,8 +225,9 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.deleteKey _)
-        .expects(client.id, kid)
+      (mockAuthorizationManagementService
+        .deleteKey(_: UUID, _: String)(_: String))
+        .expects(client.id, kid, bearerToken)
         .once()
         .returns(Future.successful(()))
 
@@ -243,8 +252,9 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.deleteKey _)
-        .expects(*, *)
+      (mockAuthorizationManagementService
+        .deleteKey(_: UUID, _: String)(_: String))
+        .expects(*, *, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 

@@ -25,12 +25,12 @@ final case class JWTValidatorImpl(keyManager: AuthorizationManagementService, va
     clientAssertionType: String,
     grantType: String,
     clientId: Option[UUID]
-  ): Future[(String, SignedJWT)] =
+  )(m2mToken: String): Future[(String, SignedJWT)] =
     for {
       info <- extractJwtInfo(clientAssertion, clientAssertionType, grantType, clientId)
       (jwt, kid, clientId) = info
       clientUUid <- clientId.toFutureUUID
-      publicKey  <- keyManager.getKey(clientUUid, kid)
+      publicKey  <- keyManager.getKey(clientUUid, kid)(m2mToken)
       verifier   <- getVerifier(jwt.getHeader.getAlgorithm, publicKey.key)
       _ = logger.info("Verify signature")
       verified <- verify(verifier, jwt)

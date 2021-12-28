@@ -114,13 +114,15 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
       execForEachOperatorClientExpectations()
 
-      (mockAuthorizationManagementService.getKey _)
-        .expects(client1.id, kid)
+      (mockAuthorizationManagementService
+        .getKey(_: UUID, _: String)(_: String))
+        .expects(client1.id, kid, bearerToken)
         .once()
         .returns(Future.successful(createdKey))
 
-      (mockAuthorizationManagementService.getKey _)
-        .expects(client2.id, kid)
+      (mockAuthorizationManagementService
+        .getKey(_: UUID, _: String)(_: String))
+        .expects(client2.id, kid, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
@@ -145,13 +147,15 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
       execForEachOperatorClientExpectations()
 
-      (mockAuthorizationManagementService.getKey _)
-        .expects(client1.id, kid)
+      (mockAuthorizationManagementService
+        .getKey(_: UUID, _: String)(_: String))
+        .expects(client1.id, kid, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
-      (mockAuthorizationManagementService.getKey _)
-        .expects(client2.id, kid)
+      (mockAuthorizationManagementService
+        .getKey(_: UUID, _: String)(_: String))
+        .expects(client2.id, kid, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
@@ -166,8 +170,9 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
       execForEachOperatorClientExpectations()
 
-      (mockAuthorizationManagementService.getClientKeys _)
-        .expects(client1.id)
+      (mockAuthorizationManagementService
+        .getClientKeys(_: UUID)(_: String))
+        .expects(client1.id, bearerToken)
         .once()
         .returns(
           Future.successful(
@@ -175,8 +180,9 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
           )
         )
 
-      (mockAuthorizationManagementService.getClientKeys _)
-        .expects(client2.id)
+      (mockAuthorizationManagementService
+        .getClientKeys(_: UUID)(_: String))
+        .expects(client2.id, bearerToken)
         .once()
         .returns(
           Future.successful(
@@ -203,8 +209,9 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
       execForEachOperatorClientExpectations()
 
-      (mockAuthorizationManagementService.getClientKeys _)
-        .expects(*)
+      (mockAuthorizationManagementService
+        .getClientKeys(_: UUID)(_: String))
+        .expects(*, bearerToken)
         .twice()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
@@ -227,18 +234,21 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
       .once()
       .returns(Future.successful(relationships))
 
-    (mockAuthorizationManagementService.listClients _)
-      .expects(None, None, None, Some(relationship1.id), None)
+    (mockAuthorizationManagementService
+      .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID], _: Option[UUID])(_: String))
+      .expects(None, None, None, Some(relationship1.id), None, bearerToken)
       .once()
       .returns(Future.successful(Seq(client1)))
 
-    (mockAuthorizationManagementService.listClients _)
-      .expects(None, None, None, Some(relationship2.id), None)
+    (mockAuthorizationManagementService
+      .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID], _: Option[UUID])(_: String))
+      .expects(None, None, None, Some(relationship2.id), None, bearerToken)
       .once()
       .returns(Future.successful(Seq(client2)))
 
-    (mockAuthorizationManagementService.listClients _)
-      .expects(None, None, None, Some(relationship3.id), None)
+    (mockAuthorizationManagementService
+      .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID], _: Option[UUID])(_: String))
+      .expects(None, None, None, Some(relationship3.id), None, bearerToken)
       .once()
       .returns(Future.successful(Seq()))
 

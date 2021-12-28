@@ -56,7 +56,7 @@ final case class OperatorApiServiceImpl(
       keysResponse <- operatorKeySeeds.traverse { seed =>
         for {
           clientUuid <- seed.clientId.toFutureUUID
-          client     <- authorizationManagementService.getClient(clientUuid)
+          client     <- authorizationManagementService.getClient(clientUuid)(bearerToken)
           clientRelationshipId <- client.relationships
             .intersect(relationships.items.map(_.id).toSet)
             .headOption // Exactly one expected
@@ -67,7 +67,7 @@ final case class OperatorApiServiceImpl(
             use = keyUseToDependency(seed.use),
             alg = seed.alg
           )
-          result <- authorizationManagementService.createKeys(client.id, Seq(managementSeed))
+          result <- authorizationManagementService.createKeys(client.id, Seq(managementSeed))(bearerToken)
         } yield result
       }
 
@@ -109,7 +109,7 @@ final case class OperatorApiServiceImpl(
       operatorUuid <- operatorId.toFutureUUID
       _ <- collectFirstForEachOperatorClient(
         operatorUuid,
-        client => authorizationManagementService.deleteKey(client.id, keyId)
+        client => authorizationManagementService.deleteKey(client.id, keyId)(bearerToken)
       )(bearerToken)
     } yield ()
 
@@ -146,7 +146,7 @@ final case class OperatorApiServiceImpl(
       operatorUuid <- operatorId.toFutureUUID
       key <- collectFirstForEachOperatorClient(
         operatorUuid,
-        client => authorizationManagementService.getKey(client.id, keyId)
+        client => authorizationManagementService.getKey(client.id, keyId)(bearerToken)
       )(bearerToken)
     } yield AuthorizationManagementService.keyToApi(key)
 
@@ -185,7 +185,7 @@ final case class OperatorApiServiceImpl(
         operatorUuid,
         (client, operatorRelationships) =>
           for {
-            clientKeys <- authorizationManagementService.getClientKeys(client.id)
+            clientKeys <- authorizationManagementService.getClientKeys(client.id)(bearerToken)
             operatorKeys = clientKeys.keys.filter(key => operatorRelationships.items.exists(_.id == key.relationshipId))
           } yield keymanagement.client.model.KeysResponse(operatorKeys)
       )(bearerToken)
@@ -224,7 +224,7 @@ final case class OperatorApiServiceImpl(
       operatorUuid  <- operatorId.toFutureUUID
       relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)(bearerToken)
       clientUuid    <- clientId.toFutureUUID
-      clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)
+      clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)(bearerToken)
       operatorKeys = clientKeys.keys.filter(key => relationships.items.exists(_.id == key.relationshipId))
       keysResponse = keymanagement.client.model.KeysResponse(operatorKeys)
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
@@ -260,7 +260,7 @@ final case class OperatorApiServiceImpl(
         limit = None,
         eServiceId = None,
         consumerId = None
-      )
+      )(bearerToken)
     )
     recoverable <- clients.traverse(client => f(client, relationships).transform(Success(_)))
     success      = recoverable.collect { case Success(result) => result }

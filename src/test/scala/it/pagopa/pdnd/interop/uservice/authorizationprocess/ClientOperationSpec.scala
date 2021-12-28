@@ -46,8 +46,16 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(eService))
 
-      (mockAuthorizationManagementService.createClient _)
-        .expects(clientSeed.eServiceId, organization.id, clientSeed.name, clientSeed.purposes, clientSeed.description)
+      (mockAuthorizationManagementService
+        .createClient(_: UUID, _: UUID, _: String, _: String, _: Option[String])(_: String))
+        .expects(
+          clientSeed.eServiceId,
+          organization.id,
+          clientSeed.name,
+          clientSeed.purposes,
+          clientSeed.description,
+          bearerToken
+        )
         .once()
         .returns(Future.successful(client))
 
@@ -114,8 +122,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(*)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(*, bearerToken)
         .once()
         .returns(Future.successful(client))
 
@@ -188,8 +197,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(*)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(*, bearerToken)
         .once()
         .returns(Future.successful(client))
 
@@ -230,8 +240,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.getClient _)
-        .expects(*)
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: String))
+        .expects(*, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
@@ -265,8 +276,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(Relationships(Seq(relationship))))
 
-      (mockAuthorizationManagementService.listClients _)
-        .expects(offset, limit, eServiceUuid, relationshipUuid, consumerUuid)
+      (mockAuthorizationManagementService
+        .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID], _: Option[UUID])(_: String))
+        .expects(offset, limit, eServiceUuid, relationshipUuid, consumerUuid, bearerToken)
         .once()
         .returns(Future.successful(Seq(client)))
 
@@ -337,8 +349,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.deleteClient _)
-        .expects(*)
+      (mockAuthorizationManagementService
+        .deleteClient(_: UUID)(_: String))
+        .expects(*, bearerToken)
         .once()
         .returns(Future.successful(()))
 
@@ -354,8 +367,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.deleteClient _)
-        .expects(*)
+      (mockAuthorizationManagementService
+        .deleteClient(_: UUID)(_: String))
+        .expects(*, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
@@ -373,8 +387,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.activateClient _)
-        .expects(*)
+      (mockAuthorizationManagementService
+        .activateClient(_: UUID)(_: String))
+        .expects(*, bearerToken)
         .once()
         .returns(Future.successful(()))
 
@@ -390,8 +405,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.activateClient _)
-        .expects(*)
+      (mockAuthorizationManagementService
+        .activateClient(_: UUID)(_: String))
+        .expects(*, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
@@ -409,8 +425,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.suspendClient _)
-        .expects(*)
+      (mockAuthorizationManagementService
+        .suspendClient(_: UUID)(_: String))
+        .expects(*, bearerToken)
         .once()
         .returns(Future.successful(()))
 
@@ -426,8 +443,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockAuthorizationManagementService.suspendClient _)
-        .expects(*)
+      (mockAuthorizationManagementService
+        .suspendClient(_: UUID)(_: String))
+        .expects(*, bearerToken)
         .once()
         .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
 
