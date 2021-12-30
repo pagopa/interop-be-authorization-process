@@ -2,8 +2,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.AgreementApi
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.invoker.{ApiRequest, BearerToken}
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.Agreement
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.AgreementState
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement, AgreementState}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
   AgreementManagementInvoker,
   AgreementManagementService
@@ -11,13 +10,12 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
-class AgreementManagementServiceImpl(invoker: AgreementManagementInvoker, api: AgreementApi)(implicit
-  ec: ExecutionContext
-) extends AgreementManagementService {
+class AgreementManagementServiceImpl(invoker: AgreementManagementInvoker, api: AgreementApi)
+    extends AgreementManagementService {
 
-  val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   override def getAgreements(
     bearerToken: String,
@@ -29,16 +27,6 @@ class AgreementManagementServiceImpl(invoker: AgreementManagementInvoker, api: A
       api.getAgreements(consumerId = Some(consumerId.toString), eserviceId = Some(eserviceId.toString), state = state)(
         BearerToken(bearerToken)
       )
-    invoker
-      .execute[Seq[Agreement]](request)
-      .map { x =>
-        logger.info(s"Retrieving active agreements for ${consumerId.toString} status code > ${x.code.toString}")
-        logger.info(s"Retrieving active agreements for ${consumerId.toString} content > ${x.content.toString}")
-        x.content
-      }
-      .recoverWith { case ex =>
-        logger.error(s"Retrieving active agreements for ${consumerId.toString} FAILED", ex)
-        Future.failed[Seq[Agreement]](ex)
-      }
+    invoker.invoke(request, s"Retrieving active agreements for ${consumerId.toString}")
   }
 }
