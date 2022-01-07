@@ -8,18 +8,18 @@ import com.nimbusds.jose.JOSEException
 import com.nimbusds.jwt.JWTClaimsSet
 import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
+import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{OptionOps, StringOps, TryOps}
+import it.pagopa.pdnd.interop.commons.utils.errors.MissingBearer
 import it.pagopa.pdnd.interop.uservice.agreementmanagement
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.expireIn
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.error._
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{EService, EServiceDescriptor}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagementDependency}
-import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{OptionOps, StringOps, TryOps}
-import it.pagopa.pdnd.interop.commons.utils.errors.MissingBearer
 import org.slf4j.LoggerFactory
 
 import java.text.ParseException
@@ -114,19 +114,17 @@ final case class AuthApiServiceImpl(
       .find(_.id == descriptorId)
       .toFuture(DescriptorNotFound(eService.id, descriptorId))
 
-  private def manageError(error: Throwable)(implicit contexts: Seq[(String, String)]): Route = {
+  private def manageError[T <: Throwable](error: T)(implicit contexts: Seq[(String, String)]): Route = {
     logger.error("Error while executing the request", error)
     error match {
-      case ex @ MissingBearer  => createToken401(problemOf(StatusCodes.Unauthorized, "0001", ex))
-      case ex: ParseException  => createToken401(problemOf(StatusCodes.Unauthorized, "0002", ex))
-      case ex: JOSEException   => createToken401(problemOf(StatusCodes.Unauthorized, "0003", ex))
-      case ex @ InvalidJWTSign => createToken401(problemOf(StatusCodes.Unauthorized, "0004", ex))
+      case MissingBearer      => createToken401(problemOf(StatusCodes.Unauthorized, MissingBearer))
+      case ex: ParseException => createToken401(problemOf(StatusCodes.Unauthorized, InvalidJWTError(ex.getMessage)))
+      case ex: JOSEException  => createToken401(problemOf(StatusCodes.Unauthorized, InvalidJWTError(ex.getMessage)))
+      case InvalidJWTSign     => createToken401(problemOf(StatusCodes.Unauthorized, InvalidJWTSign))
       case ex: InvalidAccessTokenRequest =>
-        createToken400(problemOf(StatusCodes.BadRequest, "0005", ex, ex.errors.mkString(", ")))
-      case ex =>
-        createToken400(
-          problemOf(StatusCodes.BadRequest, "0006", ex, "Something went wrong during access token request")
-        )
+        createToken400(problemOf(StatusCodes.BadRequest, ex))
+      case _ =>
+        createToken400(problemOf(StatusCodes.BadRequest, JWTBadRequest))
     }
   }
 

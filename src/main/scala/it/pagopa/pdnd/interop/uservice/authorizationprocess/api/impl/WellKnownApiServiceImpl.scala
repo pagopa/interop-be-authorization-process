@@ -8,6 +8,7 @@ import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.vault.service.VaultService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.WellKnownApiService
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.AuthorizationProcessErrors.WellKnownRetrievalError
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _}
@@ -49,9 +50,7 @@ final case class WellKnownApiServiceImpl(vaultService: VaultService) extends Wel
       case Success(keys) => getWellKnownKeys200(KeysResponse(keys))
       case Failure(ex) =>
         logger.error("Error while getting well-known keys", ex)
-        getWellKnownKeys400(
-          problemOf(StatusCodes.BadRequest, "0029", ex, "Something goes wrong trying to get well-known keys")
-        )
+        getWellKnownKeys400(problemOf(StatusCodes.BadRequest, WellKnownRetrievalError))
     }
 
   }

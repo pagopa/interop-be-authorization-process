@@ -9,8 +9,9 @@ import akka.management.scaladsl.AkkaManagement
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.commons.jwt.service.impl.DefaultJWTReader
 import it.pagopa.pdnd.interop.commons.jwt.{JWTConfiguration, PublicKeysHolder}
-import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.{Authenticator, PassThroughAuthenticator}
+import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.PassThroughAuthenticator
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions.TryOps
+import it.pagopa.pdnd.interop.commons.utils.errors.ValidationRequestError
 import it.pagopa.pdnd.interop.commons.utils.{CORSSupport, OpenapiUtils}
 import it.pagopa.pdnd.interop.commons.vault.service.VaultService
 import it.pagopa.pdnd.interop.commons.vault.service.impl.{DefaultVaultClient, DefaultVaultService}
@@ -170,13 +171,13 @@ object Main
         jwtReader
       ),
       ClientApiMarshallerImpl,
-      SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
+      jwtReader.OAuth2JWTValidatorAsContexts
     )
 
     val operatorApi: OperatorApi = new OperatorApi(
       OperatorApiServiceImpl(authorizationManagementService, partyManagementService, jwtReader),
       OperatorApiMarshallerImpl,
-      SecurityDirectives.authenticateOAuth2("SecurityRealm", Authenticator)
+      jwtReader.OAuth2JWTValidatorAsContexts
     )
 
     val wellKnownApi: WellKnownApi = new WellKnownApi(
@@ -198,8 +199,7 @@ object Main
         val error =
           problemOf(
             StatusCodes.BadRequest,
-            "0000",
-            defaultMessage = OpenapiUtils.errorFromRequestValidationReport(report)
+            ValidationRequestError(OpenapiUtils.errorFromRequestValidationReport(report))
           )
         complete(error.status, error)(ClientApiMarshallerImpl.toEntityMarshallerProblem)
       })
