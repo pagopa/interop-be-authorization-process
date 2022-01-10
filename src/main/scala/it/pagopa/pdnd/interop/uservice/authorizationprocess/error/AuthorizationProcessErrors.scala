@@ -81,38 +81,37 @@ object AuthorizationProcessErrors {
   final case object InvalidGrantType extends ComponentError("0016", s"[Invalid grant type]")
 
   final object InvalidJWTSign                     extends ComponentError("0017", "Invalid JWT sign")
+  final case object NoResultsError                extends ComponentError("0018", "No operation executed")
   final case class InvalidJWTError(error: String) extends ComponentError("0019", s"Invalid JWT - error: $error")
   final object JWTBadRequest                      extends ComponentError("0020", "Invalid JWT token - bad request")
 
-  final case object NoResultsError extends ComponentError("0018", "No operation executed")
-
-  final case object OperatorKeyCreationError      extends ComponentError("0019", "Operator key creation error")
-  final case object OperatorKeyDeletionError      extends ComponentError("0020", "Error on operator key delete")
-  final case object OperatorKeyRetrievalError     extends ComponentError("0021", "Error on key retrieve")
-  final case object OperatorKeysRetrievalError    extends ComponentError("0022", "Error on operator keys retrieve")
-  final case object ClientKeysRetrievalError      extends ComponentError("0023", "Error on client keys retrieve")
-  final case object ClientCreationError           extends ComponentError("0024", "Error on client creation")
-  final case object ClientRetrievalError          extends ComponentError("0025", "Error on client retrieval")
-  final case object ClientListingError            extends ComponentError("0025", "Error on client listing")
-  final case object ClientDeletionError           extends ComponentError("0026", "Error on client deletion")
-  final case object OperatorAdditionError         extends ComponentError("0027", "Error on operator addition")
-  final case object OperatorRemovalError          extends ComponentError("0028", "Error on operator removal")
-  final case object ClientKeyRetrievalError       extends ComponentError("0029", "Error on client key retrieve")
-  final case object ClientKeyDeletionError        extends ComponentError("0030", "Error on client key delete")
-  final case object ClientKeyCreationError        extends ComponentError("0031", "Error on client key creation")
-  final case object ClientOperatorsRetrievalError extends ComponentError("0032", "Error on client operators retrieval")
+  final case object OperatorKeyCreationError      extends ComponentError("0021", "Operator key creation error")
+  final case object OperatorKeyDeletionError      extends ComponentError("0022", "Error on operator key delete")
+  final case object OperatorKeyRetrievalError     extends ComponentError("0023", "Error on key retrieve")
+  final case object OperatorKeysRetrievalError    extends ComponentError("0024", "Error on operator keys retrieve")
+  final case object ClientKeysRetrievalError      extends ComponentError("0025", "Error on client keys retrieve")
+  final case object ClientCreationError           extends ComponentError("0026", "Error on client creation")
+  final case object ClientRetrievalError          extends ComponentError("0027", "Error on client retrieval")
+  final case object ClientListingError            extends ComponentError("0028", "Error on client listing")
+  final case object ClientDeletionError           extends ComponentError("0029", "Error on client deletion")
+  final case object OperatorAdditionError         extends ComponentError("0030", "Error on operator addition")
+  final case object OperatorRemovalError          extends ComponentError("0031", "Error on operator removal")
+  final case object ClientKeyRetrievalError       extends ComponentError("0032", "Error on client key retrieve")
+  final case object ClientKeyDeletionError        extends ComponentError("0033", "Error on client key delete")
+  final case object ClientKeyCreationError        extends ComponentError("0034", "Error on client key creation")
+  final case object ClientOperatorsRetrievalError extends ComponentError("0035", "Error on client operators retrieval")
   final case object ClientOperatorsRelationshipRetrievalError
-      extends ComponentError("0033", "Error on client operators relationships retrieval")
+      extends ComponentError("0036", "Error on client operators relationships retrieval")
 
-  final case object ClientActivationBadRequest extends ComponentError("0034", "Client activation bad request")
-  final case object ClientActivationError      extends ComponentError("0035", "Error on client activation")
+  final case object ClientActivationBadRequest extends ComponentError("0037", "Client activation bad request")
+  final case object ClientActivationError      extends ComponentError("0038", "Error on client activation")
 
-  final case object ClientSuspensionBadRequest extends ComponentError("0036", "Client suspension bad request")
-  final case object ClientSuspensionError      extends ComponentError("0037", "Error on client suspension")
+  final case object ClientSuspensionBadRequest extends ComponentError("0039", "Client suspension bad request")
+  final case object ClientSuspensionError      extends ComponentError("0040", "Error on client suspension")
   final case object EncodedClientKeyRetrievalError
-      extends ComponentError("0038", "Error on encoded client key retrieval")
+      extends ComponentError("0041", "Error on encoded client key retrieval")
 
   final case object WellKnownRetrievalError
-      extends ComponentError("0029", "Something goes wrong trying to get well-known keys")
+      extends ComponentError("0042", "Something goes wrong trying to get well-known keys")
 
 }
