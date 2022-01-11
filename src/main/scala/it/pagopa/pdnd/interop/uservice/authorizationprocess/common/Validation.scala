@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.common
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, Validated, ValidatedNel}
 import cats.implicits._
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.{
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.AuthorizationProcessErrors.{
   InvalidAccessTokenRequest,
   InvalidClientAssertionType,
   InvalidGrantType

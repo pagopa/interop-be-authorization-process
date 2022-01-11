@@ -7,7 +7,7 @@ import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jose.{JWSAlgorithm, JWSVerifier}
 import com.nimbusds.jwt.SignedJWT
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.Validation
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.InvalidJWTSign
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.AuthorizationProcessErrors.InvalidJWTSign
 import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{Key, OtherPrimeInfo}
 import spray.json.{DefaultJsonProtocol, RootJsonFormat, _}
 
