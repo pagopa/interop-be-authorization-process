@@ -53,13 +53,4 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
     invoker.invoke(request, "Retrieve Relationship By Id")
   }
 
-  def createPerson(seed: PersonSeed)(bearerToken: String): Future[Person] = {
-    val request: ApiRequest[Person] = api.createPerson(seed)(BearerToken(bearerToken))
-    invoker.invoke(request, "Creating Person")
-  }
-
-  def createRelationship(seed: RelationshipSeed)(bearerToken: String): Future[Relationship] = {
-    val createRequest: ApiRequest[Relationship] = api.createRelationship(seed)(BearerToken(bearerToken))
-    invoker.invoke(createRequest, "Creating Relationship")
-  }
 }
