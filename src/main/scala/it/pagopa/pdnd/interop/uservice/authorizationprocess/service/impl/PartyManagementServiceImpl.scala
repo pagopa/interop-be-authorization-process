@@ -18,11 +18,6 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
     invoker.invoke(request, "Retrieve Organization")
   }
 
-  override def getPerson(personId: UUID)(bearerToken: String): Future[Person] = {
-    val request: ApiRequest[Person] = api.getPersonById(personId)(BearerToken(bearerToken))
-    invoker.invoke(request, "Retrieve Person")
-  }
-
   override def getRelationships(organizationId: UUID, personId: UUID, productRole: String)(
     bearerToken: String
   ): Future[Relationships] = {

@@ -11,7 +11,7 @@ import it.pagopa.pdnd.interop.commons.jwt.service.impl.DefaultJWTReader
 import it.pagopa.pdnd.interop.commons.jwt.{JWTConfiguration, PublicKeysHolder}
 import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.PassThroughAuthenticator
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions.TryOps
-import it.pagopa.pdnd.interop.commons.utils.errors.ValidationRequestError
+import it.pagopa.pdnd.interop.commons.utils.errors.GenericComponentErrors.ValidationRequestError
 import it.pagopa.pdnd.interop.commons.utils.{CORSSupport, OpenapiUtils}
 import it.pagopa.pdnd.interop.commons.vault.service.VaultService
 import it.pagopa.pdnd.interop.commons.vault.service.impl.{DefaultVaultClient, DefaultVaultService}
@@ -23,11 +23,9 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{
   ClientApiServiceImpl,
   OperatorApiMarshallerImpl,
   OperatorApiServiceImpl,
-  WellKnownApiMarshallerImpl,
-  WellKnownApiServiceImpl,
   problemOf
 }
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.{AuthApi, ClientApi, OperatorApi, WellKnownApi}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.{AuthApi, ClientApi, OperatorApi}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.ApplicationConfiguration
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{classicActorSystem, executionContext}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.server.Controller
@@ -180,12 +178,6 @@ object Main
       jwtReader.OAuth2JWTValidatorAsContexts
     )
 
-    val wellKnownApi: WellKnownApi = new WellKnownApi(
-      WellKnownApiServiceImpl(vaultService = vaultService),
-      WellKnownApiMarshallerImpl,
-      SecurityDirectives.authenticateOAuth2("SecurityRealm", PassThroughAuthenticator)
-    )
-
     locally {
       val _ = AkkaManagement.get(classicActorSystem).start()
     }
@@ -194,7 +186,6 @@ object Main
       authApi,
       clientApi,
       operatorApi,
-      wellKnownApi,
       validationExceptionToRoute = Some(report => {
         val error =
           problemOf(
