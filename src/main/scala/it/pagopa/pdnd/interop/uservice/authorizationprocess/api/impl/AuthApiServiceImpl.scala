@@ -9,7 +9,7 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{OptionOps, StringOps, TryOps}
-import it.pagopa.pdnd.interop.commons.utils.errors.MissingBearer
+import it.pagopa.pdnd.interop.commons.utils.errors.GenericComponentErrors.MissingBearer
 import it.pagopa.pdnd.interop.uservice.agreementmanagement
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.AuthApiService

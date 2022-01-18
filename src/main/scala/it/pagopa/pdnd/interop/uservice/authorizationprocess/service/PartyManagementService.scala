@@ -14,14 +14,11 @@ import scala.concurrent.Future
 trait PartyManagementService {
 
   def getOrganization(organizationId: UUID)(bearerToken: String): Future[Organization]
-  def getPerson(personId: UUID)(bearerToken: String): Future[Person]
   def getRelationships(organizationId: UUID, personId: UUID, productRole: String)(
     bearerToken: String
   ): Future[Relationships]
   def getRelationshipsByPersonId(personId: UUID, productRole: Seq[String])(bearerToken: String): Future[Relationships]
   def getRelationshipById(relationshipId: UUID)(bearerToken: String): Future[Relationship]
-  def createRelationship(seed: RelationshipSeed)(bearerToken: String): Future[Relationship]
-  def createPerson(seed: PersonSeed)(bearerToken: String): Future[Person]
 }
 
 object PartyManagementService {

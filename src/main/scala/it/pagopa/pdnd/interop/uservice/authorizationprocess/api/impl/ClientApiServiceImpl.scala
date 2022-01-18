@@ -9,7 +9,7 @@ import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
-import it.pagopa.pdnd.interop.commons.utils.errors.{MissingBearer, ResourceNotFoundError}
+import it.pagopa.pdnd.interop.commons.utils.errors.GenericComponentErrors.{MissingBearer, ResourceNotFoundError}
 import it.pagopa.pdnd.interop.uservice._
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.ClientApiService

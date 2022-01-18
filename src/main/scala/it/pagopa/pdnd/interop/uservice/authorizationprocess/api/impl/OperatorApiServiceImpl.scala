@@ -9,11 +9,11 @@ import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{OptionOps, StringOps}
-import it.pagopa.pdnd.interop.commons.utils.errors.MissingBearer
+import it.pagopa.pdnd.interop.commons.utils.errors.GenericComponentErrors.MissingBearer
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.OperatorApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.validateClientBearer
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.AuthorizationProcessErrors._
-import it.pagopa.pdnd.interop.commons.utils.errors.ResourceNotFoundError
+import it.pagopa.pdnd.interop.commons.utils.errors.GenericComponentErrors.ResourceNotFoundError
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AuthorizationManagementService.keyUseToDependency
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
