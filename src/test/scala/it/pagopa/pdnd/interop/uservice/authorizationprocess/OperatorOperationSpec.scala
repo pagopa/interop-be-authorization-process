@@ -232,7 +232,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
       val expected = Seq(
         Operator(
-          id = UUID.fromString(relationshipId),
+          relationshipId = UUID.fromString(relationshipId),
           taxCode = user.externalId,
           name = user.name,
           surname = user.surname,
@@ -303,7 +303,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
       val expected =
         Operator(
-          id = UUID.fromString(relationshipId),
+          relationshipId = UUID.fromString(relationshipId),
           taxCode = user.externalId,
           name = user.name,
           surname = user.surname,

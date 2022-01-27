@@ -712,7 +712,7 @@ final case class ClientApiServiceImpl(
       user          <- userRegistryManagementService.getUserById(relationship.from)
       operatorState <- relationshipStateToApi(relationship.state).toFuture
     } yield Operator(
-      id = relationship.id,
+      relationshipId = relationship.id,
       taxCode = user.externalId,
       name = user.name,
       surname = user.surname,

@@ -133,7 +133,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val operator: Operator =
     Operator(
-      id = UUID.fromString(relationshipId),
+      relationshipId = UUID.fromString(relationshipId),
       taxCode = user.externalId,
       name = user.name,
       surname = user.surname,
