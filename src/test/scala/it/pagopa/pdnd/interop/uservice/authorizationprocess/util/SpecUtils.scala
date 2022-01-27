@@ -133,7 +133,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val operator: Operator =
     Operator(
-      id = user.id,
+      id = UUID.fromString(relationshipId),
       taxCode = user.externalId,
       name = user.name,
       surname = user.surname,
@@ -143,7 +143,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     )
 
   val relationship: PartyManagementDependency.Relationship = PartyManagementDependency.Relationship(
-    id = UUID.randomUUID(),
+    id = UUID.fromString(relationshipId),
     from = user.id,
     to = organization.id,
     role = PartyManagementDependency.PartyRole.OPERATOR,
