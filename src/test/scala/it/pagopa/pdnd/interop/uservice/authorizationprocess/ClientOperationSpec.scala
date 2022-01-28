@@ -261,7 +261,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val consumerUuid     = Some(client.consumerId)
 
       val eServiceIdStr = eServiceUuid.map(_.toString)
-      val operatorId    = operator.id
+      val relationshipId    = operator.relationshipId
       val consumerId    = consumer.id
 
       (mockJwtReader

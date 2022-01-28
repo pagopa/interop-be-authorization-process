@@ -1021,7 +1021,7 @@ components:
       description: Models a Client Operator
       type: object
       properties:
-        id:
+        relationshipId:
           type: string
           format: uuid
         taxCode:
@@ -1037,7 +1037,7 @@ components:
         state:
           $ref: '#/components/schemas/OperatorState'
       required:
-        - id
+        - relationshipId
         - taxCode
         - name
         - surname
