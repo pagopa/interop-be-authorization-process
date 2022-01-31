@@ -260,9 +260,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val relationshipUuid = Some(relationship.id)
       val consumerUuid     = Some(client.consumerId)
 
-      val eServiceIdStr = eServiceUuid.map(_.toString)
-      val relationshipId    = operator.relationshipId
-      val consumerId    = consumer.id
+      val eServiceIdStr  = eServiceUuid.map(_.toString)
+      val relationshipId = operator.relationshipId
+      val consumerId     = consumer.id
 
       (mockJwtReader
         .getClaims(_: String))
@@ -272,7 +272,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       (mockPartyManagementService
         .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
-        .expects(operatorId, Seq(PartyManagementService.ROLE_SECURITY_OPERATOR), bearerToken)
+        .expects(relationshipId, Seq(PartyManagementService.ROLE_SECURITY_OPERATOR), bearerToken)
         .once()
         .returns(Future.successful(Relationships(Seq(relationship))))
 
@@ -332,7 +332,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         offset,
         limit,
         eServiceIdStr,
-        Some(operatorId.toString),
+        Some(relationshipId.toString),
         Some(consumerId.toString)
       ) ~> check {
         status shouldEqual StatusCodes.OK
