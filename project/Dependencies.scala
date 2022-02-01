@@ -77,9 +77,18 @@ object Dependencies {
   }
 
   private[this] object kamon {
-    lazy val namespace  = "io.kamon"
-    lazy val bundle     = namespace %% "kamon-bundle"     % kamonVersion
-    lazy val prometheus = namespace %% "kamon-prometheus" % kamonVersion
+    lazy val namespace             = "io.kamon"
+    lazy val core                  = namespace %% "kamon-core"                   % kamonVersion
+    lazy val prometheus            = namespace %% "kamon-prometheus"             % kamonVersion
+    lazy val statusPage            = namespace %% "kamon-status-page"            % kamonVersion
+    lazy val systemMetrics         = namespace %% "kamon-system-metrics"         % kamonVersion
+    lazy val executors             = namespace %% "kamon-executors"              % kamonVersion
+    lazy val akka                  = namespace %% "kamon-akka"                   % kamonVersion
+    lazy val akkaHttp              = namespace %% "kamon-akka-http"              % kamonVersion
+    lazy val instrumentationCommon = namespace %% "kamon-instrumentation-common" % kamonVersion
+    lazy val scalaFuture           = namespace %% "kamon-scala-future"           % kamonVersion
+    lazy val logback               = namespace %% "kamon-logback"                % kamonVersion
+    lazy val jdbc                  = namespace %% "kamon-jdbc"                   % kamonVersion
   }
 
   private[this] object mustache {
@@ -129,7 +138,16 @@ object Dependencies {
       bouncycastle.kix              % Compile,
       bouncycastle.provider         % Compile,
       cats.core                     % Compile,
-      kamon.bundle                  % Compile,
+      kamon.core                    % Compile,
+      kamon.statusPage              % Compile,
+      kamon.systemMetrics           % Compile,
+      kamon.executors               % Compile,
+      kamon.akka                    % Compile,
+      kamon.akkaHttp                % Compile,
+      kamon.instrumentationCommon   % Compile,
+      kamon.scalaFuture             % Compile,
+      kamon.logback                 % Compile,
+      kamon.jdbc                    % Compile,
       kamon.prometheus              % Compile,
       logback.classic               % Compile,
       mustache.mustache             % Compile,
