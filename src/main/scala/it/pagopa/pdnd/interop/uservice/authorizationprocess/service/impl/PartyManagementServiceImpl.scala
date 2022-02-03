@@ -13,12 +13,14 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
+  val INTEROP_PRODUCT_NAME: String = "interop"
+
   override def getOrganization(organizationId: UUID)(bearerToken: String): Future[Organization] = {
     val request: ApiRequest[Organization] = api.getOrganizationById(organizationId)(BearerToken(bearerToken))
     invoker.invoke(request, "Retrieve Organization")
   }
 
-  override def getRelationships(organizationId: UUID, personId: UUID, productRole: String)(
+  override def getRelationships(organizationId: UUID, personId: UUID, productRoles: Seq[String])(
     bearerToken: String
   ): Future[Relationships] = {
     val request: ApiRequest[Relationships] =
@@ -27,8 +29,8 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
         to = Some(organizationId),
         roles = Seq.empty,
         states = Seq.empty,
-        products = Seq.empty,
-        productRoles = Seq(productRole)
+        products = Seq(INTEROP_PRODUCT_NAME),
+        productRoles = productRoles
       )(BearerToken(bearerToken))
     invoker.invoke(request, "Retrieve Relationships")
   }
@@ -42,7 +44,7 @@ class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
         to = None,
         roles = Seq.empty,
         states = Seq.empty,
-        products = Seq.empty,
+        products = Seq(INTEROP_PRODUCT_NAME),
         productRoles = productRoles
       )(BearerToken(bearerToken))
     invoker.invoke(request, "Retrieve Relationships By Person Id")

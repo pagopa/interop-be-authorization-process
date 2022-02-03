@@ -52,7 +52,7 @@ final case class OperatorApiServiceImpl(
       operatorUuid <- operatorId.toFutureUUID
       relationships <- partyManagementService.getRelationshipsByPersonId(
         operatorUuid,
-        Seq(PartyManagementService.ROLE_SECURITY_OPERATOR)
+        Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR)
       )(bearerToken)
       keysResponse <- operatorKeySeeds.traverse { seed =>
         for {

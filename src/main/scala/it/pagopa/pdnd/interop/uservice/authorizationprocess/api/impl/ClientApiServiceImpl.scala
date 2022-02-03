@@ -23,6 +23,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagem
   relationshipStateToApi
 }
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.Problem
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogManagementApiError}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EServiceDescriptor
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
+import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getUidFuture
 
 final case class ClientApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
@@ -156,57 +158,60 @@ final case class ClientApiServiceImpl(
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 500, Message: Internal Server Error, DataType: Problem
     */
-  override def listClients(
-    offset: Option[Int],
-    limit: Option[Int],
-    eServiceId: Option[String],
-    operatorId: Option[String],
-    consumerId: Option[String]
-  )(implicit
+  override def listClients(consumerId: String, offset: Option[Int], limit: Option[Int], eServiceId: Option[String])(
+    implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerClientarray: ToEntityMarshaller[Seq[Client]]
+    toEntityMarshallerClients: ToEntityMarshaller[Clients],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     logger.info(
       "Listing clients (offset: {} and limit: {}) for e-service {} and operator {} for consumer {}",
       offset,
       limit,
       eServiceId,
-      operatorId,
       consumerId
     )
+
     // TODO Improve multiple requests
-    val result = for {
+    val result: Future[Seq[Client]] = for {
       bearerToken  <- validateClientBearer(contexts, jwtReader)
       eServiceUuid <- eServiceId.traverse(id => id.toFutureUUID)
-      operatorUuid <- operatorId.traverse(id => id.toFutureUUID)
-      consumerUuid <- consumerId.traverse(id => id.toFutureUUID)
-      relationships <- operatorUuid.traverse(
+      personId     <- getUidFuture(contexts).flatMap(_.toFutureUUID)
+      consumerUuid <- consumerId.toFutureUUID
+
+      relationships <-
         partyManagementService
-          .getRelationshipsByPersonId(_, Seq(PartyManagementService.ROLE_SECURITY_OPERATOR))(bearerToken)
-      )
-      clients <- relationships match {
-        case None =>
-          authorizationManagementService.listClients(offset, limit, eServiceUuid, None, consumerUuid)(bearerToken)
-        case Some(rels) =>
-          rels.items.flatTraverse(rel =>
-            authorizationManagementService.listClients(offset, limit, eServiceUuid, Some(rel.id), consumerUuid)(
-              bearerToken
-            )
+          .getRelationships(
+            consumerUuid,
+            personId,
+            Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
+          )(bearerToken)
+          .map(
+            _.items
+              .filter(_.state == RelationshipState.ACTIVE)
           )
-      }
-      clientsDetails <- clients.traverse(client => getClient(bearerToken, client))
-    } yield clientsDetails
+
+      managementClients <-
+        if (relationships.exists(_.product.role == PartyManagementService.PRODUCT_ROLE_ADMIN))
+          authorizationManagementService.listClients(offset, limit, eServiceUuid, None, consumerUuid.some)(bearerToken)
+        else
+          relationships
+            .map(_.id.some)
+            .flatTraverse(
+              authorizationManagementService.listClients(offset, limit, eServiceUuid, _, consumerUuid.some)(bearerToken)
+            )
+
+      clients <- managementClients.traverse(getClient(bearerToken, _))
+    } yield clients
 
     onComplete(result) {
-      case Success(clients) => listClients200(clients)
+      case Success(clients) => listClients200(Clients(clients))
       case Failure(ex: UUIDConversionError) => {
         logger.error(
           "Error while listing clients (offset: {} and limit: {}) for e-service {} and operator {} for consumer {}",
           offset,
           limit,
           eServiceId,
-          operatorId,
           consumerId,
           ex
         )
@@ -218,7 +223,6 @@ final case class ClientApiServiceImpl(
           offset,
           limit,
           eServiceId,
-          operatorId,
           consumerId,
           MissingBearer
         )
@@ -230,7 +234,6 @@ final case class ClientApiServiceImpl(
           offset,
           limit,
           eServiceId,
-          operatorId,
           consumerId,
           ex
         )
@@ -660,7 +663,7 @@ final case class ClientApiServiceImpl(
   )(bearerToken: String): Future[partymanagement.client.model.Relationship] = {
 
     def isActiveSecurityOperatorRelationship(relationship: Relationship): Future[Boolean] = {
-      val condition = relationship.product.role == PartyManagementService.ROLE_SECURITY_OPERATOR &&
+      val condition = relationship.product.role == PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR &&
         relationship.role == PartyManagementDependency.PartyRole.OPERATOR &&
         relationship.state == PartyManagementDependency.RelationshipState.ACTIVE
       if (condition) {
@@ -682,7 +685,9 @@ final case class ClientApiServiceImpl(
     for {
       relationships <-
         partyManagementService
-          .getRelationships(consumerId, operatorId, PartyManagementService.ROLE_SECURITY_OPERATOR)(bearerToken)
+          .getRelationships(consumerId, operatorId, Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR))(
+            bearerToken
+          )
           .map(Some(_))
           // TODO This is dangerous because every error is treated as "missing party with given tax code"
           //  but currently there is no precise way to identify the error
@@ -804,4 +809,5 @@ final case class ClientApiServiceImpl(
         internalServerError(problemOf(StatusCodes.InternalServerError, EncodedClientKeyRetrievalError))
     }
   }
+
 }

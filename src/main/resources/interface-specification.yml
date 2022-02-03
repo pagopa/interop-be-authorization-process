@@ -15,7 +15,7 @@ servers:
   - url: '/pdnd-interop-uservice-authorization-process/{{version}}'
     description: This service is the security supplier
 security:
-  - bearerAuth: [ ]
+  - bearerAuth: []
 tags:
   - name: auth
     description: Get security information
@@ -53,7 +53,7 @@ paths:
             schema:
               $ref: '#/components/schemas/AccessTokenRequest'
       responses:
-        "200":
+        '200':
           description: |-
             an Access token
           headers:
@@ -67,13 +67,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClientCredentialsResponse'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "400":
+        '400':
           description: Bad request
           content:
             application/problem+json:
@@ -82,26 +82,26 @@ paths:
   /as/token/validate:
     post:
       security:
-        - bearerAuth: [ ]
+        - bearerAuth: []
       tags:
         - auth
       summary: JWT validation
       description: Validates the access token passed as Authorization header
       operationId: validateToken
       responses:
-        "200":
+        '200':
           description: Client created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidJWT'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "400":
+        '400':
           description: Bad request
           content:
             application/problem+json:
@@ -121,19 +121,19 @@ paths:
             schema:
               $ref: '#/components/schemas/ClientSeed'
       responses:
-        "201":
+        '201':
           description: Client created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Client'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Not Found
           content:
             application/problem+json:
@@ -164,32 +164,27 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: operatorId
-          in: query
-          description: ID of operator that MUST be related to the Client
-          schema:
-            type: string
-            format: uuid
         - name: consumerId
           in: query
           description: ID of Consumer that MUST be related to the Client
+          required: true
           schema:
             type: string
             format: uuid
       responses:
-        "200":
+        '200':
           description: Request succeed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Clients'
-        "400":
+        '400':
           description: Bad Request
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
@@ -210,19 +205,19 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Client retrieved
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Client'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Client not found
           content:
             application/problem+json:
@@ -242,15 +237,15 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: Client deleted
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Client not found
           content:
             application/problem+json:
@@ -272,21 +267,21 @@ paths:
             type: string
             format: uuid
       responses:
-        "204":
+        '204':
           description: the client has been activated.
-        "400":
+        '400':
           description: Bad Request
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Client not found
           content:
             application/problem+json:
@@ -308,21 +303,21 @@ paths:
             type: string
             format: uuid
       responses:
-        "204":
+        '204':
           description: the corresponding client has been suspended.
-        "400":
+        '400':
           description: Bad Request
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Client not found
           content:
             application/problem+json:
@@ -344,19 +339,19 @@ paths:
             type: string
             format: uuid
       responses:
-        "200":
+        '200':
           description: Request succeed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Operators'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Not Found
           content:
             application/problem+json:
@@ -385,19 +380,19 @@ paths:
       summary: Get a Client Operator Relationship
       operationId: getClientOperatorRelationshipById
       responses:
-        "200":
+        '200':
           description: Client Operator relationship retrieved
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Operator'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Client or Operator not found
           content:
             application/problem+json:
@@ -410,21 +405,21 @@ paths:
       summary: Remove an operator relationship from a Client
       operationId: removeClientOperatorRelationship
       responses:
-        "204":
+        '204':
           description: Operator relationship removed
-        "400":
+        '400':
           description: Bad Request
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Client or operator not found
           content:
             application/problem+json:
@@ -436,25 +431,25 @@ paths:
       summary: Binds an Operator relationship to a Client
       operationId: clientOperatorRelationshipBinding
       responses:
-        "201":
+        '201':
           description: Operator added
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Client'
-        "400":
+        '400':
           description: Bad Request
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Missing Required Information
           content:
             application/problem+json:
@@ -468,31 +463,31 @@ paths:
       summary: Create Keys for the specific clientId.
       operationId: createKeys
       responses:
-        "201":
+        '201':
           description: Keys created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClientKeys'
-        "400":
+        '400':
           description: Bad Request
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "403":
+        '403':
           description: Forbidden
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Client id not found
           content:
             application/problem+json:
@@ -529,19 +524,19 @@ paths:
             type: string
             format: uuid
       responses:
-        "200":
+        '200':
           description: returns the corresponding array of keys
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClientKeys'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Client id not found
           content:
             application/problem+json:
@@ -569,19 +564,19 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: returns the corresponding key
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClientKey'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Key not found
           content:
             application/problem+json:
@@ -608,15 +603,15 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: the corresponding key has been deleted.
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Key not found
           content:
             application/problem+json:
@@ -644,19 +639,19 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: returns the corresponding base 64 encoded key
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/EncodedClientKey'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Key not found
           content:
             application/problem+json:
@@ -685,19 +680,19 @@ paths:
       description: 'Given an operator and a client it returns its corresponding set of keys, if any'
       operationId: getClientOperatorKeys
       responses:
-        "200":
+        '200':
           description: returns the corresponding array of keys
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClientKeys'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Client id not found
           content:
             application/problem+json:
@@ -718,31 +713,31 @@ paths:
       summary: Create Keys for the specific Operator.
       operationId: createOperatorKeys
       responses:
-        "201":
+        '201':
           description: Keys created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClientKeys'
-        "400":
+        '400':
           description: Bad Request
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "403":
+        '403':
           description: Forbidden
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Client id not found
           content:
             application/problem+json:
@@ -763,19 +758,19 @@ paths:
       description: 'Given an operator ID it returns its corresponding set of keys, if any'
       operationId: getOperatorKeys
       responses:
-        "200":
+        '200':
           description: returns the corresponding array of keys
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClientKeys'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Client id not found
           content:
             application/problem+json:
@@ -802,19 +797,19 @@ paths:
       description: 'Given an operator and key identifiers it returns the corresponding key, if any'
       operationId: getOperatorKeyById
       responses:
-        "200":
+        '200':
           description: returns the corresponding key
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClientKey'
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Key not found
           content:
             application/problem+json:
@@ -827,15 +822,15 @@ paths:
       description: 'Given an operator and key identifiers it deletes the corresponding key, if any'
       operationId: deleteOperatorKeyById
       responses:
-        "204":
+        '204':
           description: the corresponding key has been deleted.
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        "404":
+        '404':
           description: Key not found
           content:
             application/problem+json:
@@ -1014,9 +1009,15 @@ components:
         - iat
         - jti
     Clients:
+      description: Models a group of Clients
       type: object
-      items:
-        $ref: '#/components/schemas/Client'
+      properties:
+        clients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Client'
+      required:
+        - clients
     Operator:
       description: Models a Client Operator
       type: object
@@ -1331,4 +1332,3 @@ components:
       description: A bearer token in the format of a JWS and comformed to the specifications included in [RFC8725](https://tools.ietf.org/html/RFC8725).
       scheme: bearer
       bearerFormat: JWT
-

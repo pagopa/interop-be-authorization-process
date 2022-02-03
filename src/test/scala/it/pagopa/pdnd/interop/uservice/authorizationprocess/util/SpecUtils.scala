@@ -233,13 +233,16 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val clientApiMarshaller: ClientApiMarshallerImpl.type = ClientApiMarshallerImpl
 
-  implicit val contexts: Seq[(String, String)] = Seq("bearer" -> bearerToken)
+  implicit val contexts: Seq[(String, String)] = Seq("bearer" -> bearerToken, "uid" -> personId.toString)
 
   implicit def fromResponseUnmarshallerClientRequest: FromEntityUnmarshaller[Client] =
     sprayJsonUnmarshaller[Client]
 
   implicit def fromResponseUnmarshallerClientSeqRequest: FromEntityUnmarshaller[Seq[Client]] =
     sprayJsonUnmarshaller[Seq[Client]]
+
+  implicit def fromResponseUnmarshallerClientsRequest: FromEntityUnmarshaller[Clients] =
+    sprayJsonUnmarshaller[Clients]
 
   implicit def fromResponseUnmarshallerClientKeyRequest: FromEntityUnmarshaller[ClientKey] =
     sprayJsonUnmarshaller[ClientKey]

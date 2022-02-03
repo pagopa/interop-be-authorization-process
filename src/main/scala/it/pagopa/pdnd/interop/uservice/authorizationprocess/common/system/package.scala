@@ -12,7 +12,7 @@ import scala.concurrent.duration.DurationInt
 package object system {
 
   implicit val actorSystem: ActorSystem[Nothing] =
-    ActorSystem[Nothing](Behaviors.empty, "pdnd-interop-uservice-party-management")
+    ActorSystem[Nothing](Behaviors.empty, "pdnd-interop-uservice-authorization-process")
 
   implicit val executionContext: ExecutionContextExecutor = actorSystem.executionContext
 

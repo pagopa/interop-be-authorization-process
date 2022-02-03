@@ -54,6 +54,8 @@ import kamon.Kamon
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
+import com.nimbusds.jose.proc.SecurityContext
+import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
 //shuts down the actor system in case of startup errors
 case object StartupErrorShutdown extends CoordinatedShutdown.Reason
 
