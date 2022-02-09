@@ -35,6 +35,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   System.setProperty("PDND_INTEROP_KEYS", "test/keys")
   System.setProperty("USER_REGISTRY_API_KEY", "meaow")
   System.setProperty("WELL_KNOWN_URL", "localhost/.well-known")
+  System.setProperty("MAIN_AUDIENCE", "audience")
 
   val mockJwtValidator: JWTValidator                                     = mock[JWTValidator]
   val mockJwtGenerator: JWTGenerator                                     = mock[JWTGenerator]
@@ -78,7 +79,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     docs = Seq.empty,
     state = CatalogManagementDependency.EServiceDescriptorState.PUBLISHED,
     audience = Seq.empty,
-    voucherLifespan = 10
+    voucherLifespan = 10,
+    dailyCallsMaxNumber = 1000
   )
 
   val eService: CatalogManagementDependency.EService = CatalogManagementDependency.EService(

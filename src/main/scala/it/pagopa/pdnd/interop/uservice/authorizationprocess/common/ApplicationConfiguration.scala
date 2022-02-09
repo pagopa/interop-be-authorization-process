@@ -2,25 +2,31 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.common
 
 import com.typesafe.config.{Config, ConfigFactory}
 
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 object ApplicationConfiguration {
   lazy val config: Config = ConfigFactory.load()
 
-  def serverPort: Int = {
-    config.getInt("uservice-authorization-process.port")
-  }
+  lazy val serverPort: Int = config.getInt("authorization-process.port")
 
-  def getKeyManagementURL: String           = config.getString("services.key-management")
-  def getAgreementManagementURL: String     = config.getString("services.agreement-management")
-  def getCatalogManagementURL: String       = config.getString("services.catalog-management")
-  def getAuthorizationManagementURL: String = config.getString("services.key-management")
-  def getPartyManagementURL: String         = config.getString("services.party-management")
-  def getUserRegistryManagementURL: String  = config.getString("services.user-registry-management")
-  def userRegistryApiKey: String            = config.getString("services.user-registry-api-key")
+  lazy val getKeyManagementURL: String = config.getString("authorization-process.services.key-management")
 
-  def getPdndIdIssuer: String = {
-    config.getString("uservice-authorization-process.issuer")
-  }
+  lazy val getAgreementManagementURL: String = config.getString("authorization-process.services.agreement-management")
 
-  def getVaultSecretsRootPath: String = config.getString("uservice-authorization-process.vault-root-path")
+  lazy val getCatalogManagementURL: String = config.getString("authorization-process.services.catalog-management")
 
+  lazy val getAuthorizationManagementURL: String = config.getString("authorization-process.services.key-management")
+
+  lazy val getPartyManagementURL: String = config.getString("authorization-process.services.party-management")
+
+  lazy val getUserRegistryManagementURL: String =
+    config.getString("authorization-process.services.user-registry-management")
+
+  lazy val userRegistryApiKey: String = config.getString("authorization-process.services.user-registry-api-key")
+
+  lazy val getPdndIdIssuer: String = config.getString("authorization-process.issuer")
+
+  lazy val getVaultSecretsRootPath: String = config.getString("authorization-process.vault-root-path")
+
+  lazy val jwtAudience: Set[String] = config.getStringList("authorization-process.jwt.audience").asScala.toSet
 }
