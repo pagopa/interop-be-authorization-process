@@ -88,6 +88,8 @@ spec:
               value: "{{userRegistryManagementUrl}}"
             - name: WELL_KNOWN_URL
               value: "{{wellKnownURL}}"
+            - name: MAIN_AUDIENCE
+              value: "{{mainAudience}}"
 ---
 apiVersion: v1
 kind: Service
