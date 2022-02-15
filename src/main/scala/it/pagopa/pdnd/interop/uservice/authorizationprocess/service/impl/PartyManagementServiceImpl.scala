@@ -4,6 +4,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{PartyManage
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.PartyApi
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiRequest, BearerToken}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model._
+import it.pagopa.pdnd.interop.commons.utils.INTEROP_PRODUCT_NAME
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -12,8 +13,6 @@ import scala.concurrent.Future
 class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi) extends PartyManagementService {
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
-
-  val INTEROP_PRODUCT_NAME: String = "interop"
 
   override def getOrganization(organizationId: UUID)(bearerToken: String): Future[Organization] = {
     val request: ApiRequest[Organization] = api.getOrganizationById(organizationId)(BearerToken(bearerToken))

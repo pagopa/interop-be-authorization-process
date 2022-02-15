@@ -1,7 +1,6 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.common
 
 import com.typesafe.config.{Config, ConfigFactory}
-import scala.jdk.CollectionConverters.ListHasAsScala
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
