@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration>
+<configuration debug="false">
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.out</target>
@@ -14,7 +14,7 @@
         <appender-ref ref="CONSOLE" />
     </appender>
 
-    <root level="ERROR">
+    <root level="OFF">
         <appender-ref ref="ASYNC"/>
     </root>
 

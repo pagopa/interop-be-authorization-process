@@ -59,7 +59,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     to = UUID.randomUUID(),
     role = PartyManagementDependency.PartyRole.OPERATOR,
     product = PartyManagementDependency
-      .RelationshipProduct("PDND", PartyManagementService.ROLE_SECURITY_OPERATOR, timestamp),
+      .RelationshipProduct("PDND", PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, timestamp),
     state = PartyManagementDependency.RelationshipState.ACTIVE,
     createdAt = timestamp
   )
@@ -70,7 +70,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     to = UUID.randomUUID(),
     role = PartyManagementDependency.PartyRole.OPERATOR,
     product = PartyManagementDependency
-      .RelationshipProduct("PDND", PartyManagementService.ROLE_SECURITY_OPERATOR, timestamp),
+      .RelationshipProduct("PDND", PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, timestamp),
     state = PartyManagementDependency.RelationshipState.ACTIVE,
     createdAt = timestamp
   )

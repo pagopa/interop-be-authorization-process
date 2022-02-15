@@ -171,8 +171,8 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .returns(Future.successful(client))
 
       (mockPartyManagementService
-        .getRelationships(_: UUID, _: UUID, _: String)(_: String))
-        .expects(client.consumerId, user.id, PartyManagementService.ROLE_SECURITY_OPERATOR, bearerToken)
+        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: String))
+        .expects(client.consumerId, user.id, Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR), bearerToken)
         .once()
         .returns(Future.successful(relationships))
 

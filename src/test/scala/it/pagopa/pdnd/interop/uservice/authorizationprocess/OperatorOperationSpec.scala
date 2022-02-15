@@ -51,7 +51,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(client))
 
       val activeRelationship: PartyManagementDependency.Relationship =
-        relationship.copy(product = relationship.product.copy(role = PartyManagementService.ROLE_SECURITY_OPERATOR))
+        relationship.copy(product =
+          relationship.product.copy(role = PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR)
+        )
 
       (mockPartyManagementService
         .getRelationshipById(_: UUID)(_: String))
@@ -86,7 +88,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         description = client.description,
         state = clientStateToApi(client.state),
         operators = Some(
-          Seq(operator.copy(product = operator.product.copy(role = PartyManagementService.ROLE_SECURITY_OPERATOR)))
+          Seq(
+            operator.copy(product = operator.product.copy(role = PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR))
+          )
         )
       )
 
@@ -126,7 +130,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "fail if operator is already assigned" in {
       val operatorRelationship: PartyManagementDependency.Relationship = relationship.copy(
         state = PartyManagementDependency.RelationshipState.ACTIVE,
-        product = relationship.product.copy(id = "PDND", role = PartyManagementService.ROLE_SECURITY_OPERATOR)
+        product = relationship.product.copy(id = "PDND", role = PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR)
       )
 
       (mockJwtReader
@@ -204,7 +208,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "succeed" in {
       val operatorRelationship: PartyManagementDependency.Relationship = relationship.copy(
         state = PartyManagementDependency.RelationshipState.ACTIVE,
-        product = relationship.product.copy(id = "PDND", role = PartyManagementService.ROLE_SECURITY_OPERATOR)
+        product = relationship.product.copy(id = "PDND", role = PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR)
       )
 
       (mockJwtReader

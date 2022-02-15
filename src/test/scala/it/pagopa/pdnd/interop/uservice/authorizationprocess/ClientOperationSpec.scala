@@ -254,15 +254,13 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
   "Client list" should {
     "succeed" in {
-      val offset           = Some(0)
-      val limit            = Some(10)
-      val eServiceUuid     = Some(eServiceId)
-      val relationshipUuid = Some(relationship.id)
-      val consumerUuid     = Some(client.consumerId)
+      val offset: Option[Int]            = Some(0)
+      val limit: Option[Int]             = Some(10)
+      val eServiceUuid: Option[UUID]     = Some(eServiceId)
+      val relationshipUuid: Option[UUID] = Some(relationship.id)
+      val consumerUuid: Option[UUID]     = Some(client.consumerId)
 
-      val eServiceIdStr  = eServiceUuid.map(_.toString)
-      val relationshipId = operator.relationshipId
-      val consumerId     = consumer.id
+      val eServiceIdStr = eServiceUuid.map(_.toString)
 
       (mockJwtReader
         .getClaims(_: String))
@@ -271,8 +269,13 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
 
       (mockPartyManagementService
-        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
-        .expects(relationshipId, Seq(PartyManagementService.ROLE_SECURITY_OPERATOR), bearerToken)
+        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: String))
+        .expects(
+          consumerId,
+          personId,
+          Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
+          bearerToken
+        )
         .once()
         .returns(Future.successful(Relationships(Seq(relationship))))
 
@@ -303,40 +306,36 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(Seq(agreement)))
 
-      val expected = Seq(
-        Client(
-          id = client.id,
-          eservice = EService(
-            eService.id,
-            eService.name,
-            Organization(organization.institutionId, organization.description),
-            Some(
+      val expected = Clients(
+        List(
+          Client(
+            id = client.id,
+            eservice = EService(
+              eService.id,
+              eService.name,
+              Organization(organization.institutionId, organization.description),
+              Some(
+                Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
+              )
+            ),
+            consumer = Organization(consumer.institutionId, consumer.description),
+            agreement = Agreement(
+              agreement.id,
+              agreementStateToApi(agreement.state),
               Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
-            )
-          ),
-          consumer = Organization(consumer.institutionId, consumer.description),
-          agreement = Agreement(
-            agreement.id,
-            agreementStateToApi(agreement.state),
-            Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
-          ),
-          name = client.name,
-          purposes = client.purposes,
-          description = client.description,
-          state = clientStateToApi(client.state),
-          operators = Some(Seq.empty)
+            ),
+            name = client.name,
+            purposes = client.purposes,
+            description = client.description,
+            state = clientStateToApi(client.state),
+            operators = Some(Seq.empty)
+          )
         )
       )
 
-      Get() ~> service.listClients(
-        offset,
-        limit,
-        eServiceIdStr,
-        Some(relationshipId.toString),
-        Some(consumerId.toString)
-      ) ~> check {
+      Get() ~> service.listClients(client.consumerId.toString(), offset, limit, eServiceIdStr) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[Seq[Client]] shouldEqual expected
+        entityAs[Clients] shouldEqual expected
       }
     }
   }
