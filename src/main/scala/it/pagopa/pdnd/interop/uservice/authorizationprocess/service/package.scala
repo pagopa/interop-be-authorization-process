@@ -14,6 +14,16 @@ package object service {
 
   type ManagementClient = Client
 
+  object AgreementManagementInvoker {
+    def apply()(implicit actorSystem: ActorSystem): AgreementManagementInvoker =
+      agreementmanagement.client.invoker.ApiInvoker(agreementmanagement.client.api.EnumsSerializers.all)
+  }
+
+  object CatalogManagementInvoker {
+    def apply()(implicit actorSystem: ActorSystem): CatalogManagementInvoker =
+      catalogmanagement.client.invoker.ApiInvoker(catalogmanagement.client.api.EnumsSerializers.all)
+  }
+
   object PartyManagementInvoker {
     def apply()(implicit actorSystem: ActorSystem): PartyManagementInvoker =
       partymanagement.client.invoker.ApiInvoker(partymanagement.client.api.EnumsSerializers.all)
