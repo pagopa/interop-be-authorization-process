@@ -25,17 +25,15 @@ object Dependencies {
   }
 
   private[this] object pagopa {
-    lazy val namespace     = "it.pagopa"
-    lazy val keyManagement = namespace %% "pdnd-interop-uservice-key-management-client" % keyManagementVersion
-
+    lazy val namespace = "it.pagopa"
+    lazy val authorizationManagement =
+      namespace %% "interop-be-authorization-management-client" % authorizationManagementVersion
     lazy val agreementManagement =
       namespace %% "pdnd-interop-uservice-agreement-management-client" % agreementManagementVersion
-
     lazy val catalogManagement =
       namespace %% "pdnd-interop-uservice-catalog-management-client" % catalogManagementVersion
     lazy val partyManagement =
       namespace %% "pdnd-interop-uservice-party-management-client" % partyManagementVersion
-
     lazy val userRegistryManagement =
       namespace %% "pdnd-interop-uservice-user-registry-management-client" % userRegistryManagementVersion
 
@@ -125,47 +123,47 @@ object Dependencies {
       // For making Java 12 happy
       "javax.annotation" % "javax.annotation-api" % "1.3.2" % "compile",
       //
-      akka.actor                    % Compile,
-      akka.actorTyped               % Compile,
-      akka.clusterTools             % Compile,
-      akka.http                     % Compile,
-      akka.httpJson                 % Compile,
-      akka.management               % Compile,
-      akka.managementLogLevels      % Compile,
-      akka.serialization            % Compile,
-      akka.slf4j                    % Compile,
-      akka.stream                   % Compile,
-      bouncycastle.kix              % Compile,
-      bouncycastle.provider         % Compile,
-      cats.core                     % Compile,
-      kamon.core                    % Compile,
-      kamon.statusPage              % Compile,
-      kamon.systemMetrics           % Compile,
-      kamon.executors               % Compile,
-      kamon.akka                    % Compile,
-      kamon.akkaHttp                % Compile,
-      kamon.instrumentationCommon   % Compile,
-      kamon.scalaFuture             % Compile,
-      kamon.logback                 % Compile,
-      kamon.jdbc                    % Compile,
-      kamon.prometheus              % Compile,
-      logback.classic               % Compile,
-      mustache.mustache             % Compile,
-      nimbus.joseJwt                % Compile,
-      pagopa.agreementManagement    % Compile,
-      pagopa.commons                % Compile,
-      pagopa.catalogManagement      % Compile,
-      pagopa.jwt                    % Compile,
-      pagopa.keyManagement          % Compile,
-      pagopa.partyManagement        % Compile,
-      pagopa.userRegistryManagement % Compile,
-      pagopa.vault                  % Compile,
-      scalpb.core                   % "protobuf",
-      akka.httpTestkit              % Test,
-      akka.streamTestkit            % Test,
-      akka.testkit                  % Test,
-      scalatest.core                % Test,
-      scalamock.core                % Test
+      akka.actor                     % Compile,
+      akka.actorTyped                % Compile,
+      akka.clusterTools              % Compile,
+      akka.http                      % Compile,
+      akka.httpJson                  % Compile,
+      akka.management                % Compile,
+      akka.managementLogLevels       % Compile,
+      akka.serialization             % Compile,
+      akka.slf4j                     % Compile,
+      akka.stream                    % Compile,
+      bouncycastle.kix               % Compile,
+      bouncycastle.provider          % Compile,
+      cats.core                      % Compile,
+      kamon.core                     % Compile,
+      kamon.statusPage               % Compile,
+      kamon.systemMetrics            % Compile,
+      kamon.executors                % Compile,
+      kamon.akka                     % Compile,
+      kamon.akkaHttp                 % Compile,
+      kamon.instrumentationCommon    % Compile,
+      kamon.scalaFuture              % Compile,
+      kamon.logback                  % Compile,
+      kamon.jdbc                     % Compile,
+      kamon.prometheus               % Compile,
+      logback.classic                % Compile,
+      mustache.mustache              % Compile,
+      nimbus.joseJwt                 % Compile,
+      pagopa.agreementManagement     % Compile,
+      pagopa.commons                 % Compile,
+      pagopa.catalogManagement       % Compile,
+      pagopa.jwt                     % Compile,
+      pagopa.authorizationManagement % Compile,
+      pagopa.partyManagement         % Compile,
+      pagopa.userRegistryManagement  % Compile,
+      pagopa.vault                   % Compile,
+      scalpb.core                    % "protobuf",
+      akka.httpTestkit               % Test,
+      akka.streamTestkit             % Test,
+      akka.testkit                   % Test,
+      scalatest.core                 % Test,
+      scalamock.core                 % Test
     )
     lazy val client: Seq[ModuleID] =
       Seq(

@@ -2,17 +2,15 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
+import it.pagopa.interop.authorizationmanagement
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AgreementManagementService.agreementStateToApi
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AuthorizationManagementService.clientStateToApi
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.CatalogManagementService.descriptorStateToApi
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
+  AuthorizationManagementService,
+  PartyManagementService
+}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Relationships
-import it.pagopa.pdnd.interop.uservice.{catalogmanagement, keymanagement}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -26,8 +24,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
     mockAuthorizationManagementService,
-    mockAgreementManagementService,
-    mockCatalogManagementService,
     mockPartyManagementService,
     mockUserRegistryManagementService,
     mockJwtReader
@@ -41,21 +37,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returning(mockSubject(UUID.randomUUID().toString))
         .once()
 
-      (mockCatalogManagementService.getEService _)
-        .expects(bearerToken, clientSeed.eServiceId)
-        .once()
-        .returns(Future.successful(eService))
-
       (mockAuthorizationManagementService
-        .createClient(_: UUID, _: UUID, _: String, _: String, _: Option[String])(_: String))
-        .expects(
-          clientSeed.eServiceId,
-          organization.id,
-          clientSeed.name,
-          clientSeed.purposes,
-          clientSeed.description,
-          bearerToken
-        )
+        .createClient(_: UUID, _: String, _: Option[String])(_: String))
+        .expects(organization.id, clientSeed.name, clientSeed.description, bearerToken)
         .once()
         .returns(Future.successful(client))
 
@@ -63,22 +47,10 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       val expected = Client(
         id = client.id,
-        eservice = EService(
-          eService.id,
-          eService.name,
-          Organization(organization.institutionId, organization.description),
-          Some(Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version))
-        ),
         consumer = Organization(consumer.institutionId, consumer.description),
-        agreement = Agreement(
-          agreement.id,
-          agreementStateToApi(agreement.state),
-          Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
-        ),
         name = client.name,
-        purposes = client.purposes,
+        purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
         description = client.description,
-        state = clientStateToApi(client.state),
         operators = Some(Seq.empty)
       )
 
@@ -92,23 +64,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       Get() ~> service.createClient(clientSeed) ~> check {
         status shouldEqual StatusCodes.Unauthorized
-      }
-    }
-
-    "fail if the E-Service does not exist" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
-      (mockCatalogManagementService.getEService _)
-        .expects(bearerToken, clientSeed.eServiceId)
-        .once()
-        .returns(Future.failed(catalogmanagement.client.invoker.ApiError(404, "Some message", None)))
-
-      Get() ~> service.createClient(clientSeed) ~> check {
-        status shouldEqual StatusCodes.NotFound
       }
     }
 
@@ -133,97 +88,10 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expected =
         Client(
           id = client.id,
-          eservice = EService(
-            eService.id,
-            eService.name,
-            Organization(organization.institutionId, organization.description),
-            Some(
-              Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
-            )
-          ),
           consumer = Organization(consumer.institutionId, consumer.description),
-          agreement = Agreement(
-            agreement.id,
-            agreementStateToApi(agreement.state),
-            Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
-          ),
           name = client.name,
-          purposes = client.purposes,
+          purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
           description = client.description,
-          state = clientStateToApi(client.state),
-          operators = Some(Seq.empty)
-        )
-
-      Get() ~> service.getClient(client.id.toString) ~> check {
-        status shouldEqual StatusCodes.OK
-        entityAs[Client] shouldEqual expected
-      }
-    }
-
-    "succeed on multiple agreements" in {
-      val descriptorId1 = UUID.randomUUID()
-      val descriptorId2 = UUID.randomUUID()
-      val descriptor1 =
-        activeDescriptor.copy(
-          id = descriptorId1,
-          version = "1",
-          state = CatalogManagementDependency.EServiceDescriptorState.DEPRECATED
-        )
-      val descriptor2 =
-        activeDescriptor.copy(
-          id = descriptorId2,
-          version = "2",
-          state = CatalogManagementDependency.EServiceDescriptorState.DEPRECATED
-        )
-
-      val eService1 = eService.copy(descriptors = Seq(descriptor1, descriptor2))
-
-      val agreement1 =
-        agreement.copy(
-          id = UUID.randomUUID(),
-          descriptorId = descriptorId1,
-          state = AgreementManagementDependency.AgreementState.SUSPENDED
-        )
-      val agreement2 =
-        agreement.copy(
-          id = UUID.randomUUID(),
-          descriptorId = descriptorId2,
-          state = AgreementManagementDependency.AgreementState.SUSPENDED
-        )
-
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(*, bearerToken)
-        .once()
-        .returns(Future.successful(client))
-
-      mockClientComposition(withOperators = false, eService = eService1, agreements = Seq(agreement1, agreement2))
-
-      val expected =
-        Client(
-          id = client.id,
-          eservice = EService(
-            eService1.id,
-            eService1.name,
-            Organization(organization.institutionId, organization.description),
-            activeDescriptor = None
-          ),
-          consumer = Organization(consumer.institutionId, consumer.description),
-          agreement = Agreement(
-            agreement2.id,
-            agreementStateToApi(agreement2.state),
-            Descriptor(descriptor2.id, descriptorStateToApi(descriptor2.state), descriptor2.version)
-          ),
-          name = client.name,
-          purposes = client.purposes,
-          description = client.description,
-          state = clientStateToApi(client.state),
           operators = Some(Seq.empty)
         )
 
@@ -244,7 +112,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .getClient(_: UUID)(_: String))
         .expects(*, bearerToken)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 
       Get() ~> service.getClient(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -256,11 +124,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     "succeed" in {
       val offset: Option[Int]            = Some(0)
       val limit: Option[Int]             = Some(10)
-      val eServiceUuid: Option[UUID]     = Some(eServiceId)
       val relationshipUuid: Option[UUID] = Some(relationship.id)
       val consumerUuid: Option[UUID]     = Some(client.consumerId)
-
-      val eServiceIdStr = eServiceUuid.map(_.toString)
 
       (mockJwtReader
         .getClaims(_: String))
@@ -280,20 +145,10 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returns(Future.successful(Relationships(Seq(relationship))))
 
       (mockAuthorizationManagementService
-        .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID], _: Option[UUID])(_: String))
-        .expects(offset, limit, eServiceUuid, relationshipUuid, consumerUuid, bearerToken)
+        .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID])(_: String))
+        .expects(offset, limit, relationshipUuid, consumerUuid, bearerToken)
         .once()
         .returns(Future.successful(Seq(client)))
-
-      (mockCatalogManagementService.getEService _)
-        .expects(*, client.eServiceId)
-        .returns(Future.successful(eService))
-
-      (mockPartyManagementService
-        .getOrganization(_: UUID)(_: String))
-        .expects(eService.producerId, bearerToken)
-        .once()
-        .returns(Future.successful(organization))
 
       (mockPartyManagementService
         .getOrganization(_: UUID)(_: String))
@@ -301,39 +156,20 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(consumer))
 
-      (mockAgreementManagementService.getAgreements _)
-        .expects(*, client.consumerId, client.eServiceId, None)
-        .once()
-        .returns(Future.successful(Seq(agreement)))
-
       val expected = Clients(
         List(
           Client(
             id = client.id,
-            eservice = EService(
-              eService.id,
-              eService.name,
-              Organization(organization.institutionId, organization.description),
-              Some(
-                Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
-              )
-            ),
             consumer = Organization(consumer.institutionId, consumer.description),
-            agreement = Agreement(
-              agreement.id,
-              agreementStateToApi(agreement.state),
-              Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
-            ),
             name = client.name,
-            purposes = client.purposes,
+            purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
             description = client.description,
-            state = clientStateToApi(client.state),
             operators = Some(Seq.empty)
           )
         )
       )
 
-      Get() ~> service.listClients(client.consumerId.toString(), offset, limit, eServiceIdStr) ~> check {
+      Get() ~> service.listClients(client.consumerId.toString, offset, limit) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Clients] shouldEqual expected
       }
@@ -370,85 +206,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .deleteClient(_: UUID)(_: String))
         .expects(*, bearerToken)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 
       Get() ~> service.deleteClient(client.id.toString) ~> check {
-        status shouldEqual StatusCodes.NotFound
-      }
-    }
-  }
-
-  "Client activation" should {
-    "succeed" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
-      (mockAuthorizationManagementService
-        .activateClient(_: UUID)(_: String))
-        .expects(*, bearerToken)
-        .once()
-        .returns(Future.successful(()))
-
-      Get() ~> service.activateClientById(client.id.toString) ~> check {
-        status shouldEqual StatusCodes.NoContent
-      }
-    }
-
-    "fail if client does not exist" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
-      (mockAuthorizationManagementService
-        .activateClient(_: UUID)(_: String))
-        .expects(*, bearerToken)
-        .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
-
-      Get() ~> service.activateClientById(client.id.toString) ~> check {
-        status shouldEqual StatusCodes.NotFound
-      }
-    }
-  }
-
-  "Client suspension" should {
-    "succeed" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
-      (mockAuthorizationManagementService
-        .suspendClient(_: UUID)(_: String))
-        .expects(*, bearerToken)
-        .once()
-        .returns(Future.successful(()))
-
-      Get() ~> service.suspendClientById(client.id.toString) ~> check {
-        status shouldEqual StatusCodes.NoContent
-      }
-    }
-
-    "fail if client does not exist" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
-      (mockAuthorizationManagementService
-        .suspendClient(_: UUID)(_: String))
-        .expects(*, bearerToken)
-        .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
-
-      Get() ~> service.suspendClientById(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }

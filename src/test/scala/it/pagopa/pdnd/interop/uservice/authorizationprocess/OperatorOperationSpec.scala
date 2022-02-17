@@ -2,19 +2,19 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import it.pagopa.interop.authorizationmanagement
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AgreementManagementService.agreementStateToApi
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AuthorizationManagementService.clientStateToApi
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.CatalogManagementService.descriptorStateToApi
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService.{
   relationshipProductToApi,
   relationshipRoleToApi,
   relationshipStateToApi
 }
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
+  AuthorizationManagementService,
+  PartyManagementService
+}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
-import it.pagopa.pdnd.interop.uservice.keymanagement
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
@@ -28,8 +28,6 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
     mockAuthorizationManagementService,
-    mockAgreementManagementService,
-    mockCatalogManagementService,
     mockPartyManagementService,
     mockUserRegistryManagementService,
     mockJwtReader
@@ -71,22 +69,10 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
       val expected = Client(
         id = client.id,
-        eservice = EService(
-          eService.id,
-          eService.name,
-          Organization(organization.institutionId, organization.description),
-          Some(Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version))
-        ),
         consumer = Organization(consumer.institutionId, consumer.description),
-        agreement = Agreement(
-          agreement.id,
-          agreementStateToApi(agreement.state),
-          Descriptor(activeDescriptor.id, descriptorStateToApi(activeDescriptor.state), activeDescriptor.version)
-        ),
         name = client.name,
-        purposes = client.purposes,
+        purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
         description = client.description,
-        state = clientStateToApi(client.state),
         operators = Some(
           Seq(
             operator.copy(product = operator.product.copy(role = PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR))
@@ -120,7 +106,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .getClient(_: UUID)(_: String))
         .expects(*, bearerToken)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "Some message", None)))
 
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, relationshipId) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -272,7 +258,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .getClient(_: UUID)(_: String))
         .expects(client.id, bearerToken)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "Some message", None)))
 
       Get() ~> service.getClientOperators(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -343,7 +329,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .getClient(_: UUID)(_: String))
         .expects(client.id, bearerToken)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "Some message", None)))
 
       Get() ~> service.getClientOperatorRelationshipById(client.id.toString, relationship.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound

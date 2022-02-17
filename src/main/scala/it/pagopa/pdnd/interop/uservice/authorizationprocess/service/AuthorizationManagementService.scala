@@ -1,34 +1,33 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
+import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
   ClientKey => ApiClientKey,
-  ClientState => ApiClientState,
   Key => ApiKey,
   KeySeed => ApiKeySeed,
   KeyUse => ApiKeyUse,
-  OtherPrimeInfo => ApiOtherPrimeInfo
+  OtherPrimeInfo => ApiOtherPrimeInfo,
+  Purpose => ApiPurpose,
+  ClientStatesChain => ApiClientStatesChain,
+  ClientEServiceDetails => ApiClientEServiceDetails,
+  ClientAgreementDetails => ApiClientAgreementDetails,
+  ClientPurposeDetails => ApiClientPurposeDetails,
+  ClientComponentState => ApiClientComponentState
 }
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model._
 
 import java.util.UUID
 import scala.concurrent.Future
 
 trait AuthorizationManagementService {
 
-  def createClient(eServiceId: UUID, consumerId: UUID, name: String, purposes: String, description: Option[String])(
+  def createClient(consumerId: UUID, name: String, description: Option[String])(
     bearer: String
   ): Future[ManagementClient]
   def getClient(clientId: UUID)(bearer: String): Future[ManagementClient]
-  def listClients(
-    offset: Option[Int],
-    limit: Option[Int],
-    eServiceId: Option[UUID],
-    relationshipId: Option[UUID],
-    consumerId: Option[UUID]
-  )(bearer: String): Future[Seq[ManagementClient]]
+  def listClients(offset: Option[Int], limit: Option[Int], relationshipId: Option[UUID], consumerId: Option[UUID])(
+    bearer: String
+  ): Future[Seq[ManagementClient]]
   def deleteClient(clientId: UUID)(bearer: String): Future[Unit]
-  def activateClient(clientId: UUID)(bearer: String): Future[Unit]
-  def suspendClient(clientId: UUID)(bearer: String): Future[Unit]
 
   def addRelationship(clientId: UUID, relationshipId: UUID)(bearer: String): Future[ManagementClient]
   def removeClientRelationship(clientId: UUID, relationshipId: UUID)(bearer: String): Future[Unit]
@@ -89,10 +88,35 @@ object AuthorizationManagementService {
       case ApiKeyUse.ENC => KeyUse.ENC
     }
 
-  def clientStateToApi(state: ClientState): ApiClientState =
+  def purposeToApi(purpose: Purpose): ApiPurpose =
+    ApiPurpose(purposeId = purpose.purposeId, states = clientStatesChainToApi(purpose.states))
+
+  def clientStatesChainToApi(states: ClientStatesChain): ApiClientStatesChain =
+    ApiClientStatesChain(
+      id = states.id,
+      eservice = clientEServiceDetailsToApi(states.eservice),
+      agreement = clientAgreementDetailsToApi(states.agreement),
+      purpose = clientPurposeDetailsToApi(states.purpose)
+    )
+
+  def clientEServiceDetailsToApi(details: ClientEServiceDetails): ApiClientEServiceDetails =
+    ApiClientEServiceDetails(
+      eserviceId = details.eserviceId,
+      state = clientComponentStateToApi(details.state),
+      audience = details.audience,
+      voucherLifespan = details.voucherLifespan
+    )
+
+  def clientAgreementDetailsToApi(details: ClientAgreementDetails): ApiClientAgreementDetails =
+    ApiClientAgreementDetails(agreementId = details.agreementId, state = clientComponentStateToApi(details.state))
+
+  def clientPurposeDetailsToApi(details: ClientPurposeDetails): ApiClientPurposeDetails =
+    ApiClientPurposeDetails(purposeId = details.purposeId, state = clientComponentStateToApi(details.state))
+
+  def clientComponentStateToApi(state: ClientComponentState): ApiClientComponentState =
     state match {
-      case ClientState.ACTIVE    => ApiClientState.ACTIVE
-      case ClientState.SUSPENDED => ApiClientState.SUSPENDED
+      case ClientComponentState.ACTIVE   => ApiClientComponentState.ACTIVE
+      case ClientComponentState.INACTIVE => ApiClientComponentState.INACTIVE
     }
 
 }

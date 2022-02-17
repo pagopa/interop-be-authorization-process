@@ -5,20 +5,19 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
+import it.pagopa.interop.authorizationmanagement
+import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{OptionOps, StringOps}
-import it.pagopa.pdnd.interop.commons.utils.errors.GenericComponentErrors.MissingBearer
+import it.pagopa.pdnd.interop.commons.utils.errors.GenericComponentErrors.{MissingBearer, ResourceNotFoundError}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.OperatorApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.validateClientBearer
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.AuthorizationProcessErrors._
-import it.pagopa.pdnd.interop.commons.utils.errors.GenericComponentErrors.ResourceNotFoundError
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AuthorizationManagementService.keyUseToDependency
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
-import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
 import org.slf4j.LoggerFactory
 
@@ -33,7 +32,8 @@ final case class OperatorApiServiceImpl(
 )(implicit ec: ExecutionContext)
     extends OperatorApiService {
 
-  val logger = Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
+  val logger: LoggerTakingImplicit[ContextFieldsToLog] =
+    Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
 
   /** Code: 201, Message: Keys created, DataType: ClientKeys
     * Code: 400, Message: Bad Request, DataType: Problem
@@ -62,7 +62,7 @@ final case class OperatorApiServiceImpl(
             .intersect(relationships.items.map(_.id).toSet)
             .headOption // Exactly one expected
             .toFuture(new RuntimeException(s"ID $operatorId has no relationship with client ${seed.clientId}"))
-          managementSeed = keymanagement.client.model.KeySeed(
+          managementSeed = authorizationmanagement.client.model.KeySeed(
             relationshipId = clientRelationshipId,
             key = seed.key,
             use = keyUseToDependency(seed.use),
@@ -191,7 +191,7 @@ final case class OperatorApiServiceImpl(
           for {
             clientKeys <- authorizationManagementService.getClientKeys(client.id)(bearerToken)
             operatorKeys = clientKeys.keys.filter(key => operatorRelationships.items.exists(_.id == key.relationshipId))
-          } yield keymanagement.client.model.KeysResponse(operatorKeys)
+          } yield authorizationmanagement.client.model.KeysResponse(operatorKeys)
       )(bearerToken)
     } yield ClientKeys(keysResponse.flatMap(_.keys.map(AuthorizationManagementService.keyToApi)))
 
@@ -230,7 +230,7 @@ final case class OperatorApiServiceImpl(
       clientUuid    <- clientId.toFutureUUID
       clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)(bearerToken)
       operatorKeys = clientKeys.keys.filter(key => relationships.items.exists(_.id == key.relationshipId))
-      keysResponse = keymanagement.client.model.KeysResponse(operatorKeys)
+      keysResponse = authorizationmanagement.client.model.KeysResponse(operatorKeys)
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
@@ -264,7 +264,6 @@ final case class OperatorApiServiceImpl(
         relationshipId = Some(relationship.id),
         offset = None,
         limit = None,
-        eServiceId = None,
         consumerId = None
       )(bearerToken)
     )

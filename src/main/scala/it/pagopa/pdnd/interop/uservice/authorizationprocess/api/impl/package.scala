@@ -15,14 +15,9 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
     ClientCredentialsResponse
   )
   implicit val organizationFormat: RootJsonFormat[Organization]           = jsonFormat2(Organization)
-  implicit val descriptorFormat: RootJsonFormat[Descriptor]               = jsonFormat3(Descriptor)
-  implicit val eServiceFormat: RootJsonFormat[EService]                   = jsonFormat4(EService)
   implicit val operatorProductFormat: RootJsonFormat[RelationshipProduct] = jsonFormat3(RelationshipProduct)
   implicit val operatorFormat: RootJsonFormat[Operator]                   = jsonFormat7(Operator)
-  implicit val agreementFormat: RootJsonFormat[Agreement]                 = jsonFormat3(Agreement)
-  implicit val clientSeedFormat: RootJsonFormat[ClientSeed]               = jsonFormat5(ClientSeed)
-  implicit val clientFormat: RootJsonFormat[Client]                       = jsonFormat9(Client)
-  implicit val clientsFormat: RootJsonFormat[Clients]                     = jsonFormat1(Clients)
+  implicit val clientSeedFormat: RootJsonFormat[ClientSeed]               = jsonFormat3(ClientSeed)
   implicit val primeInfoFormat: RootJsonFormat[OtherPrimeInfo]            = jsonFormat3(OtherPrimeInfo)
   implicit val keyFormat: RootJsonFormat[Key]                             = jsonFormat22(Key)
   implicit val clientKeyFormat: RootJsonFormat[ClientKey]                 = jsonFormat1(ClientKey)
@@ -30,7 +25,16 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val clientKeysFormat: RootJsonFormat[ClientKeys]               = jsonFormat1(ClientKeys)
   implicit val keySeedFormat: RootJsonFormat[KeySeed]                     = jsonFormat4(KeySeed)
   implicit val operatorKeySeedFormat: RootJsonFormat[OperatorKeySeed]     = jsonFormat4(OperatorKeySeed)
-  implicit val validJWTFormat: RootJsonFormat[ValidJWT]                   = jsonFormat7(ValidJWT)
+
+  implicit val clientAgreementDetailsFormat: RootJsonFormat[ClientAgreementDetails] =
+    jsonFormat2(ClientAgreementDetails)
+  implicit val clientEServiceDetailsFormat: RootJsonFormat[ClientEServiceDetails] = jsonFormat4(ClientEServiceDetails)
+  implicit val clientPurposeDetailsFormat: RootJsonFormat[ClientPurposeDetails]   = jsonFormat2(ClientPurposeDetails)
+  implicit val clientStatesChainFormat: RootJsonFormat[ClientStatesChain]         = jsonFormat4(ClientStatesChain)
+  implicit val purposeFormat: RootJsonFormat[Purpose]                             = jsonFormat2(Purpose)
+
+  implicit val clientFormat: RootJsonFormat[Client]   = jsonFormat6(Client)
+  implicit val clientsFormat: RootJsonFormat[Clients] = jsonFormat1(Clients)
 
   final val serviceErrorCodePrefix: String = "007"
   final val defaultProblemType: String     = "about:blank"

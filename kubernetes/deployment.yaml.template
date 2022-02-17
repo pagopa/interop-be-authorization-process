@@ -80,8 +80,8 @@ spec:
               value: "{{agreementManagementUrl}}"
             - name: CATALOG_MANAGEMENT_URL
               value: "{{catalogManagementUrl}}"
-            - name: KEY_MANAGEMENT_URL
-              value: "{{keyManagementUrl}}"
+            - name: AUTHORIZATION_MANAGEMENT_URL
+              value: "{{authorizationmanagementUrl}}"
             - name: PARTY_MANAGEMENT_URL
               value: "{{partyManagementUrl}}"
             - name: USER_REGISTRY_MANAGEMENT_URL

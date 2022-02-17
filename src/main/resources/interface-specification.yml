@@ -17,11 +17,6 @@ servers:
 security:
   - bearerAuth: []
 tags:
-  - name: auth
-    description: Get security information
-    externalDocs:
-      description: Find out more
-      url: http://swagger.io
   - name: client
     description: Get security information
     externalDocs:
@@ -38,75 +33,6 @@ tags:
       description: Find out more
       url: http://swagger.io
 paths:
-  /as/token.oauth2:
-    post:
-      security: []
-      tags:
-        - auth
-      summary: Create a new access token
-      description: Return ok
-      operationId: createToken
-      requestBody:
-        required: true
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AccessTokenRequest'
-      responses:
-        '200':
-          description: |-
-            an Access token
-          headers:
-            Cache-Control:
-              schema:
-                type: string
-                default: no-cache, no-store
-              description: |-
-                no-cache, no-store
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClientCredentialsResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '400':
-          description: Bad request
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-  /as/token/validate:
-    post:
-      security:
-        - bearerAuth: []
-      tags:
-        - auth
-      summary: JWT validation
-      description: Validates the access token passed as Authorization header
-      operationId: validateToken
-      responses:
-        '200':
-          description: Client created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidJWT'
-        '401':
-          description: Unauthorized
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '400':
-          description: Bad request
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
   /clients:
     post:
       tags:
@@ -158,12 +84,6 @@ paths:
           schema:
             type: integer
             format: int32
-        - name: eServiceId
-          in: query
-          description: ID of E-Service that MUST be related to the Client
-          schema:
-            type: string
-            format: uuid
         - name: consumerId
           in: query
           description: ID of Consumer that MUST be related to the Client
@@ -239,78 +159,6 @@ paths:
       responses:
         '204':
           description: Client deleted
-        '401':
-          description: Unauthorized
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '404':
-          description: Client not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-  '/clients/{clientId}/activate':
-    post:
-      tags:
-        - client
-      summary: Activates a client by id.
-      description: 'Activate the given client'
-      operationId: activateClientById
-      parameters:
-        - name: clientId
-          in: path
-          description: ID of the client holding the key
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '204':
-          description: the client has been activated.
-        '400':
-          description: Bad Request
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '401':
-          description: Unauthorized
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '404':
-          description: Client not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-  '/clients/{clientId}/suspend':
-    post:
-      tags:
-        - client
-      summary: Suspend a client by id.
-      description: 'Suspend the given client'
-      operationId: suspendClientById
-      parameters:
-        - name: clientId
-          in: path
-          description: ID of the client
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '204':
-          description: the corresponding client has been suspended.
-        '400':
-          description: Bad Request
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
         '401':
           description: Unauthorized
           content:
@@ -879,23 +727,16 @@ components:
       description: Client creation request body
       type: object
       properties:
-        eServiceId:
-          type: string
-          format: uuid
         consumerId:
           type: string
           format: uuid
         name:
           type: string
-        purposes:
-          type: string
         description:
           type: string
       required:
-        - eServiceId
         - consumerId
         - name
-        - purposes
     Client:
       description: Models Client details
       type: object
@@ -903,111 +744,25 @@ components:
         id:
           type: string
           format: uuid
-        eservice:
-          $ref: '#/components/schemas/EService'
         consumer:
           $ref: '#/components/schemas/Organization'
-        agreement:
-          $ref: '#/components/schemas/Agreement'
         name:
           type: string
         purposes:
-          type: string
+          type: array
+          items:
+            $ref: '#/components/schemas/Purpose'
         description:
           type: string
-        state:
-          $ref: '#/components/schemas/ClientState'
         operators:
           $ref: '#/components/schemas/Operators'
           uniqueItems: true
       required:
         - id
-        - eservice
         - organization
         - consumer
-        - agreement
         - name
         - purposes
-        - state
-    EService:
-      description: Models an E-Service
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-        provider:
-          $ref: '#/components/schemas/Organization'
-        activeDescriptor:
-          $ref: '#/components/schemas/Descriptor'
-      required:
-        - id
-        - name
-        - provider
-    Descriptor:
-      description: Models an E-Service Descriptor
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        state:
-          $ref: '#/components/schemas/EServiceDescriptorState'
-        version:
-          type: string
-      required:
-        - id
-        - state
-        - version
-    Agreement:
-      description: Models an Agreement
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        state:
-          $ref: '#/components/schemas/AgreementState'
-        descriptor:
-          $ref: '#/components/schemas/Descriptor'
-      required:
-        - id
-        - state
-        - descriptor
-    ValidJWT:
-      description: Models a JWT payload
-      type: object
-      properties:
-        iss:
-          type: string
-        sub:
-          type: string
-        aud:
-          type: array
-          items:
-            type: string
-        exp:
-          type: string
-          format: date-time
-        nbf:
-          type: string
-          format: date-time
-        iat:
-          type: string
-          format: date-time
-        jti:
-          type: string
-      additionalProperties: true
-      required:
-        - iss
-        - sub
-        - aud
-        - exp
-        - nbf
-        - iat
-        - jti
     Clients:
       description: Models a group of Clients
       type: object
@@ -1223,12 +978,6 @@ components:
       enum:
         - BEARER
         - POP
-    ClientState:
-      type: string
-      description: Represents the Client state
-      enum:
-        - ACTIVE
-        - SUSPENDED
     OperatorState:
       type: string
       description: Represents the Client Operator state
@@ -1244,23 +993,6 @@ components:
         - DELEGATE
         - SUB_DELEGATE
         - OPERATOR
-    EServiceDescriptorState:
-      type: string
-      description: EService Descriptor State Enum
-      enum:
-        - DRAFT
-        - PUBLISHED
-        - DEPRECATED
-        - SUSPENDED
-        - ARCHIVED
-    AgreementState:
-      type: string
-      description: Agreement State
-      enum:
-        - ACTIVE
-        - PENDING
-        - SUSPENDED
-        - INACTIVE
     Organization:
       description: Models an Organization
       type: object
@@ -1272,6 +1004,82 @@ components:
       required:
         - institutionId
         - description
+    Purpose:
+      type: object
+      properties:
+        purposeId:
+          type: string
+          format: uuid
+        states:
+          $ref: '#/components/schemas/ClientStatesChain'
+      required:
+        - purposeId
+        - states
+    ClientStatesChain:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eservice:
+          $ref: '#/components/schemas/ClientEServiceDetails'
+        agreement:
+          $ref: '#/components/schemas/ClientAgreementDetails'
+        purpose:
+          $ref: '#/components/schemas/ClientPurposeDetails'
+      required:
+        - id
+        - eservice
+        - agreement
+        - purpose
+    ClientEServiceDetails:
+      type: object
+      properties:
+        eserviceId:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/ClientComponentState'
+        audience:
+          type: array
+          items:
+            type: string
+        voucherLifespan:
+          type: integer
+          format: int32
+      required:
+        - eserviceId
+        - state
+        - audience
+        - voucherLifespan
+    ClientAgreementDetails:
+      type: object
+      properties:
+        agreementId:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/ClientComponentState'
+      required:
+        - agreementId
+        - state
+    ClientPurposeDetails:
+      type: object
+      properties:
+        purposeId:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/ClientComponentState'
+      required:
+        - purposeId
+        - state
+    ClientComponentState:
+      type: string
+      description: Represents the State of an object related to the purpose
+      enum:
+        - ACTIVE
+        - INACTIVE
     Problem:
       properties:
         type:
