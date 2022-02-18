@@ -27,6 +27,10 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagem
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeManagementApiError}
 import org.slf4j.LoggerFactory
 
 import java.util.UUID
@@ -35,7 +39,10 @@ import scala.util.{Failure, Success}
 
 final case class ClientApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
+  agreementManagementService: AgreementManagementService,
+  catalogManagementService: CatalogManagementService,
   partyManagementService: PartyManagementService,
+  purposeManagementService: PurposeManagementService,
   userRegistryManagementService: UserRegistryManagementService,
   jwtReader: JWTReader
 )(implicit ec: ExecutionContext)
@@ -532,6 +539,103 @@ final case class ClientApiServiceImpl(
       case Failure(ex) =>
         logger.error("Error while getting operators of client {} by relationship {}", clientId, relationshipId, ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientOperatorsRelationshipRetrievalError))
+    }
+  }
+
+  override def addClientPurpose(clientId: String, details: PurposeAdditionDetails)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    logger.info("Adding Purpose {} to Client {}", details.purposeId, clientId)
+
+    def descriptorToComponentState(
+      descriptor: CatalogManagementDependency.EServiceDescriptor
+    ): AuthorizationmanagementDependency.ClientComponentState = descriptor.state match {
+      case CatalogManagementDependency.EServiceDescriptorState.PUBLISHED =>
+        AuthorizationmanagementDependency.ClientComponentState.ACTIVE
+      case _ => AuthorizationmanagementDependency.ClientComponentState.INACTIVE
+    }
+
+    def agreementToComponentState(
+      agreement: AgreementManagementDependency.Agreement
+    ): AuthorizationmanagementDependency.ClientComponentState = agreement.state match {
+      case AgreementManagementDependency.AgreementState.ACTIVE =>
+        AuthorizationmanagementDependency.ClientComponentState.ACTIVE
+      case _ => AuthorizationmanagementDependency.ClientComponentState.INACTIVE
+    }
+
+    def purposeToComponentState(
+      purpose: PurposeManagementDependency.Purpose
+    ): AuthorizationmanagementDependency.ClientComponentState =
+      if (purpose.versions.exists(_.state == PurposeManagementDependency.PurposeVersionState.ACTIVE))
+        AuthorizationmanagementDependency.ClientComponentState.ACTIVE
+      else AuthorizationmanagementDependency.ClientComponentState.INACTIVE
+
+    val result: Future[Unit] = for {
+      bearerToken <- validateClientBearer(contexts, jwtReader)
+      clientUuid  <- clientId.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(details.purposeId)
+      eService    <- catalogManagementService.getEService(bearerToken)(purpose.eserviceId)
+      agreements  <- agreementManagementService.getAgreements(bearerToken)(purpose.eserviceId, purpose.consumerId)
+      agreement <- agreements
+        .filter(_.state != AgreementManagementDependency.AgreementState.PENDING)
+        .maxByOption(_.createdAt)
+        .toFuture(new RuntimeException("Agreement not found")) // TODO
+      descriptor <- eService.descriptors
+        .find(_.id == agreement.descriptorId)
+        .toFuture(new RuntimeException("Descriptor not found")) // TODO
+      states = AuthorizationmanagementDependency.ClientStatesChainSeed(
+        eservice = AuthorizationmanagementDependency.ClientEServiceDetailsSeed(
+          eserviceId = eService.id,
+          state = descriptorToComponentState(descriptor),
+          audience = descriptor.audience,
+          voucherLifespan = descriptor.voucherLifespan
+        ),
+        agreement = AuthorizationmanagementDependency
+          .ClientAgreementDetailsSeed(agreementId = agreement.id, state = agreementToComponentState(agreement)),
+        purpose = AuthorizationmanagementDependency.ClientPurposeDetailsSeed(
+          purposeId = purpose.id,
+          state = purposeToComponentState(purpose)
+        )
+      )
+      seed = AuthorizationmanagementDependency.PurposeSeed(details.purposeId, states)
+      _ <- authorizationManagementService.addClientPurpose(clientUuid, seed)(bearerToken)
+    } yield ()
+
+    onComplete(result) {
+      case Success(_) => addClientPurpose204
+      case Failure(ex: PurposeManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error adding purpose {} to client {}", details.purposeId, clientId, ex)
+        createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Purpose id ${details.purposeId}")))
+      case Failure(ex) =>
+        logger.error("Error adding purpose {} to client {}", details.purposeId, clientId, ex)
+        internalServerError(
+          problemOf(StatusCodes.InternalServerError, ClientPurposeAddError(clientId, details.purposeId.toString))
+        )
+    }
+  }
+
+  override def removeClientPurpose(clientId: String, purposeId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    logger.info("Removing Purpose from Client {}", clientId)
+
+    val result: Future[Unit] = for {
+      bearerToken <- validateClientBearer(contexts, jwtReader)
+      clientUuid  <- clientId.toFutureUUID
+      purposeUuid <- purposeId.toFutureUUID
+      _           <- authorizationManagementService.removeClientPurpose(clientUuid, purposeUuid)(bearerToken)
+    } yield ()
+
+    onComplete(result) {
+      case Success(_) => addClientPurpose204
+      case Failure(ex: PurposeManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error removing purpose {} from client {}", clientId, ex)
+        createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Purpose id $purposeId")))
+      case Failure(ex) =>
+        logger.error("Error removing purpose {} from client {}", clientId, ex)
+        internalServerError(problemOf(StatusCodes.InternalServerError, ClientPurposeRemoveError(clientId, purposeId)))
     }
   }
 

@@ -1,6 +1,6 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 
-import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi}
+import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiRequest, BearerToken}
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
@@ -15,7 +15,8 @@ import scala.concurrent.Future
 final case class AuthorizationManagementServiceImpl(
   invoker: AuthorizationManagementInvoker,
   clientApi: ClientApi,
-  keyApi: KeyApi
+  keyApi: KeyApi,
+  purposeApi: PurposeApi
 ) extends AuthorizationManagementService {
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
@@ -31,7 +32,7 @@ final case class AuthorizationManagementServiceImpl(
   }
 
   override def getClient(clientId: UUID)(bearer: String): Future[Client] = {
-    val request: ApiRequest[Client] = clientApi.getClient(clientId.toString)(BearerToken(bearer))
+    val request: ApiRequest[Client] = clientApi.getClient(clientId)(BearerToken(bearer))
     invoker.invoke(request, "Client retrieve")
   }
 
@@ -85,5 +86,17 @@ final case class AuthorizationManagementServiceImpl(
   override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(bearer: String): Future[KeysResponse] = {
     val request: ApiRequest[KeysResponse] = keyApi.createKeys(clientId, keysSeeds)(BearerToken(bearer))
     invoker.invoke(request, "Key creation")
+  }
+
+  override def addClientPurpose(clientId: UUID, purposeSeed: PurposeSeed)(bearer: String): Future[Purpose] = {
+    val request: ApiRequest[Purpose] =
+      purposeApi.addClientPurpose(clientId, purposeSeed)(BearerToken(bearer))
+    invoker.invoke(request, "Purpose addition to client")
+  }
+
+  override def removeClientPurpose(clientId: UUID, purposeId: UUID)(bearer: String): Future[Unit] = {
+    val request: ApiRequest[Unit] =
+      purposeApi.removeClientPurpose(clientId, purposeId)(BearerToken(bearer))
+    invoker.invoke(request, "Purpose remove from client")
   }
 }

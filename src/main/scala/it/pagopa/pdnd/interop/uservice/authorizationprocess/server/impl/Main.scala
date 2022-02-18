@@ -9,7 +9,8 @@ import com.nimbusds.jose.proc.SecurityContext
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
 import it.pagopa.interop.authorizationmanagement.client.api.{
   ClientApi => AuthorizationClientApi,
-  KeyApi => AuthorizationKeyApi
+  KeyApi => AuthorizationKeyApi,
+  PurposeApi => AuthorizationPurposeApi
 }
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
@@ -32,11 +33,17 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.system.{class
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.server.Controller
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl.{
+  AgreementManagementServiceImpl,
   AuthorizationManagementServiceImpl,
+  CatalogManagementServiceImpl,
   PartyManagementServiceImpl,
+  PurposeManagementServiceImpl,
   UserRegistryManagementServiceImpl
 }
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.api.{PartyApi => PartyManagementApi}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.api.{EServiceApi => CatalogManagementApi}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.api.{PurposeApi => PurposeManagementApi}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.api.{UserApi => UserRegistryManagementApi}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.invoker.ApiKeyValue
 import kamon.Kamon
@@ -71,7 +78,29 @@ trait AuthorizationManagementDependency {
   val authorizationManagementService: AuthorizationManagementService = AuthorizationManagementServiceImpl(
     AuthorizationManagementInvoker(),
     AuthorizationClientApi(ApplicationConfiguration.getAuthorizationManagementURL),
-    AuthorizationKeyApi(ApplicationConfiguration.getAuthorizationManagementURL)
+    AuthorizationKeyApi(ApplicationConfiguration.getAuthorizationManagementURL),
+    AuthorizationPurposeApi(ApplicationConfiguration.getAuthorizationManagementURL)
+  )
+}
+
+trait AgreementManagementDependency {
+  val agreementManagementService: AgreementManagementService = AgreementManagementServiceImpl(
+    AgreementManagementInvoker(),
+    AgreementManagementApi(ApplicationConfiguration.getAgreementManagementURL)
+  )
+}
+
+trait CatalogManagementDependency {
+  val catalogManagementService: CatalogManagementService = CatalogManagementServiceImpl(
+    CatalogManagementInvoker(),
+    CatalogManagementApi(ApplicationConfiguration.getCatalogManagementURL)
+  )
+}
+
+trait PurposeManagementDependency {
+  val purposeManagementService: PurposeManagementService = PurposeManagementServiceImpl(
+    PurposeManagementInvoker(),
+    PurposeManagementApi(ApplicationConfiguration.getPurposeManagementURL)
   )
 }
 
@@ -83,8 +112,11 @@ object Main
     extends App
     with CORSSupport
     with VaultServiceDependency
+    with AgreementManagementDependency
+    with CatalogManagementDependency
     with AuthorizationManagementDependency
     with PartyManagementDependency
+    with PurposeManagementDependency
     with UserRegistryManagementDependency {
 
   val dependenciesLoaded: Future[JWTReader] = for {
@@ -110,7 +142,10 @@ object Main
     val clientApi: ClientApi = new ClientApi(
       ClientApiServiceImpl(
         authorizationManagementService,
+        agreementManagementService,
+        catalogManagementService,
         partyManagementService,
+        purposeManagementService,
         userRegistryManagementService,
         jwtReader
       ),

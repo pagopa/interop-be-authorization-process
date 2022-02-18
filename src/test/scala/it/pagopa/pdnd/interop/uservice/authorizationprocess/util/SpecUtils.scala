@@ -28,6 +28,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
+  val mockPurposeManagementService: PurposeManagementService             = mock[PurposeManagementService]
   val mockUserRegistryManagementService: UserRegistryManagementService   = mock[UserRegistryManagementService]
   val mockJwtReader: JWTReader                                           = mock[JWTReader]
 
@@ -83,7 +84,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     producerId = organizationId,
     consumerId = consumerId,
     state = AgreementManagementDependency.AgreementState.ACTIVE,
-    verifiedAttributes = Seq.empty
+    verifiedAttributes = Seq.empty,
+    createdAt = timestamp
   )
 
   val organization: PartyManagementDependency.Organization = PartyManagementDependency.Organization(

@@ -23,5 +23,6 @@ object PDNDVersions {
   lazy val commonsVersion                 = "0.1.1-SNAPSHOT"
   lazy val authorizationManagementVersion = "0.1.1-SNAPSHOT"
   lazy val partyManagementVersion         = "0.1.1-SNAPSHOT"
+  lazy val purposeManagementVersion       = "0.1.1-SNAPSHOT"
   lazy val userRegistryManagementVersion  = "0.1.1-SNAPSHOT"
 }

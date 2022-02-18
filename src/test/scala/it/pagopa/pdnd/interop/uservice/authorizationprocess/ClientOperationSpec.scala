@@ -24,7 +24,10 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
     mockAuthorizationManagementService,
+    mockAgreementManagementService,
+    mockCatalogManagementService,
     mockPartyManagementService,
+    mockPurposeManagementService,
     mockUserRegistryManagementService,
     mockJwtReader
   )(ExecutionContext.global)

@@ -18,6 +18,8 @@ object ApplicationConfiguration {
 
   lazy val getPartyManagementURL: String = config.getString("authorization-process.services.party-management")
 
+  lazy val getPurposeManagementURL: String = config.getString("authorization-process.services.purpose-management")
+
   lazy val getUserRegistryManagementURL: String =
     config.getString("authorization-process.services.user-registry-management")
 

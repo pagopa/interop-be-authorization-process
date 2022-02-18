@@ -34,6 +34,8 @@ object Dependencies {
       namespace %% "pdnd-interop-uservice-catalog-management-client" % catalogManagementVersion
     lazy val partyManagement =
       namespace %% "pdnd-interop-uservice-party-management-client" % partyManagementVersion
+    lazy val purposeManagement =
+      namespace %% "pdnd-interop-uservice-purpose-management-client" % purposeManagementVersion
     lazy val userRegistryManagement =
       namespace %% "pdnd-interop-uservice-user-registry-management-client" % userRegistryManagementVersion
 
@@ -156,6 +158,7 @@ object Dependencies {
       pagopa.jwt                     % Compile,
       pagopa.authorizationManagement % Compile,
       pagopa.partyManagement         % Compile,
+      pagopa.purposeManagement       % Compile,
       pagopa.userRegistryManagement  % Compile,
       pagopa.vault                   % Compile,
       scalpb.core                    % "protobuf",

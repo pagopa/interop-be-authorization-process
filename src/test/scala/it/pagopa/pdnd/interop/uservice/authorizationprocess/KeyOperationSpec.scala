@@ -21,7 +21,10 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
     mockAuthorizationManagementService,
+    mockAgreementManagementService,
+    mockCatalogManagementService,
     mockPartyManagementService,
+    mockPurposeManagementService,
     mockUserRegistryManagementService,
     mockJwtReader
   )(ExecutionContext.global)

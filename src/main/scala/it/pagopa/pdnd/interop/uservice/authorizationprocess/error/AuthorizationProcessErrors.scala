@@ -62,4 +62,10 @@ object AuthorizationProcessErrors {
   final case object WellKnownRetrievalError
       extends ComponentError("0042", "Something goes wrong trying to get well-known keys")
 
+  final case class ClientPurposeAddError(clientId: String, purposeId: String)
+      extends ComponentError("0043", s"Error adding Purpose $purposeId to Client $clientId")
+
+  final case class ClientPurposeRemoveError(clientId: String, purposeId: String)
+      extends ComponentError("0044", s"Error removing Purpose $purposeId from Client $clientId")
+
 }
