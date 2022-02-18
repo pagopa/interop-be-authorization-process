@@ -13,6 +13,7 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => Catalo
 import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{User, UserExtras}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.Certification.NONE
 import org.scalamock.scalatest.MockFactory
@@ -104,6 +105,30 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     id = consumerId,
     attributes = Seq.empty,
     taxCode = "123"
+  )
+
+  val purposeVersion: PurposeManagementDependency.PurposeVersion = PurposeManagementDependency.PurposeVersion(
+    id = UUID.randomUUID(),
+    state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
+    createdAt = timestamp,
+    updatedAt = None,
+    firstActivationAt = None,
+    expectedApprovalDate = None,
+    dailyCalls = 10,
+    riskAnalysis = None
+  )
+  val purpose: PurposeManagementDependency.Purpose = PurposeManagementDependency.Purpose(
+    id = UUID.randomUUID(),
+    eserviceId = eService.id,
+    consumerId = consumer.id,
+    versions = Seq.empty,
+    suspendedByConsumer = None,
+    suspendedByProducer = None,
+    title = "Purpose!",
+    description = "Purpose?",
+    riskAnalysisForm = None,
+    createdAt = timestamp,
+    updatedAt = None
   )
 
   val clientPurpose: AuthorizationManagementDependency.Purpose =
