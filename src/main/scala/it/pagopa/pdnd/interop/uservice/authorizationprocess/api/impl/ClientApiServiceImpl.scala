@@ -580,10 +580,10 @@ final case class ClientApiServiceImpl(
       agreement <- agreements
         .filter(_.state != AgreementManagementDependency.AgreementState.PENDING)
         .maxByOption(_.createdAt)
-        .toFuture(new RuntimeException("Agreement not found")) // TODO
+        .toFuture(ClientPurposeAddAgreementNotFound(purpose.eserviceId.toString, purpose.consumerId.toString))
       descriptor <- eService.descriptors
         .find(_.id == agreement.descriptorId)
-        .toFuture(new RuntimeException("Descriptor not found")) // TODO
+        .toFuture(ClientPurposeAddDescriptorNotFound(purpose.eserviceId.toString, agreement.descriptorId.toString))
       states = AuthorizationmanagementDependency.ClientStatesChainSeed(
         eservice = AuthorizationmanagementDependency.ClientEServiceDetailsSeed(
           eserviceId = eService.id,

@@ -68,4 +68,13 @@ object AuthorizationProcessErrors {
   final case class ClientPurposeRemoveError(clientId: String, purposeId: String)
       extends ComponentError("0044", s"Error removing Purpose $purposeId from Client $clientId")
 
+  final case class ClientPurposeAddAgreementNotFound(eServiceId: String, consumerId: String)
+      extends ComponentError(
+        "0045",
+        s"Not acceptable agreement found for EService $eServiceId and Consumer $consumerId"
+      )
+
+  final case class ClientPurposeAddDescriptorNotFound(eServiceId: String, descriptorId: String)
+      extends ComponentError("0046", s"Descriptor $descriptorId not found in EService $eServiceId")
+
 }
