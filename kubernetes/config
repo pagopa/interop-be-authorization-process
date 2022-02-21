@@ -21,7 +21,7 @@ mainAudience=$MAIN_AUDIENCE
 
 agreementManagementUrl="http://pdnd-interop-uservice-agreement-management.pdnd-interop-uservice-agreement-management.svc.cluster.local:8088/pdnd-interop-uservice-agreement-management/"$agreementManagementVersion
 catalogManagementUrl="http://pdnd-interop-uservice-catalog-management.pdnd-interop-uservice-catalog-management.svc.cluster.local:8088/pdnd-interop-uservice-catalog-management/"$catalogManagementVersion
-authorizationManagementUrl="http://pdnd-interop-uservice-authorization-management.pdnd-interop-uservice-authorization-management.svc.cluster.local:8088/pdnd-interop-uservice-authorization-management/"$authorizationmanagementVersion
+authorizationManagementUrl="http://interop-be-authorization-management.interop-be-authorization-management.svc.cluster.local:8088/authorization-management/"$authorizationmanagementVersion
 partyManagementUrl="http://pdnd-interop-uservice-party-management.pdnd-interop-uservice-party-management.svc.cluster.local:8088/pdnd-interop-uservice-party-management/"$partyManagementVersion
 purposeManagementUrl="http://pdnd-interop-uservice-purpose-management.pdnd-interop-uservice-purpose-management.svc.cluster.local:8088/pdnd-interop-uservice-party-management/"$purposeManagementVersion
 userRegistryManagementUrl="http://pdnd-interop-uservice-user-registry-management.pdnd-interop-uservice-user-registry-management.svc.cluster.local:8088/pdnd-interop-uservice-user-registry-management/"$userRegistryManagementVersion
