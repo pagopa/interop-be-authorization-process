@@ -46,16 +46,6 @@ spec:
               containerPort: 9095
               protocol: TCP
           env:
-            - name: VAULT_ADDR
-              valueFrom:
-                secretKeyRef:
-                  name: vault
-                  key: VAULT_ADDR
-            - name: VAULT_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: vault
-                  key: VAULT_TOKEN
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
@@ -80,10 +70,12 @@ spec:
               value: "{{agreementManagementUrl}}"
             - name: CATALOG_MANAGEMENT_URL
               value: "{{catalogManagementUrl}}"
-            - name: KEY_MANAGEMENT_URL
-              value: "{{keyManagementUrl}}"
+            - name: AUTHORIZATION_MANAGEMENT_URL
+              value: "{{authorizationManagementUrl}}"
             - name: PARTY_MANAGEMENT_URL
               value: "{{partyManagementUrl}}"
+            - name: PURPOSE_MANAGEMENT_URL
+              value: "{{purposeManagementUrl}}"
             - name: USER_REGISTRY_MANAGEMENT_URL
               value: "{{userRegistryManagementUrl}}"
             - name: WELL_KNOWN_URL

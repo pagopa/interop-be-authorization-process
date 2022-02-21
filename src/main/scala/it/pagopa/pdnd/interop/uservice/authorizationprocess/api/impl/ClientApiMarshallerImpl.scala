@@ -34,4 +34,8 @@ case object ClientApiMarshallerImpl extends ClientApiMarshaller with SprayJsonSu
     sprayJsonMarshaller[Seq[Operator]]
 
   override implicit def toEntityMarshallerOperator: ToEntityMarshaller[Operator] = sprayJsonMarshaller[Operator]
+
+  override implicit def fromEntityUnmarshallerPurposeAdditionDetails: FromEntityUnmarshaller[PurposeAdditionDetails] =
+    sprayJsonUnmarshaller[PurposeAdditionDetails]
+
 }

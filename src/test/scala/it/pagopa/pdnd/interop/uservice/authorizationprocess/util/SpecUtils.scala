@@ -4,16 +4,16 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
-import it.pagopa.pdnd.interop.commons.vault.service.VaultService
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement => AgreementManagerAgreement}
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
-import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.interop.authorizationmanagement
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{User, UserExtras}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.Certification.NONE
 import org.scalamock.scalatest.MockFactory
@@ -25,42 +25,27 @@ import scala.util.Success
 
 trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
-  System.setProperty("CATALOG_MANAGEMENT_URL", "localhost")
-  System.setProperty("KEY_MANAGEMENT_URL", "localhost")
-  System.setProperty("PARTY_MANAGEMENT_URL", "localhost")
-  System.setProperty("AGREEMENT_MANAGEMENT_URL", "localhost")
-  System.setProperty("USER_REGISTRY_MANAGEMENT_URL", "localhost")
-  System.setProperty("VAULT_ADDR", "localhost")
-  System.setProperty("VAULT_TOKEN", "TokenIlGurriero")
-  System.setProperty("PDND_INTEROP_KEYS", "test/keys")
-  System.setProperty("USER_REGISTRY_API_KEY", "meaow")
-  System.setProperty("WELL_KNOWN_URL", "localhost/.well-known")
-  System.setProperty("MAIN_AUDIENCE", "audience")
-
-  val mockJwtValidator: JWTValidator                                     = mock[JWTValidator]
-  val mockJwtGenerator: JWTGenerator                                     = mock[JWTGenerator]
   val mockAgreementManagementService: AgreementManagementService         = mock[AgreementManagementService]
   val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
+  val mockPurposeManagementService: PurposeManagementService             = mock[PurposeManagementService]
   val mockUserRegistryManagementService: UserRegistryManagementService   = mock[UserRegistryManagementService]
   val mockJwtReader: JWTReader                                           = mock[JWTReader]
-  val mockVaultService: VaultService                                     = mock[VaultService]
 
   val timestamp: OffsetDateTime = OffsetDateTime.now()
 
-  def mockSubject(uuid: String) = Success(new JWTClaimsSet.Builder().subject(uuid).build())
+  def mockSubject(uuid: String): Success[JWTClaimsSet] = Success(new JWTClaimsSet.Builder().subject(uuid).build())
 
-  val bearerToken: String   = "token"
-  val eServiceId: UUID      = UUID.randomUUID()
-  val consumerId: UUID      = UUID.randomUUID()
-  val agreementId: UUID     = UUID.randomUUID()
-  val organizationId: UUID  = UUID.randomUUID()
-  val personId: UUID        = UUID.randomUUID()
-  val taxCode: String       = "taxCode"
-  val institutionId: String = "some-external-id1"
-  val clientSeed: ClientSeed =
-    ClientSeed(eServiceId, organizationId, "client name", "purposes", Some("client description"))
+  val bearerToken: String    = "token"
+  val eServiceId: UUID       = UUID.randomUUID()
+  val consumerId: UUID       = UUID.randomUUID()
+  val agreementId: UUID      = UUID.randomUUID()
+  val organizationId: UUID   = UUID.randomUUID()
+  val personId: UUID         = UUID.randomUUID()
+  val taxCode: String        = "taxCode"
+  val institutionId: String  = "some-external-id1"
+  val clientSeed: ClientSeed = ClientSeed(organizationId, "client name", Some("client description"))
   val user: User = User(
     id = personId,
     externalId = taxCode,
@@ -100,7 +85,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     producerId = organizationId,
     consumerId = consumerId,
     state = AgreementManagementDependency.AgreementState.ACTIVE,
-    verifiedAttributes = Seq.empty
+    verifiedAttributes = Seq.empty,
+    createdAt = timestamp
   )
 
   val organization: PartyManagementDependency.Organization = PartyManagementDependency.Organization(
@@ -109,7 +95,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     digitalAddress = "or2@test.pec.pagopa.it",
     id = organizationId,
     attributes = Seq.empty,
-    taxCode = "123"
+    taxCode = "123",
+    address = "address",
+    zipCode = "00000"
   )
 
   val consumer: PartyManagementDependency.Organization = PartyManagementDependency.Organization(
@@ -118,18 +106,64 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     digitalAddress = "org2@test.pec.pagopa.it",
     id = consumerId,
     attributes = Seq.empty,
-    taxCode = "123"
+    taxCode = "123",
+    address = "address",
+    zipCode = "00000"
   )
+
+  val purposeVersion: PurposeManagementDependency.PurposeVersion = PurposeManagementDependency.PurposeVersion(
+    id = UUID.randomUUID(),
+    state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
+    createdAt = timestamp,
+    updatedAt = None,
+    firstActivationAt = None,
+    expectedApprovalDate = None,
+    dailyCalls = 10,
+    riskAnalysis = None
+  )
+  val purpose: PurposeManagementDependency.Purpose = PurposeManagementDependency.Purpose(
+    id = UUID.randomUUID(),
+    eserviceId = eService.id,
+    consumerId = consumer.id,
+    versions = Seq.empty,
+    suspendedByConsumer = None,
+    suspendedByProducer = None,
+    title = "Purpose!",
+    description = "Purpose?",
+    riskAnalysisForm = None,
+    createdAt = timestamp,
+    updatedAt = None
+  )
+
+  val clientPurpose: AuthorizationManagementDependency.Purpose =
+    AuthorizationManagementDependency.Purpose(
+      purposeId = UUID.randomUUID(),
+      states = AuthorizationManagementDependency.ClientStatesChain(
+        id = UUID.randomUUID(),
+        eservice = AuthorizationManagementDependency.ClientEServiceDetails(
+          eserviceId = UUID.randomUUID(),
+          state = AuthorizationManagementDependency.ClientComponentState.ACTIVE,
+          audience = Seq("audience"),
+          voucherLifespan = 10
+        ),
+        agreement = AuthorizationManagementDependency.ClientAgreementDetails(
+          agreementId = UUID.randomUUID(),
+          state = AuthorizationManagementDependency.ClientComponentState.ACTIVE
+        ),
+        purpose = AuthorizationManagementDependency.ClientPurposeDetails(
+          purposeId = UUID.randomUUID(),
+          state = AuthorizationManagementDependency.ClientComponentState.ACTIVE
+        )
+      )
+    )
 
   val client: AuthorizationManagementDependency.Client =
     AuthorizationManagementDependency.Client(
       id = UUID.randomUUID(),
-      eServiceId = eServiceId,
       consumerId = consumerId,
       name = clientSeed.name,
-      purposes = clientSeed.purposes,
+      purposes = Seq(clientPurpose),
       description = clientSeed.description,
-      state = AuthorizationManagementDependency.ClientState.ACTIVE,
       relationships = Set.empty
     )
 
@@ -187,22 +221,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   def mockClientComposition(
     withOperators: Boolean,
-    client: keymanagement.client.model.Client = client,
-    relationship: PartyManagementDependency.Relationship = relationship,
-    eService: CatalogManagementDependency.EService = eService,
-    agreements: Seq[AgreementManagerAgreement] = Seq(agreement)
+    client: authorizationmanagement.client.model.Client = client,
+    relationship: PartyManagementDependency.Relationship = relationship
   ): Unit = {
-
-    (mockCatalogManagementService.getEService _)
-      .expects(*, client.eServiceId)
-      .once()
-      .returns(Future.successful(eService))
-
-    (mockPartyManagementService
-      .getOrganization(_: UUID)(_: String))
-      .expects(eService.producerId, bearerToken)
-      .once()
-      .returns(Future.successful(organization))
 
     (mockPartyManagementService
       .getOrganization(_: UUID)(_: String))
@@ -222,11 +243,6 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
         .once()
         .returns(Future.successful(user))
     }
-
-    (mockAgreementManagementService.getAgreements _)
-      .expects(*, client.consumerId, client.eServiceId, None)
-      .once()
-      .returns(Future.successful(agreements))
 
     ()
   }

@@ -5,50 +5,51 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
+import it.pagopa.interop.authorizationmanagement
+import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationmanagementDependency}
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
+import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getUidFuture
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
 import it.pagopa.pdnd.interop.commons.utils.errors.GenericComponentErrors.{MissingBearer, ResourceNotFoundError}
 import it.pagopa.pdnd.interop.uservice._
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.ClientApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.validateClientBearer
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.AuthorizationManagementService.clientStateToApi
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService.{
   relationshipProductToApi,
   relationshipRoleToApi,
   relationshipStateToApi
 }
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.Problem
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogManagementApiError}
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EServiceDescriptor
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => KeyManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeManagementApiError}
 import org.slf4j.LoggerFactory
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getUidFuture
 
 final case class ClientApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
   agreementManagementService: AgreementManagementService,
   catalogManagementService: CatalogManagementService,
   partyManagementService: PartyManagementService,
+  purposeManagementService: PurposeManagementService,
   userRegistryManagementService: UserRegistryManagementService,
   jwtReader: JWTReader
 )(implicit ec: ExecutionContext)
     extends ClientApiService {
 
-  val logger = Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
+  val logger: LoggerTakingImplicit[ContextFieldsToLog] =
+    Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
 
   def internalServerError(responseProblem: Problem)(implicit
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -65,20 +66,12 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
-    logger.info(
-      "Creating client {} for e-service {} and consumer {}",
-      clientSeed.name,
-      clientSeed.eServiceId,
-      clientSeed.consumerId
-    )
+    logger.info("Creating client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
     val result = for {
       bearerToken <- validateClientBearer(contexts, jwtReader)
-      _           <- catalogManagementService.getEService(bearerToken, clientSeed.eServiceId)
       client <- authorizationManagementService.createClient(
-        clientSeed.eServiceId,
         clientSeed.consumerId,
         clientSeed.name,
-        clientSeed.purposes,
         clientSeed.description
       )(bearerToken)
       apiClient <- getClient(bearerToken, client)
@@ -88,32 +81,14 @@ final case class ClientApiServiceImpl(
       case Success(client) => createClient201(client)
       case Failure(MissingBearer) =>
         logger.error(
-          "Error in creating client {} for e-service {} and consumer {}",
+          "Error in creating client {} for consumer {}",
           clientSeed.name,
-          clientSeed.eServiceId,
           clientSeed.consumerId,
           MissingBearer
         )
         createClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      case Failure(ex: CatalogManagementApiError[_]) if ex.code == 404 =>
-        logger.error(
-          "Error in creating client {} for e-service {} and consumer {}",
-          clientSeed.name,
-          clientSeed.eServiceId,
-          clientSeed.consumerId,
-          ex
-        )
-        createClient404(
-          problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"E-Service id ${clientSeed.eServiceId.toString}"))
-        )
       case Failure(ex) =>
-        logger.error(
-          "Error in creating client {} for e-service {} and consumer {}",
-          clientSeed.name,
-          clientSeed.eServiceId,
-          clientSeed.consumerId,
-          ex
-        )
+        logger.error("Error in creating client {} for consumer {}", clientSeed.name, clientSeed.consumerId, ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientCreationError))
     }
   }
@@ -138,18 +113,15 @@ final case class ClientApiServiceImpl(
 
     onComplete(result) {
       case Success(client) => getClient200(client)
-      case Failure(MissingBearer) => {
+      case Failure(MissingBearer) =>
         logger.error("Error in getting client {}", clientId, MissingBearer)
         getClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      }
-      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 => {
+      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error("Error in getting client {}", clientId, ex)
         getClient404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId")))
-      }
-      case Failure(ex) => {
+      case Failure(ex) =>
         logger.error("Error in getting client {}", clientId, ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientRetrievalError))
-      }
     }
   }
 
@@ -158,24 +130,16 @@ final case class ClientApiServiceImpl(
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 500, Message: Internal Server Error, DataType: Problem
     */
-  override def listClients(consumerId: String, offset: Option[Int], limit: Option[Int], eServiceId: Option[String])(
-    implicit
+  override def listClients(consumerId: String, offset: Option[Int], limit: Option[Int])(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerClients: ToEntityMarshaller[Clients],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
-    logger.info(
-      "Listing clients (offset: {} and limit: {}) for e-service {} and operator {} for consumer {}",
-      offset,
-      limit,
-      eServiceId,
-      consumerId
-    )
+    logger.info("Listing clients (offset: {} and limit: {}) for operator {} for consumer {}", offset, limit, consumerId)
 
     // TODO Improve multiple requests
     val result: Future[Seq[Client]] = for {
       bearerToken  <- validateClientBearer(contexts, jwtReader)
-      eServiceUuid <- eServiceId.traverse(id => id.toFutureUUID)
       personId     <- getUidFuture(contexts).flatMap(_.toFutureUUID)
       consumerUuid <- consumerId.toFutureUUID
 
@@ -193,52 +157,44 @@ final case class ClientApiServiceImpl(
 
       managementClients <-
         if (relationships.exists(_.product.role == PartyManagementService.PRODUCT_ROLE_ADMIN))
-          authorizationManagementService.listClients(offset, limit, eServiceUuid, None, consumerUuid.some)(bearerToken)
+          authorizationManagementService.listClients(offset, limit, None, consumerUuid.some)(bearerToken)
         else
           relationships
             .map(_.id.some)
-            .flatTraverse(
-              authorizationManagementService.listClients(offset, limit, eServiceUuid, _, consumerUuid.some)(bearerToken)
-            )
+            .flatTraverse(authorizationManagementService.listClients(offset, limit, _, consumerUuid.some)(bearerToken))
 
       clients <- managementClients.traverse(getClient(bearerToken, _))
     } yield clients
 
     onComplete(result) {
       case Success(clients) => listClients200(Clients(clients))
-      case Failure(ex: UUIDConversionError) => {
+      case Failure(ex: UUIDConversionError) =>
         logger.error(
-          "Error while listing clients (offset: {} and limit: {}) for e-service {} and operator {} for consumer {}",
+          "Error while listing clients (offset: {} and limit: {}) for operator {} for consumer {}",
           offset,
           limit,
-          eServiceId,
           consumerId,
           ex
         )
         listClients400(problemOf(StatusCodes.BadRequest, ex))
-      }
-      case Failure(MissingBearer) => {
+      case Failure(MissingBearer) =>
         logger.error(
-          "Error while listing clients (offset: {} and limit: {}) for e-service {} and operator {} for consumer {}",
+          "Error while listing clients (offset: {} and limit: {}) for operator {} for consumer {}",
           offset,
           limit,
-          eServiceId,
           consumerId,
           MissingBearer
         )
         listClients401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      }
-      case Failure(ex) => {
+      case Failure(ex) =>
         logger.error(
-          "Error while listing clients (offset: {} and limit: {}) for e-service {} and operator {} for consumer {}",
+          "Error while listing clients (offset: {} and limit: {}) for operator {} for consumer {}",
           offset,
           limit,
-          eServiceId,
           consumerId,
           ex
         )
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientListingError))
-      }
     }
   }
 
@@ -586,76 +542,108 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  /** Code: 204, Message: the client has been activated.
-    * Code: 404, Message: Client not found, DataType: Problem
-    */
-  override def activateClientById(
-    clientId: String
-  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
-    logger.info("Activate by client {}", clientId)
-    val result = for {
+  override def addClientPurpose(clientId: String, details: PurposeAdditionDetails)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    logger.info("Adding Purpose {} to Client {}", details.purposeId, clientId)
+
+    def descriptorToComponentState(
+      descriptor: CatalogManagementDependency.EServiceDescriptor
+    ): AuthorizationmanagementDependency.ClientComponentState = descriptor.state match {
+      case CatalogManagementDependency.EServiceDescriptorState.PUBLISHED =>
+        AuthorizationmanagementDependency.ClientComponentState.ACTIVE
+      case _ => AuthorizationmanagementDependency.ClientComponentState.INACTIVE
+    }
+
+    def agreementToComponentState(
+      agreement: AgreementManagementDependency.Agreement
+    ): AuthorizationmanagementDependency.ClientComponentState = agreement.state match {
+      case AgreementManagementDependency.AgreementState.ACTIVE =>
+        AuthorizationmanagementDependency.ClientComponentState.ACTIVE
+      case _ => AuthorizationmanagementDependency.ClientComponentState.INACTIVE
+    }
+
+    def purposeToComponentState(
+      purpose: PurposeManagementDependency.Purpose
+    ): AuthorizationmanagementDependency.ClientComponentState =
+      if (purpose.versions.exists(_.state == PurposeManagementDependency.PurposeVersionState.ACTIVE))
+        AuthorizationmanagementDependency.ClientComponentState.ACTIVE
+      else AuthorizationmanagementDependency.ClientComponentState.INACTIVE
+
+    val result: Future[Unit] = for {
       bearerToken <- validateClientBearer(contexts, jwtReader)
       clientUuid  <- clientId.toFutureUUID
-      _           <- authorizationManagementService.activateClient(clientUuid)(bearerToken)
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(details.purposeId)
+      eService    <- catalogManagementService.getEService(bearerToken)(purpose.eserviceId)
+      agreements  <- agreementManagementService.getAgreements(bearerToken)(purpose.eserviceId, purpose.consumerId)
+      agreement <- agreements
+        .filter(_.state != AgreementManagementDependency.AgreementState.PENDING)
+        .maxByOption(_.createdAt)
+        .toFuture(ClientPurposeAddAgreementNotFound(purpose.eserviceId.toString, purpose.consumerId.toString))
+      descriptor <- eService.descriptors
+        .find(_.id == agreement.descriptorId)
+        .toFuture(ClientPurposeAddDescriptorNotFound(purpose.eserviceId.toString, agreement.descriptorId.toString))
+      states = AuthorizationmanagementDependency.ClientStatesChainSeed(
+        eservice = AuthorizationmanagementDependency.ClientEServiceDetailsSeed(
+          eserviceId = eService.id,
+          state = descriptorToComponentState(descriptor),
+          audience = descriptor.audience,
+          voucherLifespan = descriptor.voucherLifespan
+        ),
+        agreement = AuthorizationmanagementDependency
+          .ClientAgreementDetailsSeed(agreementId = agreement.id, state = agreementToComponentState(agreement)),
+        purpose = AuthorizationmanagementDependency.ClientPurposeDetailsSeed(
+          purposeId = purpose.id,
+          state = purposeToComponentState(purpose)
+        )
+      )
+      seed = AuthorizationmanagementDependency.PurposeSeed(details.purposeId, states)
+      _ <- authorizationManagementService.addClientPurpose(clientUuid, seed)(bearerToken)
     } yield ()
 
     onComplete(result) {
-      case Success(_) => activateClientById204
-      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 400 =>
-        logger.error("Error while activating by client {}", clientId, ex)
-        activateClientById400(problemOf(StatusCodes.BadRequest, ClientActivationBadRequest))
-      case Failure(MissingBearer) =>
-        logger.error("Error while activating by client {}", clientId, MissingBearer)
-        activateClientById401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while activating by client {}", clientId, ex)
-        activateClientById404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId ")))
+      case Success(_) => addClientPurpose204
+      case Failure(ex: PurposeManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error adding purpose {} to client {}", details.purposeId, clientId, ex)
+        createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Purpose id ${details.purposeId}")))
       case Failure(ex) =>
-        logger.error("Error while activating by client {}", clientId, ex)
-        internalServerError(problemOf(StatusCodes.InternalServerError, ClientActivationError))
+        logger.error("Error adding purpose {} to client {}", details.purposeId, clientId, ex)
+        internalServerError(
+          problemOf(StatusCodes.InternalServerError, ClientPurposeAddError(clientId, details.purposeId.toString))
+        )
     }
   }
 
-  /** Code: 204, Message: the corresponding client has been suspended.
-    * Code: 404, Message: Client not found, DataType: Problem
-    */
-  override def suspendClientById(
-    clientId: String
-  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
-    logger.info("Suspend by client {}", clientId)
-    val result = for {
+  override def removeClientPurpose(clientId: String, purposeId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    logger.info("Removing Purpose from Client {}", clientId)
+
+    val result: Future[Unit] = for {
       bearerToken <- validateClientBearer(contexts, jwtReader)
       clientUuid  <- clientId.toFutureUUID
-      _           <- authorizationManagementService.suspendClient(clientUuid)(bearerToken)
+      purposeUuid <- purposeId.toFutureUUID
+      _           <- authorizationManagementService.removeClientPurpose(clientUuid, purposeUuid)(bearerToken)
     } yield ()
 
     onComplete(result) {
-      case Success(_) => suspendClientById204
-      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 400 =>
-        logger.error("Error while suspending by client {}", clientId, ex)
-        suspendClientById400(problemOf(StatusCodes.BadRequest, ClientSuspensionBadRequest))
-      case Failure(MissingBearer) =>
-        logger.error("Error while suspending by client {}", clientId, MissingBearer)
-        suspendClientById401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while suspending by client {}", clientId, ex)
-        suspendClientById404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId ")))
+      case Success(_) => addClientPurpose204
+      case Failure(ex: PurposeManagementApiError[_]) if ex.code == 404 =>
+        logger.error("Error removing purpose {} from client {}", clientId, ex)
+        createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Purpose id $purposeId")))
       case Failure(ex) =>
-        logger.error("Error while suspending by client {}", clientId, ex)
-        internalServerError(problemOf(StatusCodes.InternalServerError, ClientSuspensionError))
+        logger.error("Error removing purpose {} from client {}", clientId, ex)
+        internalServerError(problemOf(StatusCodes.InternalServerError, ClientPurposeRemoveError(clientId, purposeId)))
     }
   }
 
-  private[this] def getClient(bearerToken: String, client: KeyManagementDependency.Client): Future[Client] = {
+  private[this] def getClient(bearerToken: String, client: AuthorizationmanagementDependency.Client): Future[Client] = {
     for {
-      eService   <- catalogManagementService.getEService(bearerToken, client.eServiceId)
-      producer   <- partyManagementService.getOrganization(eService.producerId)(bearerToken)
-      consumer   <- partyManagementService.getOrganization(client.consumerId)(bearerToken)
-      operators  <- operatorsFromClient(client)(bearerToken)
-      agreements <- agreementManagementService.getAgreements(bearerToken, consumer.id, eService.id, None)
-      agreement  <- getLatestAgreement(agreements, eService).toFuture(ClientAgreementNotFoundError(client.id))
-      client     <- clientToApi(client, eService, producer, consumer, agreement, operators)
-    } yield client
+      consumer  <- partyManagementService.getOrganization(client.consumerId)(bearerToken)
+      operators <- operatorsFromClient(client)(bearerToken)
+    } yield clientToApi(client, consumer, operators)
   }
 
   private[this] def getSecurityRelationship(
@@ -698,13 +686,13 @@ final case class ClientApiServiceImpl(
       securityOperatorRel = activeRelationships.headOption // Only one expected
     } yield securityOperatorRel
 
-  private[this] def operatorsFromClient(client: KeyManagementDependency.Client)(
+  private[this] def operatorsFromClient(client: AuthorizationmanagementDependency.Client)(
     bearerToken: String
   ): Future[Seq[Operator]] =
     client.relationships.toSeq.traverse(r => operatorFromRelationship(r)(bearerToken))
 
   private[this] def hasClientRelationship(
-    client: keymanagement.client.model.Client,
+    client: authorizationmanagement.client.model.Client,
     relationshipId: UUID
   ): Future[UUID] =
     client.relationships
@@ -726,59 +714,19 @@ final case class ClientApiServiceImpl(
       state = operatorState
     )
 
-  private[this] def compareDescriptorsVersion(
-    descriptor1: EServiceDescriptor,
-    descriptor2: EServiceDescriptor
-  ): Boolean =
-    // TODO Use createdAt timestamp once available
-    descriptor1.version.toInt > descriptor2.version.toInt
-
-  private[this] def getLatestAgreement(
-    agreements: Seq[AgreementManagementDependency.Agreement],
-    eService: CatalogManagementDependency.EService
-  ): Option[AgreementManagementDependency.Agreement] = {
-    val activeAgreement = agreements.find(_.state == AgreementManagementDependency.AgreementState.ACTIVE)
-    lazy val latestAgreementByDescriptor =
-      agreements
-        .map(agreement => (agreement, eService.descriptors.find(_.id == agreement.descriptorId)))
-        .collect { case (agreement, Some(descriptor)) =>
-          (agreement, descriptor)
-        }
-        .sortWith((elem1, elem2) => compareDescriptorsVersion(elem1._2, elem2._2))
-        .map(_._1)
-        .headOption
-
-    activeAgreement.orElse(latestAgreementByDescriptor)
-  }
-
   private[this] def clientToApi(
-    client: KeyManagementDependency.Client,
-    eService: CatalogManagementDependency.EService,
-    provider: PartyManagementDependency.Organization,
+    client: AuthorizationmanagementDependency.Client,
     consumer: PartyManagementDependency.Organization,
-    agreement: AgreementManagementDependency.Agreement,
     operator: Seq[Operator]
-  ): Future[Client] = {
-    for {
-      agreementDescriptor <- eService.descriptors
-        .find(_.id == agreement.descriptorId)
-        .toRight(UnknownAgreementDescriptor(agreement.id, agreement.eserviceId, agreement.descriptorId))
-        .toFuture
-      apiAgreementDescriptor = CatalogManagementService.descriptorToApi(agreementDescriptor)
-      apiProvider            = PartyManagementService.organizationToApi(provider)
-      activeDescriptor       = CatalogManagementService.getActiveDescriptor(eService)
-    } yield Client(
+  ): Client =
+    Client(
       id = client.id,
-      eservice = CatalogManagementService.eServiceToApi(eService, apiProvider, activeDescriptor),
       consumer = PartyManagementService.organizationToApi(consumer),
-      agreement = AgreementManagementService.agreementToApi(agreement, apiAgreementDescriptor),
       name = client.name,
-      purposes = client.purposes,
+      purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
       description = client.description,
-      state = clientStateToApi(client.state),
       operators = Some(operator)
     )
-  }
 
   /** Code: 200, Message: returns the corresponding base 64 encoded key, DataType: EncodedClientKey
     * Code: 401, Message: Unauthorized, DataType: Problem

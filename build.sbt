@@ -123,3 +123,5 @@ lazy val root = (project in file("."))
   .setupBuildInfo
 
 javaAgents += "io.kamon" % "kanela-agent" % "1.0.13"
+Test / fork := true
+Test / javaOptions += "-Dconfig.file=src/test/resources/application-test.conf"

@@ -10,7 +10,8 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.util.UUID
 import scala.concurrent.Future
 
-class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi) extends PartyManagementService {
+final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
+    extends PartyManagementService {
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 

@@ -6,8 +6,8 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.OperatorApi
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{ManagementClient, PartyManagementService}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
-import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.interop.authorizationmanagement
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
@@ -88,25 +88,21 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
   override val relationships: PartyManagementDependency.Relationships =
     PartyManagementDependency.Relationships(Seq(relationship1, relationship2, relationship3))
 
-  val client1: ManagementClient = keymanagement.client.model.Client(
+  val client1: ManagementClient = authorizationmanagement.client.model.Client(
     id = UUID.randomUUID(),
-    eServiceId = UUID.randomUUID(),
     consumerId = UUID.randomUUID(),
     name = "client1",
     description = None,
     relationships = Set(relationship1.id),
-    purposes = "purpose1",
-    state = AuthorizationManagementDependency.ClientState.ACTIVE
+    purposes = Seq(clientPurpose)
   )
-  val client2: ManagementClient = keymanagement.client.model.Client(
+  val client2: ManagementClient = authorizationmanagement.client.model.Client(
     id = UUID.randomUUID(),
-    eServiceId = UUID.randomUUID(),
     consumerId = UUID.randomUUID(),
     name = "client2",
     description = None,
     relationships = Set(relationship2.id),
-    purposes = "purpose2",
-    state = AuthorizationManagementDependency.ClientState.ACTIVE
+    purposes = Seq(clientPurpose)
   )
 
   "Retrieve key" should {
@@ -124,7 +120,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
         .getKey(_: UUID, _: String)(_: String))
         .expects(client2.id, kid, bearerToken)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 
       val expected = apiClientKey
 
@@ -151,13 +147,13 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
         .getKey(_: UUID, _: String)(_: String))
         .expects(client1.id, kid, bearerToken)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 
       (mockAuthorizationManagementService
         .getKey(_: UUID, _: String)(_: String))
         .expects(client2.id, kid, bearerToken)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 
       Get() ~> service.getOperatorKeyById(personId.toString, kid) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -213,7 +209,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
         .getClientKeys(_: UUID)(_: String))
         .expects(*, bearerToken)
         .twice()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 
       Get() ~> service.getOperatorKeys(personId.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -235,20 +231,20 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
       .returns(Future.successful(relationships))
 
     (mockAuthorizationManagementService
-      .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID], _: Option[UUID])(_: String))
-      .expects(None, None, None, Some(relationship1.id), None, bearerToken)
+      .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID])(_: String))
+      .expects(None, None, Some(relationship1.id), None, bearerToken)
       .once()
       .returns(Future.successful(Seq(client1)))
 
     (mockAuthorizationManagementService
-      .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID], _: Option[UUID])(_: String))
-      .expects(None, None, None, Some(relationship2.id), None, bearerToken)
+      .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID])(_: String))
+      .expects(None, None, Some(relationship2.id), None, bearerToken)
       .once()
       .returns(Future.successful(Seq(client2)))
 
     (mockAuthorizationManagementService
-      .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID], _: Option[UUID])(_: String))
-      .expects(None, None, None, Some(relationship3.id), None, bearerToken)
+      .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID])(_: String))
+      .expects(None, None, Some(relationship3.id), None, bearerToken)
       .once()
       .returns(Future.successful(Seq()))
 

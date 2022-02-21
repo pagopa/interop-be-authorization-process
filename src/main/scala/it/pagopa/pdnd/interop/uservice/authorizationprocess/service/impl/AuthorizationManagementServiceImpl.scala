@@ -1,72 +1,55 @@
 package it.pagopa.pdnd.interop.uservice.authorizationprocess.service.impl
 
+import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
+import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiRequest, BearerToken}
+import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
-  AuthorizationManagementService,
-  KeyManagementInvoker
+  AuthorizationManagementInvoker,
+  AuthorizationManagementService
 }
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.api.{ClientApi, KeyApi}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiRequest, BearerToken}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model._
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
 import scala.concurrent.Future
 
-class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientApi: ClientApi, keyApi: KeyApi)
-    extends AuthorizationManagementService {
+final case class AuthorizationManagementServiceImpl(
+  invoker: AuthorizationManagementInvoker,
+  clientApi: ClientApi,
+  keyApi: KeyApi,
+  purposeApi: PurposeApi
+) extends AuthorizationManagementService {
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  override def createClient(
-    eServiceId: UUID,
-    consumerId: UUID,
-    name: String,
-    purposes: String,
-    description: Option[String]
-  )(bearer: String): Future[Client] = {
+  override def createClient(consumerId: UUID, name: String, description: Option[String])(
+    bearer: String
+  ): Future[Client] = {
     val request: ApiRequest[Client] =
-      clientApi.createClient(
-        ClientSeed(
-          eServiceId = eServiceId,
-          consumerId = consumerId,
-          name = name,
-          purposes = purposes,
-          description = description
-        )
-      )(BearerToken(bearer))
+      clientApi.createClient(ClientSeed(consumerId = consumerId, name = name, description = description))(
+        BearerToken(bearer)
+      )
     invoker.invoke(request, "Client creation")
   }
 
   override def getClient(clientId: UUID)(bearer: String): Future[Client] = {
-    val request: ApiRequest[Client] = clientApi.getClient(clientId.toString)(BearerToken(bearer))
+    val request: ApiRequest[Client] = clientApi.getClient(clientId)(BearerToken(bearer))
     invoker.invoke(request, "Client retrieve")
   }
 
   override def listClients(
     offset: Option[Int],
     limit: Option[Int],
-    eServiceId: Option[UUID],
     relationshipId: Option[UUID],
     consumerId: Option[UUID]
   )(bearer: String): Future[Seq[Client]] = {
     val request: ApiRequest[Seq[Client]] =
-      clientApi.listClients(offset, limit, eServiceId, relationshipId, consumerId)(BearerToken(bearer))
+      clientApi.listClients(offset, limit, relationshipId, consumerId)(BearerToken(bearer))
     invoker.invoke(request, "Client list")
   }
 
   override def deleteClient(clientId: UUID)(bearer: String): Future[Unit] = {
     val request: ApiRequest[Unit] = clientApi.deleteClient(clientId.toString)(BearerToken(bearer))
     invoker.invoke(request, "Client delete")
-  }
-
-  override def activateClient(clientId: UUID)(bearer: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = clientApi.activateClientById(clientId)(BearerToken(bearer))
-    invoker.invoke(request, "Client activation")
-  }
-
-  override def suspendClient(clientId: UUID)(bearer: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = clientApi.suspendClientById(clientId)(BearerToken(bearer))
-    invoker.invoke(request, "Client suspension")
   }
 
   override def addRelationship(clientId: UUID, relationshipId: UUID)(bearer: String): Future[Client] = {
@@ -103,5 +86,17 @@ class AuthorizationManagementServiceImpl(invoker: KeyManagementInvoker, clientAp
   override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(bearer: String): Future[KeysResponse] = {
     val request: ApiRequest[KeysResponse] = keyApi.createKeys(clientId, keysSeeds)(BearerToken(bearer))
     invoker.invoke(request, "Key creation")
+  }
+
+  override def addClientPurpose(clientId: UUID, purposeSeed: PurposeSeed)(bearer: String): Future[Purpose] = {
+    val request: ApiRequest[Purpose] =
+      purposeApi.addClientPurpose(clientId, purposeSeed)(BearerToken(bearer))
+    invoker.invoke(request, "Purpose addition to client")
+  }
+
+  override def removeClientPurpose(clientId: UUID, purposeId: UUID)(bearer: String): Future[Unit] = {
+    val request: ApiRequest[Unit] =
+      purposeApi.removeClientPurpose(clientId, purposeId)(BearerToken(bearer))
+    invoker.invoke(request, "Purpose remove from client")
   }
 }

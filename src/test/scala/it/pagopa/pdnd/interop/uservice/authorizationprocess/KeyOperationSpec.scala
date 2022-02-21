@@ -6,12 +6,12 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.ClientApiSe
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagementService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
-import it.pagopa.pdnd.interop.uservice.keymanagement
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.KeysResponse
+import it.pagopa.interop.authorizationmanagement
+import it.pagopa.interop.authorizationmanagement.client.model.KeysResponse
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{KeySeed => KeyMgmtSeed}
+import it.pagopa.interop.authorizationmanagement.client.model.{KeySeed => KeyMgmtSeed}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -24,6 +24,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
     mockAgreementManagementService,
     mockCatalogManagementService,
     mockPartyManagementService,
+    mockPurposeManagementService,
     mockUserRegistryManagementService,
     mockJwtReader
   )(ExecutionContext.global)
@@ -98,7 +99,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .getKey(_: UUID, _: String)(_: String))
         .expects(*, *, bearerToken)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 
       Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -146,7 +147,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .getClientKeys(_: UUID)(_: String))
         .expects(*, bearerToken)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 
       Get() ~> service.getClientKeys(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -208,7 +209,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .getClient(_: UUID)(_: String))
         .expects(client.id, bearerToken)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "Some message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "Some message", None)))
 
       Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -256,7 +257,7 @@ class KeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils w
         .deleteKey(_: UUID, _: String)(_: String))
         .expects(*, *, bearerToken)
         .once()
-        .returns(Future.failed(keymanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 
       Get() ~> service.deleteClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.NotFound
