@@ -95,7 +95,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     digitalAddress = "or2@test.pec.pagopa.it",
     id = organizationId,
     attributes = Seq.empty,
-    taxCode = "123"
+    taxCode = "123",
+    address = "address",
+    zipCode = "00000"
   )
 
   val consumer: PartyManagementDependency.Organization = PartyManagementDependency.Organization(
@@ -104,7 +106,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     digitalAddress = "org2@test.pec.pagopa.it",
     id = consumerId,
     attributes = Seq.empty,
-    taxCode = "123"
+    taxCode = "123",
+    address = "address",
+    zipCode = "00000"
   )
 
   val purposeVersion: PurposeManagementDependency.PurposeVersion = PurposeManagementDependency.PurposeVersion(
