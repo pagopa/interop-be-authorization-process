@@ -46,16 +46,6 @@ spec:
               containerPort: 9095
               protocol: TCP
           env:
-            - name: VAULT_ADDR
-              valueFrom:
-                secretKeyRef:
-                  name: vault
-                  key: VAULT_ADDR
-            - name: VAULT_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: vault
-                  key: VAULT_TOKEN
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:

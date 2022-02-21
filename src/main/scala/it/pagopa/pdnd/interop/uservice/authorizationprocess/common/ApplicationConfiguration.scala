@@ -27,7 +27,5 @@ object ApplicationConfiguration {
 
   lazy val getPdndIdIssuer: String = config.getString("authorization-process.issuer")
 
-  lazy val getVaultSecretsRootPath: String = config.getString("authorization-process.vault-root-path")
-
   lazy val jwtAudience: Set[String] = config.getStringList("authorization-process.jwt.audience").asScala.toSet
 }

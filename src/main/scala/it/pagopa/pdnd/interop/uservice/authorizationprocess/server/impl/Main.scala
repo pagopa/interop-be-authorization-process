@@ -18,8 +18,6 @@ import it.pagopa.pdnd.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHold
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions.TryOps
 import it.pagopa.pdnd.interop.commons.utils.errors.GenericComponentErrors.ValidationRequestError
 import it.pagopa.pdnd.interop.commons.utils.{CORSSupport, OpenapiUtils}
-import it.pagopa.pdnd.interop.commons.vault.service.VaultService
-import it.pagopa.pdnd.interop.commons.vault.service.impl.{DefaultVaultClient, DefaultVaultService}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{
   ClientApiMarshallerImpl,
   ClientApiServiceImpl,
@@ -104,14 +102,9 @@ trait PurposeManagementDependency {
   )
 }
 
-trait VaultServiceDependency {
-  val vaultService: VaultService = new DefaultVaultService with DefaultVaultClient.DefaultClientInstance
-}
-
 object Main
     extends App
     with CORSSupport
-    with VaultServiceDependency
     with AgreementManagementDependency
     with CatalogManagementDependency
     with AuthorizationManagementDependency

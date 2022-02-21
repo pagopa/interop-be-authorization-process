@@ -41,7 +41,6 @@ object Dependencies {
 
     lazy val commons = namespace %% "pdnd-interop-commons-utils" % commonsVersion
     lazy val jwt     = namespace %% "pdnd-interop-commons-jwt"   % commonsVersion
-    lazy val vault   = namespace %% "pdnd-interop-commons-vault" % commonsVersion
   }
 
   private[this] object nimbus {
@@ -160,7 +159,6 @@ object Dependencies {
       pagopa.partyManagement         % Compile,
       pagopa.purposeManagement       % Compile,
       pagopa.userRegistryManagement  % Compile,
-      pagopa.vault                   % Compile,
       scalpb.core                    % "protobuf",
       akka.httpTestkit               % Test,
       akka.streamTestkit             % Test,
