@@ -69,10 +69,11 @@ final case class ClientApiServiceImpl(
     logger.info("Creating CONSUMER client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
     val result = for {
       bearerToken <- validateClientBearer(contexts, jwtReader)
-      client <- authorizationManagementService.createConsumerClient(
+      client <- authorizationManagementService.createClient(
         clientSeed.consumerId,
         clientSeed.name,
-        clientSeed.description
+        clientSeed.description,
+        authorizationmanagement.client.model.ClientKind.CONSUMER
       )(bearerToken)
       apiClient <- getClient(bearerToken, client)
     } yield apiClient
@@ -101,10 +102,11 @@ final case class ClientApiServiceImpl(
     logger.info("Creating API client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
     val result = for {
       bearerToken <- validateClientBearer(contexts, jwtReader)
-      client <- authorizationManagementService.createApiClient(
+      client <- authorizationManagementService.createClient(
         clientSeed.consumerId,
         clientSeed.name,
-        clientSeed.description
+        clientSeed.description,
+        authorizationmanagement.client.model.ClientKind.API
       )(bearerToken)
       apiClient <- getClient(bearerToken, client)
     } yield apiClient

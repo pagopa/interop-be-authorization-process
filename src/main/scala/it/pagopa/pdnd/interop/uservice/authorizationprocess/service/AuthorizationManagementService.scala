@@ -25,14 +25,6 @@ trait AuthorizationManagementService {
     bearer: String
   ): Future[ManagementClient]
 
-  def createConsumerClient(consumerId: UUID, name: String, description: Option[String])(
-    bearer: String
-  ): Future[ManagementClient] = createClient(consumerId, name, description, ClientKind.CONSUMER)(bearer)
-
-  def createApiClient(consumerId: UUID, name: String, description: Option[String])(
-    bearer: String
-  ): Future[ManagementClient] = createClient(consumerId, name, description, ClientKind.API)(bearer)
-
   def getClient(clientId: UUID)(bearer: String): Future[ManagementClient]
   def listClients(
     offset: Option[Int],

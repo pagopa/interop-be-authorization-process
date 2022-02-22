@@ -41,8 +41,16 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
 
       (mockAuthorizationManagementService
-        .createConsumerClient(_: UUID, _: String, _: Option[String])(_: String))
-        .expects(organization.id, clientSeed.name, clientSeed.description, bearerToken)
+        .createClient(_: UUID, _: String, _: Option[String], _: authorizationmanagement.client.model.ClientKind)(
+          _: String
+        ))
+        .expects(
+          organization.id,
+          clientSeed.name,
+          clientSeed.description,
+          authorizationmanagement.client.model.ClientKind.CONSUMER,
+          bearerToken
+        )
         .once()
         .returns(Future.successful(client))
 
