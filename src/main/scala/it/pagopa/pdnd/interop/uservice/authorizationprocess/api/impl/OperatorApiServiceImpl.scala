@@ -265,7 +265,8 @@ final case class OperatorApiServiceImpl(
         relationshipId = Some(relationship.id),
         offset = None,
         limit = None,
-        consumerId = None
+        consumerId = None,
+        kind = None
       )(bearerToken)
     )
     recoverable <- clients.traverse(client => f(client, relationships).transform(Success(_)))

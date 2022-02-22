@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{ClientApiServiceImpl, Converter}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
   AuthorizationManagementService,
@@ -41,16 +41,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
 
       (mockAuthorizationManagementService
-        .createClient(_: UUID, _: String, _: Option[String], _: authorizationmanagement.client.model.ClientKind)(
-          _: String
-        ))
-        .expects(
-          organization.id,
-          clientSeed.name,
-          clientSeed.description,
-          Converter.convertFromApiClientKind(clientSeed.kind),
-          bearerToken
-        )
+        .createConsumerClient(_: UUID, _: String, _: Option[String])(_: String))
+        .expects(organization.id, clientSeed.name, clientSeed.description, bearerToken)
         .once()
         .returns(Future.successful(client))
 
@@ -66,7 +58,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         kind = ClientKind.CONSUMER
       )
 
-      Get() ~> service.createClient(clientSeed) ~> check {
+      Get() ~> service.createConsumerClient(clientSeed) ~> check {
         status shouldEqual StatusCodes.Created
         entityAs[Client] shouldEqual expected
       }
@@ -74,7 +66,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      Get() ~> service.createClient(clientSeed) ~> check {
+      Get() ~> service.createConsumerClient(clientSeed) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
     }
@@ -158,8 +150,21 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returns(Future.successful(Relationships(Seq(relationship))))
 
       (mockAuthorizationManagementService
-        .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID])(_: String))
-        .expects(offset, limit, relationshipUuid, consumerUuid, bearerToken)
+        .listClients(
+          _: Option[Int],
+          _: Option[Int],
+          _: Option[UUID],
+          _: Option[UUID],
+          _: Option[authorizationmanagement.client.model.ClientKind]
+        )(_: String))
+        .expects(
+          offset,
+          limit,
+          relationshipUuid,
+          consumerUuid,
+          Some(authorizationmanagement.client.model.ClientKind.CONSUMER),
+          bearerToken
+        )
         .once()
         .returns(Future.successful(Seq(client)))
 
@@ -183,7 +188,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         )
       )
 
-      Get() ~> service.listClients(client.consumerId.toString, offset, limit) ~> check {
+      Get() ~> service.listClients(client.consumerId.toString, offset, limit, Some("CONSUMER")) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Clients] shouldEqual expected
       }

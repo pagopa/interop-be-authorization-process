@@ -2,17 +2,18 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
+  ClientAgreementDetails => ApiClientAgreementDetails,
+  ClientComponentState => ApiClientComponentState,
+  ClientEServiceDetails => ApiClientEServiceDetails,
   ClientKey => ApiClientKey,
+  ClientKind => ApiClientKind,
+  ClientPurposeDetails => ApiClientPurposeDetails,
+  ClientStatesChain => ApiClientStatesChain,
   Key => ApiKey,
   KeySeed => ApiKeySeed,
   KeyUse => ApiKeyUse,
   OtherPrimeInfo => ApiOtherPrimeInfo,
-  Purpose => ApiPurpose,
-  ClientStatesChain => ApiClientStatesChain,
-  ClientEServiceDetails => ApiClientEServiceDetails,
-  ClientAgreementDetails => ApiClientAgreementDetails,
-  ClientPurposeDetails => ApiClientPurposeDetails,
-  ClientComponentState => ApiClientComponentState
+  Purpose => ApiPurpose
 }
 
 import java.util.UUID
@@ -23,10 +24,24 @@ trait AuthorizationManagementService {
   def createClient(consumerId: UUID, name: String, description: Option[String], kind: ClientKind)(
     bearer: String
   ): Future[ManagementClient]
-  def getClient(clientId: UUID)(bearer: String): Future[ManagementClient]
-  def listClients(offset: Option[Int], limit: Option[Int], relationshipId: Option[UUID], consumerId: Option[UUID])(
+
+  def createConsumerClient(consumerId: UUID, name: String, description: Option[String])(
     bearer: String
-  ): Future[Seq[ManagementClient]]
+  ): Future[ManagementClient] = createClient(consumerId, name, description, ClientKind.CONSUMER)(bearer)
+
+  def createApiClient(consumerId: UUID, name: String, description: Option[String])(
+    bearer: String
+  ): Future[ManagementClient] = createClient(consumerId, name, description, ClientKind.API)(bearer)
+
+  def getClient(clientId: UUID)(bearer: String): Future[ManagementClient]
+  def listClients(
+    offset: Option[Int],
+    limit: Option[Int],
+    relationshipId: Option[UUID],
+    consumerId: Option[UUID],
+    kind: Option[ClientKind]
+  )(bearer: String): Future[Seq[ManagementClient]]
+
   def deleteClient(clientId: UUID)(bearer: String): Future[Unit]
 
   def addRelationship(clientId: UUID, relationshipId: UUID)(bearer: String): Future[ManagementClient]
@@ -125,4 +140,15 @@ object AuthorizationManagementService {
       case ClientComponentState.INACTIVE => ApiClientComponentState.INACTIVE
     }
 
+  def convertToApiClientKind(kind: ClientKind): ApiClientKind =
+    kind match {
+      case ClientKind.CONSUMER => ApiClientKind.CONSUMER
+      case ClientKind.API      => ApiClientKind.API
+    }
+
+  def convertFromApiClientKind(kind: ApiClientKind): ClientKind =
+    kind match {
+      case ApiClientKind.CONSUMER => ClientKind.CONSUMER
+      case ApiClientKind.API      => ClientKind.API
+    }
 }

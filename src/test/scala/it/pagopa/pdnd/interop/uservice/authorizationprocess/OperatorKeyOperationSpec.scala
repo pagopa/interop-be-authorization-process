@@ -247,23 +247,40 @@ class OperatorKeyOperationSpec
       .returns(Future.successful(relationships))
 
     (mockAuthorizationManagementService
-      .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID])(_: String))
-      .expects(None, None, Some(relationship1.id), None, bearerToken)
+      .listClients(
+        _: Option[Int],
+        _: Option[Int],
+        _: Option[UUID],
+        _: Option[UUID],
+        _: Option[authorizationmanagement.client.model.ClientKind]
+      )(_: String))
+      .expects(None, None, Some(relationship1.id), None, None, bearerToken)
       .once()
       .returns(Future.successful(Seq(client1)))
 
     (mockAuthorizationManagementService
-      .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID])(_: String))
-      .expects(None, None, Some(relationship2.id), None, bearerToken)
+      .listClients(
+        _: Option[Int],
+        _: Option[Int],
+        _: Option[UUID],
+        _: Option[UUID],
+        _: Option[authorizationmanagement.client.model.ClientKind]
+      )(_: String))
+      .expects(None, None, Some(relationship2.id), None, None, bearerToken)
       .once()
       .returns(Future.successful(Seq(client2)))
 
     (mockAuthorizationManagementService
-      .listClients(_: Option[Int], _: Option[Int], _: Option[UUID], _: Option[UUID])(_: String))
-      .expects(None, None, Some(relationship3.id), None, bearerToken)
+      .listClients(
+        _: Option[Int],
+        _: Option[Int],
+        _: Option[UUID],
+        _: Option[UUID],
+        _: Option[authorizationmanagement.client.model.ClientKind]
+      )(_: String))
+      .expects(None, None, Some(relationship3.id), None, None, bearerToken)
       .once()
       .returns(Future.successful(Seq()))
-
     ()
   }
 }
