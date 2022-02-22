@@ -820,9 +820,12 @@ components:
           type: string
         description:
           type: string
+        kind:
+          $ref: '#/components/schemas/ClientKind'
       required:
         - consumerId
         - name
+        - kind
     Client:
       description: Models Client details
       type: object
@@ -843,12 +846,21 @@ components:
         operators:
           $ref: '#/components/schemas/Operators'
           uniqueItems: true
+        kind:
+          $ref: '#/components/schemas/ClientKind'
       required:
         - id
         - organization
         - consumer
         - name
         - purposes
+        - kind
+    ClientKind:
+      type: string
+      description: kind of client
+      enum:
+        - CONSUMER
+        - API
     Clients:
       description: Models a group of Clients
       type: object
@@ -984,8 +996,15 @@ components:
       properties:
         key:
           $ref: '#/components/schemas/Key'
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
       required:
         - key
+        - name
+        - createdAt
     EncodedClientKey:
       type: object
       properties:
@@ -1023,11 +1042,15 @@ components:
         alg:
           type: string
           description: 'The algorithm type of the key.'
+        name:
+          type: string
+          description: 'Name given to the current key.'
       required:
         - operatorId
         - key
         - use
         - alg
+        - name
     OperatorKeysSeed:
       type: array
       items:
@@ -1047,11 +1070,15 @@ components:
         alg:
           type: string
           description: 'The algorithm type of the key.'
+        name:
+          type: string
+          description: 'Name given to the current key.'
       required:
         - clientId
         - key
         - use
         - alg
+        - name
     KeyUse:
       type: string
       description: Represents the Use field of key

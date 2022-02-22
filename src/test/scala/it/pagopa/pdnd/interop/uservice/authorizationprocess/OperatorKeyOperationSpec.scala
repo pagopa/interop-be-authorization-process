@@ -5,18 +5,30 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.OperatorApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{ManagementClient, PartyManagementService}
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.SpecUtils
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.{CustomMatchers, SpecUtils}
 import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
+class OperatorKeyOperationSpec
+    extends AnyWordSpecLike
+    with MockFactory
+    with SpecUtils
+    with ScalatestRouteTest
+    with CustomMatchers {
+
+  def matchRegexPattern(right: PartialFunction[ClientKey, _]): Matcher[ClientKey] =
+    (left: ClientKey) =>
+      MatchResult(right.isDefinedAt(left), s"$left does not match regex pattern", s"$left does match regex pattern ")
+
   import clientApiMarshaller._
 
   val service: OperatorApiServiceImpl =
@@ -26,8 +38,10 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
   val kid: String = "some-kid"
 
-  val apiClientKey: ClientKey = ClientKey(key =
-    Key(
+  val apiClientKey: ClientKey = ClientKey(
+    name = "test",
+    createdAt = OffsetDateTime.now(),
+    key = Key(
       kty = createdKey.key.kty,
       key_ops = createdKey.key.keyOps,
       use = createdKey.key.use,
@@ -94,7 +108,8 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     name = "client1",
     description = None,
     relationships = Set(relationship1.id),
-    purposes = Seq(clientPurpose)
+    purposes = Seq(clientPurpose),
+    kind = authorizationmanagement.client.model.ClientKind.CONSUMER
   )
   val client2: ManagementClient = authorizationmanagement.client.model.Client(
     id = UUID.randomUUID(),
@@ -102,7 +117,8 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
     name = "client2",
     description = None,
     relationships = Set(relationship2.id),
-    purposes = Seq(clientPurpose)
+    purposes = Seq(clientPurpose),
+    kind = authorizationmanagement.client.model.ClientKind.CONSUMER
   )
 
   "Retrieve key" should {
@@ -126,7 +142,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
       Get() ~> service.getOperatorKeyById(personId.toString, kid) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[ClientKey] shouldEqual expected
+        entityAs[ClientKey] should haveTheSameKey(expected)
       }
     }
 
@@ -190,7 +206,7 @@ class OperatorKeyOperationSpec extends AnyWordSpecLike with MockFactory with Spe
 
       Get() ~> service.getOperatorKeys(personId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[ClientKeys] shouldEqual ClientKeys(expected)
+        entityAs[ClientKeys] should haveTheSameKeys(ClientKeys(expected))
       }
     }
 

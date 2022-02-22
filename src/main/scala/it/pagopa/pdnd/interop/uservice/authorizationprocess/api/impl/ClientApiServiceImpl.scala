@@ -72,7 +72,8 @@ final case class ClientApiServiceImpl(
       client <- authorizationManagementService.createClient(
         clientSeed.consumerId,
         clientSeed.name,
-        clientSeed.description
+        clientSeed.description,
+        Converter.convertFromApiClientKind(clientSeed.kind)
       )(bearerToken)
       apiClient <- getClient(bearerToken, client)
     } yield apiClient
@@ -725,7 +726,8 @@ final case class ClientApiServiceImpl(
       name = client.name,
       purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
       description = client.description,
-      operators = Some(operator)
+      operators = Some(operator),
+      kind = Converter.convertToApiClientKind(client.kind)
     )
 
   /** Code: 200, Message: returns the corresponding base 64 encoded key, DataType: EncodedClientKey

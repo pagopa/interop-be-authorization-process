@@ -12,6 +12,7 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.ClientKind.CONSUMER
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{User, UserExtras}
@@ -45,7 +46,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val personId: UUID         = UUID.randomUUID()
   val taxCode: String        = "taxCode"
   val institutionId: String  = "some-external-id1"
-  val clientSeed: ClientSeed = ClientSeed(organizationId, "client name", Some("client description"))
+  val clientSeed: ClientSeed = ClientSeed(organizationId, "client name", Some("client description"), kind = CONSUMER)
   val user: User = User(
     id = personId,
     externalId = taxCode,
@@ -164,7 +165,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       name = clientSeed.name,
       purposes = Seq(clientPurpose),
       description = clientSeed.description,
-      relationships = Set.empty
+      relationships = Set.empty,
+      kind = AuthorizationManagementDependency.ClientKind.CONSUMER
     )
 
   val operator: Operator =
@@ -193,6 +195,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val createdKey: AuthorizationManagementDependency.ClientKey = AuthorizationManagementDependency.ClientKey(
     relationshipId = UUID.randomUUID(),
+    name = "test",
+    createdAt = OffsetDateTime.now(),
     key = AuthorizationManagementDependency.Key(
       kty = "1",
       keyOps = Some(Seq("2")),

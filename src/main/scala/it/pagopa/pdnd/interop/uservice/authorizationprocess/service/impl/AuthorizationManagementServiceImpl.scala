@@ -21,11 +21,11 @@ final case class AuthorizationManagementServiceImpl(
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  override def createClient(consumerId: UUID, name: String, description: Option[String])(
+  override def createClient(consumerId: UUID, name: String, description: Option[String], kind: ClientKind)(
     bearer: String
   ): Future[Client] = {
     val request: ApiRequest[Client] =
-      clientApi.createClient(ClientSeed(consumerId = consumerId, name = name, description = description))(
+      clientApi.createClient(ClientSeed(consumerId = consumerId, name = name, description = description, kind = kind))(
         BearerToken(bearer)
       )
     invoker.invoke(request, "Client creation")

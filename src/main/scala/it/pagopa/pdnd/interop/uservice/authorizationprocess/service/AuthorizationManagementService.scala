@@ -20,7 +20,7 @@ import scala.concurrent.Future
 
 trait AuthorizationManagementService {
 
-  def createClient(consumerId: UUID, name: String, description: Option[String])(
+  def createClient(consumerId: UUID, name: String, description: Option[String], kind: ClientKind)(
     bearer: String
   ): Future[ManagementClient]
   def getClient(clientId: UUID)(bearer: String): Future[ManagementClient]
@@ -46,8 +46,10 @@ object AuthorizationManagementService {
 
   def keyToApi(clientKey: ClientKey): ApiClientKey = {
     import clientKey.key
-    ApiClientKey(key =
-      ApiKey(
+    ApiClientKey(
+      name = clientKey.name,
+      createdAt = clientKey.createdAt,
+      key = ApiKey(
         kty = key.kty,
         key_ops = key.keyOps,
         use = key.use,
@@ -82,7 +84,8 @@ object AuthorizationManagementService {
       relationshipId = relationshipId,
       key = keySeed.key,
       use = keyUseToDependency(keySeed.use),
-      alg = keySeed.alg
+      alg = keySeed.alg,
+      name = keySeed.name
     )
 
   def keyUseToDependency(use: ApiKeyUse): KeyUse =

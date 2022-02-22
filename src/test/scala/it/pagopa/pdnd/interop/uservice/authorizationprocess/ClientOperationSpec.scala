@@ -3,7 +3,7 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
-import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.ClientApiServiceImpl
+import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.{ClientApiServiceImpl, Converter}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{
   AuthorizationManagementService,
@@ -41,8 +41,16 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
 
       (mockAuthorizationManagementService
-        .createClient(_: UUID, _: String, _: Option[String])(_: String))
-        .expects(organization.id, clientSeed.name, clientSeed.description, bearerToken)
+        .createClient(_: UUID, _: String, _: Option[String], _: authorizationmanagement.client.model.ClientKind)(
+          _: String
+        ))
+        .expects(
+          organization.id,
+          clientSeed.name,
+          clientSeed.description,
+          Converter.convertFromApiClientKind(clientSeed.kind),
+          bearerToken
+        )
         .once()
         .returns(Future.successful(client))
 
@@ -54,7 +62,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         name = client.name,
         purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
         description = client.description,
-        operators = Some(Seq.empty)
+        operators = Some(Seq.empty),
+        kind = ClientKind.CONSUMER
       )
 
       Get() ~> service.createClient(clientSeed) ~> check {
@@ -95,7 +104,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           name = client.name,
           purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
           description = client.description,
-          operators = Some(Seq.empty)
+          operators = Some(Seq.empty),
+          kind = ClientKind.CONSUMER
         )
 
       Get() ~> service.getClient(client.id.toString) ~> check {
@@ -167,7 +177,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
             name = client.name,
             purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
             description = client.description,
-            operators = Some(Seq.empty)
+            operators = Some(Seq.empty),
+            kind = ClientKind.CONSUMER
           )
         )
       )
