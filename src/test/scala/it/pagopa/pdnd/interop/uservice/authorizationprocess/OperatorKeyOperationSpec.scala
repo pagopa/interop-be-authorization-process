@@ -2,15 +2,14 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import it.pagopa.interop.authorizationmanagement
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.impl.OperatorApiServiceImpl
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.{ManagementClient, PartyManagementService}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.util.{CustomMatchers, SpecUtils}
-import it.pagopa.interop.authorizationmanagement
-import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -24,10 +23,6 @@ class OperatorKeyOperationSpec
     with SpecUtils
     with ScalatestRouteTest
     with CustomMatchers {
-
-  def matchRegexPattern(right: PartialFunction[ClientKey, _]): Matcher[ClientKey] =
-    (left: ClientKey) =>
-      MatchResult(right.isDefinedAt(left), s"$left does not match regex pattern", s"$left does match regex pattern ")
 
   import clientApiMarshaller._
 
