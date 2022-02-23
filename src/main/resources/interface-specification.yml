@@ -12,7 +12,7 @@ info:
   x-api-id: an x-api-id
   x-summary: an x-summary
 servers:
-  - url: '/pdnd-interop-uservice-authorization-process/{{version}}'
+  - url: '/authorization-process/{{version}}'
     description: This service is the security supplier
 security:
   - bearerAuth: []
