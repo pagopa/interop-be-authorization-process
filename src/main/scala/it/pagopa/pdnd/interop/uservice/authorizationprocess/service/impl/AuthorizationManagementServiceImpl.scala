@@ -21,11 +21,11 @@ final case class AuthorizationManagementServiceImpl(
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  override def createClient(consumerId: UUID, name: String, description: Option[String])(
+  override def createClient(consumerId: UUID, name: String, description: Option[String], kind: ClientKind)(
     bearer: String
   ): Future[Client] = {
     val request: ApiRequest[Client] =
-      clientApi.createClient(ClientSeed(consumerId = consumerId, name = name, description = description))(
+      clientApi.createClient(ClientSeed(consumerId = consumerId, name = name, description = description, kind = kind))(
         BearerToken(bearer)
       )
     invoker.invoke(request, "Client creation")
@@ -40,10 +40,11 @@ final case class AuthorizationManagementServiceImpl(
     offset: Option[Int],
     limit: Option[Int],
     relationshipId: Option[UUID],
-    consumerId: Option[UUID]
+    consumerId: Option[UUID],
+    kind: Option[ClientKind] = None
   )(bearer: String): Future[Seq[Client]] = {
     val request: ApiRequest[Seq[Client]] =
-      clientApi.listClients(offset, limit, relationshipId, consumerId)(BearerToken(bearer))
+      clientApi.listClients(offset, limit, relationshipId, consumerId, kind)(BearerToken(bearer))
     invoker.invoke(request, "Client list")
   }
 

@@ -2,17 +2,18 @@ package it.pagopa.pdnd.interop.uservice.authorizationprocess.service
 
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.model.{
+  ClientAgreementDetails => ApiClientAgreementDetails,
+  ClientComponentState => ApiClientComponentState,
+  ClientEServiceDetails => ApiClientEServiceDetails,
   ClientKey => ApiClientKey,
+  ClientKind => ApiClientKind,
+  ClientPurposeDetails => ApiClientPurposeDetails,
+  ClientStatesChain => ApiClientStatesChain,
   Key => ApiKey,
   KeySeed => ApiKeySeed,
   KeyUse => ApiKeyUse,
   OtherPrimeInfo => ApiOtherPrimeInfo,
-  Purpose => ApiPurpose,
-  ClientStatesChain => ApiClientStatesChain,
-  ClientEServiceDetails => ApiClientEServiceDetails,
-  ClientAgreementDetails => ApiClientAgreementDetails,
-  ClientPurposeDetails => ApiClientPurposeDetails,
-  ClientComponentState => ApiClientComponentState
+  Purpose => ApiPurpose
 }
 
 import java.util.UUID
@@ -20,13 +21,19 @@ import scala.concurrent.Future
 
 trait AuthorizationManagementService {
 
-  def createClient(consumerId: UUID, name: String, description: Option[String])(
+  def createClient(consumerId: UUID, name: String, description: Option[String], kind: ClientKind)(
     bearer: String
   ): Future[ManagementClient]
+
   def getClient(clientId: UUID)(bearer: String): Future[ManagementClient]
-  def listClients(offset: Option[Int], limit: Option[Int], relationshipId: Option[UUID], consumerId: Option[UUID])(
-    bearer: String
-  ): Future[Seq[ManagementClient]]
+  def listClients(
+    offset: Option[Int],
+    limit: Option[Int],
+    relationshipId: Option[UUID],
+    consumerId: Option[UUID],
+    kind: Option[ClientKind]
+  )(bearer: String): Future[Seq[ManagementClient]]
+
   def deleteClient(clientId: UUID)(bearer: String): Future[Unit]
 
   def addRelationship(clientId: UUID, relationshipId: UUID)(bearer: String): Future[ManagementClient]
@@ -46,8 +53,10 @@ object AuthorizationManagementService {
 
   def keyToApi(clientKey: ClientKey): ApiClientKey = {
     import clientKey.key
-    ApiClientKey(key =
-      ApiKey(
+    ApiClientKey(
+      name = clientKey.name,
+      createdAt = clientKey.createdAt,
+      key = ApiKey(
         kty = key.kty,
         key_ops = key.keyOps,
         use = key.use,
@@ -82,7 +91,8 @@ object AuthorizationManagementService {
       relationshipId = relationshipId,
       key = keySeed.key,
       use = keyUseToDependency(keySeed.use),
-      alg = keySeed.alg
+      alg = keySeed.alg,
+      name = keySeed.name
     )
 
   def keyUseToDependency(use: ApiKeyUse): KeyUse =
@@ -122,4 +132,15 @@ object AuthorizationManagementService {
       case ClientComponentState.INACTIVE => ApiClientComponentState.INACTIVE
     }
 
+  def convertToApiClientKind(kind: ClientKind): ApiClientKind =
+    kind match {
+      case ClientKind.CONSUMER => ApiClientKind.CONSUMER
+      case ClientKind.API      => ApiClientKind.API
+    }
+
+  def convertFromApiClientKind(kind: ApiClientKind): ClientKind =
+    kind match {
+      case ApiClientKind.CONSUMER => ClientKind.CONSUMER
+      case ApiClientKind.API      => ClientKind.API
+    }
 }

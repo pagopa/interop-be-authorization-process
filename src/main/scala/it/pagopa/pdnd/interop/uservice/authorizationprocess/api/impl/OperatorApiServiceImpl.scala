@@ -66,7 +66,8 @@ final case class OperatorApiServiceImpl(
             relationshipId = clientRelationshipId,
             key = seed.key,
             use = keyUseToDependency(seed.use),
-            alg = seed.alg
+            alg = seed.alg,
+            name = seed.name
           )
           result <- authorizationManagementService.createKeys(client.id, Seq(managementSeed))(bearerToken)
         } yield result
@@ -264,7 +265,8 @@ final case class OperatorApiServiceImpl(
         relationshipId = Some(relationship.id),
         offset = None,
         limit = None,
-        consumerId = None
+        consumerId = None,
+        kind = None
       )(bearerToken)
     )
     recoverable <- clients.traverse(client => f(client, relationships).transform(Success(_)))

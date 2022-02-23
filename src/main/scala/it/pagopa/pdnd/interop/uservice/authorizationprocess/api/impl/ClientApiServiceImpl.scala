@@ -15,6 +15,7 @@ import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getUidFuture
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
 import it.pagopa.pdnd.interop.commons.utils.errors.GenericComponentErrors.{MissingBearer, ResourceNotFoundError}
 import it.pagopa.pdnd.interop.uservice._
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.api.ClientApiService
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.common.utils.validateClientBearer
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.error.AuthorizationProcessErrors._
@@ -25,12 +26,11 @@ import it.pagopa.pdnd.interop.uservice.authorizationprocess.service.PartyManagem
   relationshipStateToApi
 }
 import it.pagopa.pdnd.interop.uservice.authorizationprocess.service._
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagementDependency}
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
-import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeManagementApiError}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
 import org.slf4j.LoggerFactory
 
 import java.util.UUID
@@ -61,24 +61,25 @@ final case class ClientApiServiceImpl(
     * Code: 404, Message: Not Found, DataType: Problem
     * Code: 500, Message: Internal Server Error, DataType: Problem
     */
-  override def createClient(clientSeed: ClientSeed)(implicit
+  override def createConsumerClient(clientSeed: ClientSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = {
-    logger.info("Creating client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
+    logger.info("Creating CONSUMER client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
     val result = for {
       bearerToken <- validateClientBearer(contexts, jwtReader)
       client <- authorizationManagementService.createClient(
         clientSeed.consumerId,
         clientSeed.name,
-        clientSeed.description
+        clientSeed.description,
+        authorizationmanagement.client.model.ClientKind.CONSUMER
       )(bearerToken)
       apiClient <- getClient(bearerToken, client)
     } yield apiClient
 
     onComplete(result) {
-      case Success(client) => createClient201(client)
+      case Success(client) => createConsumerClient201(client)
       case Failure(MissingBearer) =>
         logger.error(
           "Error in creating client {} for consumer {}",
@@ -86,7 +87,40 @@ final case class ClientApiServiceImpl(
           clientSeed.consumerId,
           MissingBearer
         )
-        createClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
+        createConsumerClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
+      case Failure(ex) =>
+        logger.error("Error in creating CONSUMER client {} for consumer {}", clientSeed.name, clientSeed.consumerId, ex)
+        internalServerError(problemOf(StatusCodes.InternalServerError, ClientCreationError))
+    }
+  }
+
+  override def createApiClient(clientSeed: ClientSeed)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerClient: ToEntityMarshaller[Client]
+  ): Route = {
+    logger.info("Creating API client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
+    val result = for {
+      bearerToken <- validateClientBearer(contexts, jwtReader)
+      client <- authorizationManagementService.createClient(
+        clientSeed.consumerId,
+        clientSeed.name,
+        clientSeed.description,
+        authorizationmanagement.client.model.ClientKind.API
+      )(bearerToken)
+      apiClient <- getClient(bearerToken, client)
+    } yield apiClient
+
+    onComplete(result) {
+      case Success(client) => createApiClient201(client)
+      case Failure(MissingBearer) =>
+        logger.error(
+          "Error in creating API client {} for consumer {}",
+          clientSeed.name,
+          clientSeed.consumerId,
+          MissingBearer
+        )
+        createApiClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex) =>
         logger.error("Error in creating client {} for consumer {}", clientSeed.name, clientSeed.consumerId, ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientCreationError))
@@ -130,7 +164,7 @@ final case class ClientApiServiceImpl(
     * Code: 401, Message: Unauthorized, DataType: Problem
     * Code: 500, Message: Internal Server Error, DataType: Problem
     */
-  override def listClients(consumerId: String, offset: Option[Int], limit: Option[Int])(implicit
+  override def listClients(consumerId: String, offset: Option[Int], limit: Option[Int], kind: Option[String])(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerClients: ToEntityMarshaller[Clients],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -142,7 +176,7 @@ final case class ClientApiServiceImpl(
       bearerToken  <- validateClientBearer(contexts, jwtReader)
       personId     <- getUidFuture(contexts).flatMap(_.toFutureUUID)
       consumerUuid <- consumerId.toFutureUUID
-
+      clientKind   <- kind.traverse(AuthorizationmanagementDependency.ClientKind.fromValue).toFuture
       relationships <-
         partyManagementService
           .getRelationships(
@@ -157,11 +191,13 @@ final case class ClientApiServiceImpl(
 
       managementClients <-
         if (relationships.exists(_.product.role == PartyManagementService.PRODUCT_ROLE_ADMIN))
-          authorizationManagementService.listClients(offset, limit, None, consumerUuid.some)(bearerToken)
+          authorizationManagementService.listClients(offset, limit, None, consumerUuid.some, clientKind)(bearerToken)
         else
           relationships
             .map(_.id.some)
-            .flatTraverse(authorizationManagementService.listClients(offset, limit, _, consumerUuid.some)(bearerToken))
+            .flatTraverse(
+              authorizationManagementService.listClients(offset, limit, _, consumerUuid.some, clientKind)(bearerToken)
+            )
 
       clients <- managementClients.traverse(getClient(bearerToken, _))
     } yield clients
@@ -725,7 +761,8 @@ final case class ClientApiServiceImpl(
       name = client.name,
       purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
       description = client.description,
-      operators = Some(operator)
+      operators = Some(operator),
+      kind = AuthorizationManagementService.convertToApiClientKind(client.kind)
     )
 
   /** Code: 200, Message: returns the corresponding base 64 encoded key, DataType: EncodedClientKey

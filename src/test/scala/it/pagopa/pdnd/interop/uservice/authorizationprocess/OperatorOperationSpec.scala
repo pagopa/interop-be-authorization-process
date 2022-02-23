@@ -80,7 +80,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
           Seq(
             operator.copy(product = operator.product.copy(role = PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR))
           )
-        )
+        ),
+        kind = ClientKind.CONSUMER
       )
 
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, relationshipId) ~> check {
