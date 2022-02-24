@@ -266,6 +266,7 @@ final case class OperatorApiServiceImpl(
         offset = None,
         limit = None,
         consumerId = None,
+        purposeId = None,
         kind = None
       )(bearerToken)
     )

@@ -38,10 +38,18 @@ final case class AuthorizationManagementServiceImpl(
     limit: Option[Int],
     relationshipId: Option[UUID],
     consumerId: Option[UUID],
+    purposeId: Option[UUID],
     kind: Option[ClientKind] = None
   )(bearer: String): Future[Seq[Client]] = {
     val request: ApiRequest[Seq[Client]] =
-      clientApi.listClients(offset, limit, relationshipId, consumerId, kind)(BearerToken(bearer))
+      clientApi.listClients(
+        offset = offset,
+        limit = limit,
+        relationshipId = relationshipId,
+        consumerId = consumerId,
+        purposeId = purposeId,
+        kind = kind
+      )(BearerToken(bearer))
     invoker.invoke(request, "Client list")
   }
 
