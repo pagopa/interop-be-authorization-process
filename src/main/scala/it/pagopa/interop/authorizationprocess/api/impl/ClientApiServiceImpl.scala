@@ -186,12 +186,17 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  /** Code: 200, Message: Request succeed, DataType: Seq[Client]
+  /** Code: 200, Message: Request succeed, DataType: Clients
     * Code: 400, Message: Bad Request, DataType: Problem
     * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 500, Message: Internal Server Error, DataType: Problem
     */
-  override def listClients(consumerId: String, offset: Option[Int], limit: Option[Int], kind: Option[String])(implicit
+  override def listClients(
+    consumerId: String,
+    offset: Option[Int],
+    limit: Option[Int],
+    purposeId: Option[String],
+    kind: Option[String]
+  )(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerClients: ToEntityMarshaller[Clients],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -215,15 +220,29 @@ final case class ClientApiServiceImpl(
             _.items
               .filter(_.state == RelationshipState.ACTIVE)
           )
-
+      purposeUuid <- purposeId.traverse(_.toFutureUUID)
       managementClients <-
         if (relationships.exists(_.product.role == PartyManagementService.PRODUCT_ROLE_ADMIN))
-          authorizationManagementService.listClients(offset, limit, None, consumerUuid.some, clientKind)(bearerToken)
+          authorizationManagementService.listClients(
+            offset = offset,
+            limit = limit,
+            relationshipId = None,
+            consumerId = consumerUuid.some,
+            purposeId = purposeUuid,
+            kind = clientKind
+          )(bearerToken)
         else
           relationships
             .map(_.id.some)
-            .flatTraverse(
-              authorizationManagementService.listClients(offset, limit, _, consumerUuid.some, clientKind)(bearerToken)
+            .flatTraverse(relationshipId =>
+              authorizationManagementService.listClients(
+                offset = offset,
+                limit = limit,
+                relationshipId = relationshipId,
+                consumerId = consumerUuid.some,
+                purposeId = purposeUuid,
+                kind = clientKind
+              )(bearerToken)
             )
 
       clients <- managementClients.traverse(getClient(bearerToken, _))

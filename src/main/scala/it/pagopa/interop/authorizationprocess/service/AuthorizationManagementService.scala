@@ -31,6 +31,7 @@ trait AuthorizationManagementService {
     limit: Option[Int],
     relationshipId: Option[UUID],
     consumerId: Option[UUID],
+    purposeId: Option[UUID],
     kind: Option[ClientKind]
   )(bearer: String): Future[Seq[ManagementClient]]
 

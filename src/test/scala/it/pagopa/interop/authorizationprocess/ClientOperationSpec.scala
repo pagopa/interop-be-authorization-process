@@ -136,6 +136,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val limit: Option[Int]             = Some(10)
       val relationshipUuid: Option[UUID] = Some(relationship.id)
       val consumerUuid: Option[UUID]     = Some(client.consumerId)
+      val purposeUuid: Option[UUID]      = Some(clientPurpose.purposeId)
 
       (mockJwtReader
         .getClaims(_: String))
@@ -160,6 +161,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           _: Option[Int],
           _: Option[UUID],
           _: Option[UUID],
+          _: Option[UUID],
           _: Option[authorizationmanagement.client.model.ClientKind]
         )(_: String))
         .expects(
@@ -167,6 +169,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           limit,
           relationshipUuid,
           consumerUuid,
+          purposeUuid,
           Some(authorizationmanagement.client.model.ClientKind.CONSUMER),
           bearerToken
         )
@@ -193,7 +196,13 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         )
       )
 
-      Get() ~> service.listClients(client.consumerId.toString, offset, limit, Some("CONSUMER")) ~> check {
+      Get() ~> service.listClients(
+        client.consumerId.toString,
+        offset,
+        limit,
+        Some(clientPurpose.purposeId.toString),
+        Some("CONSUMER")
+      ) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Clients] shouldEqual expected
       }
