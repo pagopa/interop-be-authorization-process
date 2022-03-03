@@ -3,9 +3,9 @@ package it.pagopa.interop.authorizationprocess.api
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCode
 import it.pagopa.interop.authorizationprocess.model._
-import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 import it.pagopa.interop.commons.utils.SprayCommonFormats.{offsetDateTimeFormat, uuidFormat}
 import it.pagopa.interop.commons.utils.errors.ComponentError
+import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 package object impl extends SprayJsonSupport with DefaultJsonProtocol {
 
@@ -25,6 +25,9 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val clientKeysFormat: RootJsonFormat[ClientKeys]               = jsonFormat1(ClientKeys)
   implicit val keySeedFormat: RootJsonFormat[KeySeed]                     = jsonFormat5(KeySeed)
   implicit val operatorKeySeedFormat: RootJsonFormat[OperatorKeySeed]     = jsonFormat5(OperatorKeySeed)
+  implicit val operatorDataFormat: RootJsonFormat[OperatorData]           = jsonFormat3(OperatorData)
+  implicit val readClientKeyFormat: RootJsonFormat[ReadClientKey]         = jsonFormat4(ReadClientKey)
+  implicit val readClientKeysFormat: RootJsonFormat[ReadClientKeys]       = jsonFormat1(ReadClientKeys)
 
   implicit val clientAgreementDetailsFormat: RootJsonFormat[ClientAgreementDetails] =
     jsonFormat2(ClientAgreementDetails)

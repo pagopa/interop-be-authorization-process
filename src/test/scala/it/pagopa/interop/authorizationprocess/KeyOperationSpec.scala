@@ -109,11 +109,27 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(KeysResponse(Seq(createdKey))))
 
-      val expected = apiClientKey
+      (mockPartyManagementService
+        .getRelationshipById(_: UUID)(_: String))
+        .expects(*, bearerToken)
+        .once()
+        .returns(Future.successful(relationship))
+
+      (mockUserRegistryManagementService.getUserById _)
+        .expects(*)
+        .once()
+        .returns(Future.successful(user))
+
+      val expected = ReadClientKey(
+        key = apiClientKey.key,
+        name = apiClientKey.name,
+        createdAt = apiClientKey.createdAt,
+        operator = OperatorData(relationshipId = relationship.id, name = user.name, surname = user.surname)
+      )
 
       Get() ~> service.getClientKeys(client.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[ClientKeys] should haveTheSameKeys(ClientKeys(Seq(expected)))
+        entityAs[ReadClientKeys] should haveTheSameReadKeys(ReadClientKeys(Seq(expected)))
       }
     }
 

@@ -415,7 +415,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClientKeys'
+                $ref: '#/components/schemas/ReadClientKeys'
         '401':
           description: Unauthorized
           content:
@@ -906,6 +906,21 @@ components:
             $ref: '#/components/schemas/Client'
       required:
         - clients
+    OperatorData:
+      description: Contains some data about operator
+      type: object
+      properties:
+        relationshipId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        surname:
+          type: string
+      required:
+        - relationshipId
+        - name
+        - surname
     Operator:
       description: Models a Client Operator
       type: object
@@ -1026,6 +1041,23 @@ components:
         - r
         - d
         - t
+    ReadClientKey:
+      type: object
+      properties:
+        key:
+          $ref: '#/components/schemas/Key'
+        name:
+          type: string
+        operator:
+          $ref: '#/components/schemas/OperatorData'
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - key
+        - name
+        - createdAt
+        - operator
     ClientKey:
       type: object
       properties:
@@ -1048,6 +1080,15 @@ components:
           description: 'base64 encoded key'
       required:
         - key
+    ReadClientKeys:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReadClientKey'
+      required:
+        - keys
     ClientKeys:
       type: object
       properties:

@@ -6,43 +6,10 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.implicits._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
-import it.pagopa.interop.authorizationmanagement
-import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
-import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationmanagementDependency}
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{
-  ClientCreationError,
-  ClientDeletionError,
-  ClientKeyCreationError,
-  ClientKeyDeletionError,
-  ClientKeyRetrievalError,
-  ClientKeysRetrievalError,
-  ClientListingError,
-  ClientOperatorsRelationshipRetrievalError,
-  ClientOperatorsRetrievalError,
-  ClientRetrievalError,
-  EncodedClientKeyRetrievalError,
-  EnumParameterError,
-  OperatorAdditionError,
-  OperatorRelationshipAlreadyAssigned,
-  OperatorRemovalError,
-  SecurityOperatorRelationshipNotActive,
-  SecurityOperatorRelationshipNotFound,
-  UUIDConversionError
-}
-import it.pagopa.interop.authorizationprocess.service.{
-  AgreementManagementService,
-  AuthorizationManagementService,
-  CatalogManagementService,
-  PartyManagementService,
-  PurposeManagementService,
-  UserRegistryManagementService
-}
-import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.AkkaUtils.{getFutureBearer, getUidFuture}
-import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
-import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{MissingBearer, ResourceNotFoundError}
 import it.pagopa.interop._
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
+import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationmanagementDependency}
 import it.pagopa.interop.authorizationprocess.api.ClientApiService
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
@@ -51,7 +18,12 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipRoleToApi,
   relationshipStateToApi
 }
+import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
+import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
+import it.pagopa.interop.commons.utils.AkkaUtils.{getFutureBearer, getUidFuture}
+import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
+import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{MissingBearer, ResourceNotFoundError}
 import it.pagopa.interop.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.interop.partymanagement.client.{model => PartyManagementDependency}
 import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeManagementApiError}
@@ -529,7 +501,7 @@ final case class ClientApiServiceImpl(
     */
   override def getClientKeys(clientId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
+    toEntityMarshallerClientKeys: ToEntityMarshaller[ReadClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     logger.info("Getting keys of client {}", clientId)
@@ -537,7 +509,12 @@ final case class ClientApiServiceImpl(
       bearerToken  <- getFutureBearer(contexts)
       clientUuid   <- clientId.toFutureUUID
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)(bearerToken)
-    } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
+      keys <- keysResponse.keys.traverse(k =>
+        operatorFromRelationship(k.relationshipId)(bearerToken).map(operator =>
+          AuthorizationManagementService.readKeyToApi(k, operator)
+        )
+      )
+    } yield ReadClientKeys(keys)
 
     onComplete(result) {
       case Success(keys) => getClientKeys200(keys)
