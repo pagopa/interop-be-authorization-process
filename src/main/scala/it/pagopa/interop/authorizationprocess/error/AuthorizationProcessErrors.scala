@@ -77,4 +77,10 @@ object AuthorizationProcessErrors {
   final case class ClientPurposeAddDescriptorNotFound(eServiceId: String, descriptorId: String)
       extends ComponentError("0046", s"Descriptor $descriptorId not found in EService $eServiceId")
 
+  final case class UserNotAllowedToRemoveOwnRelationship(clientId: String, relationshipId: String)
+      extends ComponentError(
+        "0047",
+        s"A user is not allowed to remove own relationship from client. Client $clientId Relationship $relationshipId"
+      )
+
 }

@@ -8,16 +8,15 @@ import cats.implicits._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
-import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.TypeConversions.{OptionOps, StringOps}
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{MissingBearer, ResourceNotFoundError}
 import it.pagopa.interop.authorizationprocess.api.OperatorApiService
-import it.pagopa.interop.authorizationprocess.common.utils.validateClientBearer
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.AuthorizationManagementService.keyUseToDependency
 import it.pagopa.interop.authorizationprocess.service._
+import it.pagopa.interop.commons.utils.AkkaUtils.getFutureBearer
 import it.pagopa.interop.partymanagement.client.model.{Problem => _, _}
 import org.slf4j.LoggerFactory
 
@@ -27,8 +26,7 @@ import scala.util.{Failure, Success}
 
 final case class OperatorApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
-  partyManagementService: PartyManagementService,
-  jwtReader: JWTReader
+  partyManagementService: PartyManagementService
 )(implicit ec: ExecutionContext)
     extends OperatorApiService {
 
@@ -48,7 +46,7 @@ final case class OperatorApiServiceImpl(
   ): Route = {
     logger.info("Creating operator keys {}", operatorId)
     val result = for {
-      bearerToken  <- validateClientBearer(contexts, jwtReader)
+      bearerToken  <- getFutureBearer(contexts)
       operatorUuid <- operatorId.toFutureUUID
       relationships <- partyManagementService.getRelationshipsByPersonId(
         operatorUuid,
@@ -106,7 +104,7 @@ final case class OperatorApiServiceImpl(
   ): Route = {
     logger.info("Deleting operator {} key {}", operatorId, keyId)
     val result = for {
-      bearerToken  <- validateClientBearer(contexts, jwtReader)
+      bearerToken  <- getFutureBearer(contexts)
       operatorUuid <- operatorId.toFutureUUID
       _ <- collectFirstForEachOperatorClient(
         operatorUuid,
@@ -145,7 +143,7 @@ final case class OperatorApiServiceImpl(
   ): Route = {
     logger.info("Getting operator {} key {}", operatorId, keyId)
     val result = for {
-      bearerToken  <- validateClientBearer(contexts, jwtReader)
+      bearerToken  <- getFutureBearer(contexts)
       operatorUuid <- operatorId.toFutureUUID
       key <- collectFirstForEachOperatorClient(
         operatorUuid,
@@ -184,7 +182,7 @@ final case class OperatorApiServiceImpl(
   ): Route = {
     logger.info("Getting operator {} keys", operatorId)
     val result = for {
-      bearerToken  <- validateClientBearer(contexts, jwtReader)
+      bearerToken  <- getFutureBearer(contexts)
       operatorUuid <- operatorId.toFutureUUID
       keysResponse <- collectAllForEachOperatorClient(
         operatorUuid,
@@ -225,7 +223,7 @@ final case class OperatorApiServiceImpl(
   ): Route = {
     logger.info("Getting client keys {} for operator {}", clientId, operatorId)
     val result = for {
-      bearerToken   <- validateClientBearer(contexts, jwtReader)
+      bearerToken   <- getFutureBearer(contexts)
       operatorUuid  <- operatorId.toFutureUUID
       relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)(bearerToken)
       clientUuid    <- clientId.toFutureUUID

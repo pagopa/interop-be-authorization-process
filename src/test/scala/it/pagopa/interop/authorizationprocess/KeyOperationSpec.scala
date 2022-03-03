@@ -30,8 +30,7 @@ class KeyOperationSpec
     mockCatalogManagementService,
     mockPartyManagementService,
     mockPurposeManagementService,
-    mockUserRegistryManagementService,
-    mockJwtReader
+    mockUserRegistryManagementService
   )(ExecutionContext.global)
 
   val apiClientKey: ClientKey = ClientKey(
@@ -66,12 +65,6 @@ class KeyOperationSpec
   "Retrieve key" should {
     "succeed" in {
       val kid = "some-kid"
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getKey(_: UUID, _: String)(_: String))
         .expects(client.id, kid, bearerToken)
@@ -96,12 +89,6 @@ class KeyOperationSpec
 
     "fail if client or key do not exist" in {
       val kid = "some-kid"
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getKey(_: UUID, _: String)(_: String))
         .expects(*, *, bearerToken)
@@ -116,12 +103,6 @@ class KeyOperationSpec
 
   "Retrieve all client keys" should {
     "succeed" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getClientKeys(_: UUID)(_: String))
         .expects(client.id, bearerToken)
@@ -144,12 +125,6 @@ class KeyOperationSpec
     }
 
     "fail if client or key do not exist" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getClientKeys(_: UUID)(_: String))
         .expects(*, bearerToken)
@@ -166,12 +141,6 @@ class KeyOperationSpec
     "succeed" in {
       val keySeeds: Seq[KeySeed] =
         Seq(KeySeed(operatorId = user.id, key = "key", use = KeyUse.SIG, alg = "123", name = "test"))
-
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
 
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: String))
@@ -207,12 +176,6 @@ class KeyOperationSpec
     }
 
     "fail if client or key do not exist" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: String))
         .expects(client.id, bearerToken)
@@ -228,12 +191,6 @@ class KeyOperationSpec
   "Delete key" should {
     "succeed" in {
       val kid = "some-kid"
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .deleteKey(_: UUID, _: String)(_: String))
         .expects(client.id, kid, bearerToken)
@@ -255,12 +212,6 @@ class KeyOperationSpec
 
     "fail if client or key do not exist" in {
       val kid = "some-kid"
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .deleteKey(_: UUID, _: String)(_: String))
         .expects(*, *, bearerToken)

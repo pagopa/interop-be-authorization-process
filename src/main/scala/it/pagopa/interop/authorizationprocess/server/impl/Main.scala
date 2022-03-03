@@ -139,15 +139,14 @@ object Main
         catalogManagementService,
         partyManagementService,
         purposeManagementService,
-        userRegistryManagementService,
-        jwtReader
+        userRegistryManagementService
       ),
       ClientApiMarshallerImpl,
       jwtReader.OAuth2JWTValidatorAsContexts
     )
 
     val operatorApi: OperatorApi = new OperatorApi(
-      OperatorApiServiceImpl(authorizationManagementService, partyManagementService, jwtReader),
+      OperatorApiServiceImpl(authorizationManagementService, partyManagementService),
       OperatorApiMarshallerImpl,
       jwtReader.OAuth2JWTValidatorAsContexts
     )
