@@ -128,6 +128,12 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
   "Operator removal" should {
     "succeed" in {
 
+      (mockPartyManagementService
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
+        .expects(personId, Seq.empty, bearerToken)
+        .once()
+        .returns(Future.successful(relationships.copy(items = Seq.empty)))
+
       (mockAuthorizationManagementService
         .removeClientRelationship(_: UUID, _: UUID)(_: String))
         .expects(client.id, relationship.id, bearerToken)
@@ -147,7 +153,31 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       }
     }
 
+    "fail if user removes own relationship" in {
+
+      val relationshipId    = UUID.randomUUID()
+      val userRelationships = relationships.copy(items = Seq(relationship.copy(id = relationshipId)))
+
+      (mockPartyManagementService
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
+        .expects(personId, Seq.empty, bearerToken)
+        .once()
+        .returns(Future.successful(userRelationships))
+
+      Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationshipId.toString) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        responseAs[Problem].errors.head.code shouldEqual "007-0047"
+      }
+    }
+
     "fail if client does not exist" in {
+
+      (mockPartyManagementService
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
+        .expects(personId, Seq.empty, bearerToken)
+        .once()
+        .returns(Future.successful(relationships.copy(items = Seq.empty)))
+
       (mockAuthorizationManagementService
         .removeClientRelationship(_: UUID, _: UUID)(_: String))
         .expects(client.id, relationship.id, bearerToken)

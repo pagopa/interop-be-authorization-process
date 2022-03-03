@@ -370,10 +370,15 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Removing binding between client {} with relationship {}", clientId, relationshipId)
     val result = for {
-      bearerToken      <- getFutureBearer(contexts)
-      clientUUID       <- clientId.toFutureUUID
-      relationshipUUID <- relationshipId.toFutureUUID
-//      requesterRelationships <- partyManagementService.getRelationshipsByPersonId(userUUID,Seq.empty)
+      bearerToken            <- getFutureBearer(contexts)
+      userId                 <- getUidFuture(contexts)
+      userUUID               <- userId.toFutureUUID
+      clientUUID             <- clientId.toFutureUUID
+      relationshipUUID       <- relationshipId.toFutureUUID
+      requesterRelationships <- partyManagementService.getRelationshipsByPersonId(userUUID, Seq.empty)(bearerToken)
+      _ <- Future
+        .failed(UserNotAllowedToRemoveOwnRelationship(clientId, relationshipId))
+        .whenA(requesterRelationships.items.exists(_.id == relationshipUUID))
       _ <- authorizationManagementService.removeClientRelationship(clientUUID, relationshipUUID)(bearerToken)
     } yield ()
 
@@ -385,6 +390,9 @@ final case class ClientApiServiceImpl(
       case Failure(ex: UUIDConversionError) =>
         logger.error("Removing binding between client {} with relationship {}", clientId, relationshipId, ex)
         removeClientOperatorRelationship400(problemOf(StatusCodes.BadRequest, ex))
+      case Failure(ex: UserNotAllowedToRemoveOwnRelationship) =>
+        logger.error("Removing binding between client {} with relationship {}", clientId, relationshipId, ex)
+        removeClientOperatorRelationship403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error("Removing binding between client {} with relationship {}", clientId, relationshipId, ex)
         removeClientOperatorRelationship404(
