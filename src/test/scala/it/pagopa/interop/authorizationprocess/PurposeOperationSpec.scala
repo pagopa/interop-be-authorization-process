@@ -92,6 +92,42 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
       }
     }
 
+    "fail if no valid agreement exists" in {
+      (mockPurposeManagementService
+        .getPurpose(_: String)(_: UUID))
+        .expects(bearerToken, purpose.id)
+        .once()
+        .returns(
+          Future.successful(
+            purpose
+              .copy(versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ACTIVE)))
+          )
+        )
+
+      (mockCatalogManagementService
+        .getEService(_: String)(_: UUID))
+        .expects(bearerToken, eService.id)
+        .once()
+        .returns(
+          Future.successful(
+            eService.copy(descriptors =
+              Seq(activeDescriptor.copy(state = CatalogManagementDependency.EServiceDescriptorState.PUBLISHED))
+            )
+          )
+        )
+
+      (mockAgreementManagementService
+        .getAgreements(_: String)(_: UUID, _: UUID))
+        .expects(bearerToken, eService.id, consumer.id)
+        .once()
+        .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.PENDING))))
+
+      Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        responseAs[Problem].errors.head.code shouldEqual "007-0045"
+      }
+    }
+
     "fail if Purpose does not exist" in {
       (mockPurposeManagementService
         .getPurpose(_: String)(_: UUID))

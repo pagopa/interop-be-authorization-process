@@ -273,4 +273,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   implicit def fromResponseUnmarshallerOperatorRequest: FromEntityUnmarshaller[Operator] =
     sprayJsonUnmarshaller[Operator]
 
+  implicit def fromResponseUnmarshallerProblem: FromEntityUnmarshaller[Problem] =
+    sprayJsonUnmarshaller[Problem]
+
 }
