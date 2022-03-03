@@ -29,19 +29,11 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     mockCatalogManagementService,
     mockPartyManagementService,
     mockPurposeManagementService,
-    mockUserRegistryManagementService,
-    mockJwtReader
+    mockUserRegistryManagementService
   )(ExecutionContext.global)
 
   "Operator addition" should {
     "succeed on existing relationship" in {
-
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: String))
         .expects(client.id, bearerToken)
@@ -97,12 +89,6 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     }
 
     "fail if client does not exist" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: String))
         .expects(*, bearerToken)
@@ -120,12 +106,6 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         product =
           relationship.product.copy(id = "Interop", role = PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR)
       )
-
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
 
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: String))
@@ -148,12 +128,6 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
   "Operator removal" should {
     "succeed" in {
 
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .removeClientRelationship(_: UUID, _: UUID)(_: String))
         .expects(client.id, relationship.id, bearerToken)
@@ -174,12 +148,6 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     }
 
     "fail if client does not exist" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .removeClientRelationship(_: UUID, _: UUID)(_: String))
         .expects(client.id, relationship.id, bearerToken)
@@ -199,12 +167,6 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         product =
           relationship.product.copy(id = "Interop", role = PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR)
       )
-
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
 
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: String))
@@ -251,12 +213,6 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     }
 
     "fail if client does not exist" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: String))
         .expects(client.id, bearerToken)
@@ -271,12 +227,6 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
   "Operator retrieve by external id" should {
     "succeed" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: String))
         .expects(client.id, bearerToken)
@@ -322,12 +272,6 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     }
 
     "fail if client does not exist" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: String))
         .expects(client.id, bearerToken)
@@ -340,12 +284,6 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     }
 
     "fail if operator is not found" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: String))
         .expects(client.id, bearerToken)

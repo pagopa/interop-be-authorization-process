@@ -11,7 +11,6 @@ import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiMarshallerImpl,
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
-import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.partymanagement.client.{model => PartyManagementDependency}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.Certification.NONE
@@ -31,7 +30,6 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
   val mockPurposeManagementService: PurposeManagementService             = mock[PurposeManagementService]
   val mockUserRegistryManagementService: UserRegistryManagementService   = mock[UserRegistryManagementService]
-  val mockJwtReader: JWTReader                                           = mock[JWTReader]
 
   val timestamp: OffsetDateTime = OffsetDateTime.now()
 

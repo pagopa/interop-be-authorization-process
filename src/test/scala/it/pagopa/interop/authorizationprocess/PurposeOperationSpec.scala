@@ -27,8 +27,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
     mockCatalogManagementService,
     mockPartyManagementService,
     mockPurposeManagementService,
-    mockUserRegistryManagementService,
-    mockJwtReader
+    mockUserRegistryManagementService
   )(ExecutionContext.global)
 
   "Purpose add to Client" should {
@@ -52,12 +51,6 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
           )
         )
       )
-
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
 
       (mockPurposeManagementService
         .getPurpose(_: String)(_: UUID))
@@ -100,12 +93,6 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
     }
 
     "fail if Purpose does not exist" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockPurposeManagementService
         .getPurpose(_: String)(_: UUID))
         .expects(bearerToken, purpose.id)

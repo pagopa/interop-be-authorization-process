@@ -37,15 +37,13 @@ import it.pagopa.interop.authorizationprocess.service.{
   PurposeManagementService,
   UserRegistryManagementService
 }
-import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.AkkaUtils.getUidFuture
+import it.pagopa.interop.commons.utils.AkkaUtils.{getFutureBearer, getUidFuture}
 import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{MissingBearer, ResourceNotFoundError}
 import it.pagopa.interop._
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.interop.authorizationprocess.api.ClientApiService
-import it.pagopa.interop.authorizationprocess.common.utils.validateClientBearer
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
@@ -70,8 +68,7 @@ final case class ClientApiServiceImpl(
   catalogManagementService: CatalogManagementService,
   partyManagementService: PartyManagementService,
   purposeManagementService: PurposeManagementService,
-  userRegistryManagementService: UserRegistryManagementService,
-  jwtReader: JWTReader
+  userRegistryManagementService: UserRegistryManagementService
 )(implicit ec: ExecutionContext)
     extends ClientApiService {
 
@@ -95,7 +92,7 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Creating CONSUMER client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
     val result = for {
-      bearerToken <- validateClientBearer(contexts, jwtReader)
+      bearerToken <- getFutureBearer(contexts)
       client <- authorizationManagementService.createClient(
         clientSeed.consumerId,
         clientSeed.name,
@@ -128,7 +125,7 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Creating API client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
     val result = for {
-      bearerToken <- validateClientBearer(contexts, jwtReader)
+      bearerToken <- getFutureBearer(contexts)
       client <- authorizationManagementService.createClient(
         clientSeed.consumerId,
         clientSeed.name,
@@ -166,7 +163,7 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Getting client {}", clientId)
     val result = for {
-      bearerToken <- validateClientBearer(contexts, jwtReader)
+      bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       client      <- authorizationManagementService.getClient(clientUuid)(bearerToken)
       apiClient   <- getClient(bearerToken, client)
@@ -205,7 +202,7 @@ final case class ClientApiServiceImpl(
 
     // TODO Improve multiple requests
     val result: Future[Seq[Client]] = for {
-      bearerToken  <- validateClientBearer(contexts, jwtReader)
+      bearerToken  <- getFutureBearer(contexts)
       personId     <- getUidFuture(contexts).flatMap(_.toFutureUUID)
       consumerUuid <- consumerId.toFutureUUID
       clientKind   <- kind.traverse(AuthorizationmanagementDependency.ClientKind.fromValue).toFuture
@@ -290,7 +287,7 @@ final case class ClientApiServiceImpl(
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
     logger.info("Deleting client {}", clientId)
     val result = for {
-      bearerToken <- validateClientBearer(contexts, jwtReader)
+      bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       _           <- authorizationManagementService.deleteClient(clientUuid)(bearerToken)
     } yield ()
@@ -321,7 +318,7 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Binding client {} with relationship {}", clientId, relationshipId)
     val result = for {
-      bearerToken      <- validateClientBearer(contexts, jwtReader)
+      bearerToken      <- getFutureBearer(contexts)
       clientUUID       <- clientId.toFutureUUID
       relationshipUUID <- relationshipId.toFutureUUID
       client           <- authorizationManagementService.getClient(clientUUID)(bearerToken)
@@ -373,10 +370,11 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Removing binding between client {} with relationship {}", clientId, relationshipId)
     val result = for {
-      bearerToken      <- validateClientBearer(contexts, jwtReader)
+      bearerToken      <- getFutureBearer(contexts)
       clientUUID       <- clientId.toFutureUUID
       relationshipUUID <- relationshipId.toFutureUUID
-      _                <- authorizationManagementService.removeClientRelationship(clientUUID, relationshipUUID)(bearerToken)
+//      requesterRelationships <- partyManagementService.getRelationshipsByPersonId(userUUID,Seq.empty)
+      _ <- authorizationManagementService.removeClientRelationship(clientUUID, relationshipUUID)(bearerToken)
     } yield ()
 
     onComplete(result) {
@@ -413,7 +411,7 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Getting client {} key by id {}", clientId, keyId)
     val result = for {
-      bearerToken <- validateClientBearer(contexts, jwtReader)
+      bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       key         <- authorizationManagementService.getKey(clientUuid, keyId)(bearerToken)
     } yield AuthorizationManagementService.keyToApi(key)
@@ -445,7 +443,7 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Deleting client {} key by id {}", clientId, keyId)
     val result = for {
-      bearerToken <- validateClientBearer(contexts, jwtReader)
+      bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       _           <- authorizationManagementService.deleteKey(clientUuid, keyId)(bearerToken)
     } yield ()
@@ -478,7 +476,7 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Creating keys for client {}", clientId)
     val result = for {
-      bearerToken <- validateClientBearer(contexts, jwtReader)
+      bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       client      <- authorizationManagementService.getClient(clientUuid)(bearerToken)
       relationshipsIds <- keysSeeds.traverse(seed =>
@@ -528,7 +526,7 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Getting keys of client {}", clientId)
     val result = for {
-      bearerToken  <- validateClientBearer(contexts, jwtReader)
+      bearerToken  <- getFutureBearer(contexts)
       clientUuid   <- clientId.toFutureUUID
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)(bearerToken)
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
@@ -558,7 +556,7 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Getting operators of client {}", clientId)
     val result = for {
-      bearerToken <- validateClientBearer(contexts, jwtReader)
+      bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       client      <- authorizationManagementService.getClient(clientUuid)(bearerToken)
       operators   <- operatorsFromClient(client)(bearerToken)
@@ -589,7 +587,7 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Getting operators of client {} by relationship {}", clientId, relationshipId)
     val result = for {
-      bearerToken      <- validateClientBearer(contexts, jwtReader)
+      bearerToken      <- getFutureBearer(contexts)
       clientUUID       <- clientId.toFutureUUID
       relationshipUUID <- relationshipId.toFutureUUID
       client           <- authorizationManagementService.getClient(clientUUID)(bearerToken)
@@ -654,7 +652,7 @@ final case class ClientApiServiceImpl(
       else AuthorizationmanagementDependency.ClientComponentState.INACTIVE
 
     val result: Future[Unit] = for {
-      bearerToken <- validateClientBearer(contexts, jwtReader)
+      bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       purpose     <- purposeManagementService.getPurpose(bearerToken)(details.purposeId)
       eService    <- catalogManagementService.getEService(bearerToken)(purpose.eserviceId)
@@ -704,7 +702,7 @@ final case class ClientApiServiceImpl(
     logger.info("Removing Purpose from Client {}", clientId)
 
     val result: Future[Unit] = for {
-      bearerToken <- validateClientBearer(contexts, jwtReader)
+      bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       purposeUuid <- purposeId.toFutureUUID
       _           <- authorizationManagementService.removeClientPurpose(clientUuid, purposeUuid)(bearerToken)
@@ -823,7 +821,7 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Getting encoded client {} key by key id {}", clientId, keyId)
     val result = for {
-      bearerToken <- validateClientBearer(contexts, jwtReader)
+      bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       encodedKey  <- authorizationManagementService.getEncodedClientKey(clientUuid, keyId)(bearerToken)
     } yield EncodedClientKey(key = encodedKey.key)

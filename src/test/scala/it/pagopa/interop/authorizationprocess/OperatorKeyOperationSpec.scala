@@ -27,9 +27,7 @@ class OperatorKeyOperationSpec
   import clientApiMarshaller._
 
   val service: OperatorApiServiceImpl =
-    OperatorApiServiceImpl(mockAuthorizationManagementService, mockPartyManagementService, mockJwtReader)(
-      ExecutionContext.global
-    )
+    OperatorApiServiceImpl(mockAuthorizationManagementService, mockPartyManagementService)(ExecutionContext.global)
 
   val kid: String = "some-kid"
 
@@ -229,12 +227,6 @@ class OperatorKeyOperationSpec
   }
 
   def execForEachOperatorClientExpectations(): Unit = {
-    (mockJwtReader
-      .getClaims(_: String))
-      .expects(bearerToken)
-      .returning(mockSubject(UUID.randomUUID().toString))
-      .once()
-
     (mockPartyManagementService
       .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
       .expects(personId, Seq.empty, bearerToken)

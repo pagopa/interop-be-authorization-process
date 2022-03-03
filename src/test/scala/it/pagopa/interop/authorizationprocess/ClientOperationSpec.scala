@@ -25,18 +25,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     mockCatalogManagementService,
     mockPartyManagementService,
     mockPurposeManagementService,
-    mockUserRegistryManagementService,
-    mockJwtReader
+    mockUserRegistryManagementService
   )(ExecutionContext.global)
 
   "Client creation" should {
     "succeed" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .createClient(_: UUID, _: String, _: Option[String], _: authorizationmanagement.client.model.ClientKind)(
           _: String
@@ -80,12 +73,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
   "Client retrieve" should {
     "succeed" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: String))
         .expects(*, bearerToken)
@@ -112,12 +99,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
 
     "fail if client does not exist" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: String))
         .expects(*, bearerToken)
@@ -137,12 +118,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val relationshipUuid: Option[UUID] = Some(relationship.id)
       val consumerUuid: Option[UUID]     = Some(client.consumerId)
       val purposeUuid: Option[UUID]      = Some(clientPurpose.purposeId)
-
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
 
       (mockPartyManagementService
         .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: String))
@@ -211,12 +186,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
   "Client delete" should {
     "succeed" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .deleteClient(_: UUID)(_: String))
         .expects(*, bearerToken)
@@ -229,12 +198,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
 
     "fail if client does not exist" in {
-      (mockJwtReader
-        .getClaims(_: String))
-        .expects(bearerToken)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
       (mockAuthorizationManagementService
         .deleteClient(_: UUID)(_: String))
         .expects(*, bearerToken)
