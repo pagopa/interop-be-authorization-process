@@ -113,7 +113,9 @@ final case class ClientApiServiceImpl(
         )
         createConsumerClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex) =>
-        logger.error("Error in creating CONSUMER client {} for consumer {}", clientSeed.name, clientSeed.consumerId, ex)
+        logger.error(
+          s"Error in creating CONSUMER client ${clientSeed.name} for consumer ${clientSeed.consumerId} - ${ex.getMessage}"
+        )
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientCreationError))
     }
   }
@@ -146,7 +148,9 @@ final case class ClientApiServiceImpl(
         )
         createApiClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex) =>
-        logger.error("Error in creating client {} for consumer {}", clientSeed.name, clientSeed.consumerId, ex)
+        logger.error(
+          s"Error in creating client ${clientSeed.name} for consumer ${clientSeed.consumerId} - ${ex.getMessage}"
+        )
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientCreationError))
     }
   }
@@ -172,13 +176,13 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(client) => getClient200(client)
       case Failure(MissingBearer) =>
-        logger.error("Error in getting client {}", clientId, MissingBearer)
+        logger.error(s"Error in getting client ${clientId} - ${MissingBearer.getMessage}")
         getClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error in getting client {}", clientId, ex)
+        logger.error(s"Error in getting client ${clientId} - ${ex.getMessage}")
         getClient404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId")))
       case Failure(ex) =>
-        logger.error("Error in getting client {}", clientId, ex)
+        logger.error(s"Error in getting client ${clientId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientRetrievalError))
     }
   }
@@ -198,7 +202,9 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerClients: ToEntityMarshaller[Clients],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
-    logger.info("Listing clients (offset: {} and limit: {}) for operator {} for consumer {}", offset, limit, consumerId)
+    logger.info(
+      s"Listing clients (offset: ${offset} and limit: ${limit}) for purposeId ${purposeId} and consumer ${consumerId} of kind ${kind}"
+    )
 
     // TODO Improve multiple requests
     val result: Future[Seq[Client]] = for {
@@ -249,29 +255,17 @@ final case class ClientApiServiceImpl(
       case Success(clients) => listClients200(Clients(clients))
       case Failure(ex: UUIDConversionError) =>
         logger.error(
-          "Error while listing clients (offset: {} and limit: {}) for operator {} for consumer {}",
-          offset,
-          limit,
-          consumerId,
-          ex
+          s"Error while listing clients (offset: ${offset} and limit: ${limit}) for purposeId ${purposeId} and consumer ${consumerId} of kind ${kind} - ${ex.getMessage}"
         )
         listClients400(problemOf(StatusCodes.BadRequest, ex))
       case Failure(MissingBearer) =>
         logger.error(
-          "Error while listing clients (offset: {} and limit: {}) for operator {} for consumer {}",
-          offset,
-          limit,
-          consumerId,
-          MissingBearer
+          s"Error while listing clients (offset: ${offset} and limit: ${limit}) for purposeId ${purposeId} and consumer ${consumerId} of kind ${kind} - ${MissingBearer.getMessage}"
         )
         listClients401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex) =>
         logger.error(
-          "Error while listing clients (offset: {} and limit: {}) for operator {} for consumer {}",
-          offset,
-          limit,
-          consumerId,
-          ex
+          s"Error while listing clients (offset: ${offset} and limit: ${limit}) for purposeId ${purposeId} and consumer ${consumerId} of kind ${kind} - ${ex.getMessage}"
         )
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientListingError))
     }
@@ -295,13 +289,13 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => deleteClient204
       case Failure(MissingBearer) =>
-        logger.error("Error while deleting client {} - {}", clientId, MissingBearer)
+        logger.error(s"Error while deleting client ${clientId} - ${MissingBearer.getMessage}")
         deleteClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while deleting client {} - {}", clientId, ex)
+        logger.error(s"Error while deleting client ${clientId} - ${ex.getMessage}")
         deleteClient404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId")))
       case Failure(ex) =>
-        logger.error("Error while deleting client {} - {}", clientId, ex)
+        logger.error(s"Error while deleting client ${clientId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientDeletionError))
     }
   }
@@ -334,19 +328,21 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(client) => clientOperatorRelationshipBinding201(client)
       case Failure(MissingBearer) =>
-        logger.error("Error while binding client {} with relationship {}", clientId, relationshipId, MissingBearer)
+        logger.error(
+          s"Error while binding client ${clientId} with relationship ${relationshipId} - ${MissingBearer.getMessage}"
+        )
         clientOperatorRelationshipBinding401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: UUIDConversionError) =>
-        logger.error("Error while binding client {} with relationship {}", clientId, relationshipId, ex)
+        logger.error(s"Error while binding client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}")
         clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, ex))
       case Failure(ex: SecurityOperatorRelationshipNotActive) =>
-        logger.error("Error while binding client {} with relationship {}", clientId, relationshipId, ex)
+        logger.error(s"Error while binding client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}")
         clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, ex))
       case Failure(ex: OperatorRelationshipAlreadyAssigned) =>
-        logger.error("Error while binding client {} with relationship {}", clientId, relationshipId, ex)
+        logger.error(s"Error while binding client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}")
         clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while binding client {} with relationship {}", clientId, relationshipId, ex)
+        logger.error(s"Error while binding client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}")
         clientOperatorRelationshipBinding404(
           problemOf(
             StatusCodes.NotFound,
@@ -354,7 +350,7 @@ final case class ClientApiServiceImpl(
           )
         )
       case Failure(ex) =>
-        logger.error("Error while binding client {} with relationship {}", clientId, relationshipId, ex)
+        logger.error(s"Error while binding client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, OperatorAdditionError))
     }
   }
@@ -385,16 +381,24 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => removeClientOperatorRelationship204
       case Failure(MissingBearer) =>
-        logger.error("Removing binding between client {} with relationship {}", clientId, relationshipId, MissingBearer)
+        logger.error(
+          s"Removing binding between client ${clientId} with relationship ${relationshipId} - ${MissingBearer.getMessage}"
+        )
         removeClientOperatorRelationship401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: UUIDConversionError) =>
-        logger.error("Removing binding between client {} with relationship {}", clientId, relationshipId, ex)
+        logger.error(
+          s"Removing binding between client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}"
+        )
         removeClientOperatorRelationship400(problemOf(StatusCodes.BadRequest, ex))
       case Failure(ex: UserNotAllowedToRemoveOwnRelationship) =>
-        logger.error("Removing binding between client {} with relationship {}", clientId, relationshipId, ex)
+        logger.error(
+          s"Removing binding between client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}"
+        )
         removeClientOperatorRelationship403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Removing binding between client {} with relationship {}", clientId, relationshipId, ex)
+        logger.error(
+          s"Removing binding between client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}"
+        )
         removeClientOperatorRelationship404(
           problemOf(
             StatusCodes.NotFound,
@@ -402,7 +406,9 @@ final case class ClientApiServiceImpl(
           )
         )
       case Failure(ex) =>
-        logger.error("Removing binding between client {} with relationship {}", clientId, relationshipId, ex)
+        logger.error(
+          s"Removing binding between client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}"
+        )
         internalServerError(problemOf(StatusCodes.InternalServerError, OperatorRemovalError))
     }
   }
@@ -427,15 +433,15 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(key) => getClientKeyById200(key)
       case Failure(MissingBearer) =>
-        logger.error("Error while getting client {} key by id {}", clientId, keyId, MissingBearer)
+        logger.error(s"Error while getting client ${clientId} key by id ${keyId} - ${MissingBearer.getMessage}")
         getClientKeyById401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while getting client {} key by id {}", clientId, keyId, ex)
+        logger.error(s"Error while getting client ${clientId} key by id ${keyId} - ${ex.getMessage}")
         getClientKeyById404(
           problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId - key id: $keyId"))
         )
       case Failure(ex) =>
-        logger.error("Error while getting client {} key by id {}", clientId, keyId, ex)
+        logger.error(s"Error while getting client ${clientId} key by id ${keyId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientKeyRetrievalError))
     }
   }
@@ -459,15 +465,15 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => deleteClientKeyById204
       case Failure(MissingBearer) =>
-        logger.error("Error while deleting client {} key by id {}", clientId, keyId, MissingBearer)
+        logger.error(s"Error while deleting client ${clientId} key by id ${keyId} - ${MissingBearer.getMessage}")
         deleteClientKeyById401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while deleting client {} key by id {}", clientId, keyId, ex)
+        logger.error(s"Error while deleting client ${clientId} key by id ${keyId} - ${ex.getMessage}")
         deleteClientKeyById404(
           problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId - key id: $keyId"))
         )
       case Failure(ex) =>
-        logger.error("Error while deleting client {} key by id {}", clientId, keyId, ex)
+        logger.error(s"Error while deleting client ${clientId} key by id ${keyId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientKeyDeletionError))
     }
   }
@@ -505,19 +511,19 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(keys) => createKeys201(keys)
       case Failure(MissingBearer) =>
-        logger.error("Error while creating keys for client {}", clientId, MissingBearer)
+        logger.error(s"Error while creating keys for client ${clientId} - ${MissingBearer.getMessage}")
         createKeys401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: EnumParameterError) =>
-        logger.error("Error while creating keys for client {}", clientId, ex)
+        logger.error(s"Error while creating keys for client ${clientId} - ${ex.getMessage}")
         createKeys400(problemOf(StatusCodes.BadRequest, ex))
       case Failure(ex: SecurityOperatorRelationshipNotFound) =>
-        logger.error("Error while creating keys for client {}", clientId, ex)
+        logger.error(s"Error while creating keys for client ${clientId} - ${ex.getMessage}")
         createKeys403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while creating keys for client {}", clientId, ex)
+        logger.error(s"Error while creating keys for client ${clientId} - ${ex.getMessage}")
         createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId")))
       case Failure(ex) =>
-        logger.error("Error while creating keys for client {}", clientId, ex)
+        logger.error(s"Error while creating keys for client ${clientId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientKeyCreationError))
     }
   }
@@ -542,13 +548,13 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(keys) => getClientKeys200(keys)
       case Failure(MissingBearer) =>
-        logger.error("Error while getting keys of client {}", clientId, MissingBearer)
+        logger.error(s"Error while getting keys of client ${clientId} - ${MissingBearer.getMessage}")
         getClientKeys401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while getting keys of client {}", clientId, ex)
+        logger.error(s"Error while getting keys of client ${clientId} - ${ex.getMessage}")
         getClientKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId ")))
       case Failure(ex) =>
-        logger.error("Error while getting keys of client {}", clientId, ex)
+        logger.error(s"Error while getting keys of client ${clientId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientKeysRetrievalError))
     }
   }
@@ -573,13 +579,13 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(keys) => getClientOperators200(keys)
       case Failure(MissingBearer) =>
-        logger.error("Error while getting operators of client {}", clientId, MissingBearer)
+        logger.error(s"Error while getting operators of client ${clientId} - ${MissingBearer.getMessage}")
         getClientOperators401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while getting operators of client {}", clientId, ex)
+        logger.error(s"Error while getting operators of client ${clientId} - ${ex.getMessage}")
         getClientOperators404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId ")))
       case Failure(ex) =>
-        logger.error("Error while getting operators of client {}", clientId, ex)
+        logger.error(s"Error while getting operators of client ${clientId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientOperatorsRetrievalError))
     }
   }
@@ -607,14 +613,13 @@ final case class ClientApiServiceImpl(
       case Success(operator) => getClientOperatorRelationshipById200(operator)
       case Failure(MissingBearer) =>
         logger.error(
-          "Error while getting operators of client {} by relationship {}",
-          clientId,
-          relationshipId,
-          MissingBearer
+          s"Error while getting operators of client ${clientId} by relationship ${relationshipId} - ${MissingBearer.getMessage}"
         )
         getClientOperatorRelationshipById401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while getting operators of client {} by relationship {}", clientId, relationshipId, ex)
+        logger.error(
+          s"Error while getting operators of client ${clientId} by relationship ${relationshipId} - ${ex.getMessage}"
+        )
         getClientOperatorRelationshipById404(
           problemOf(
             StatusCodes.NotFound,
@@ -622,10 +627,14 @@ final case class ClientApiServiceImpl(
           )
         )
       case Failure(ex: SecurityOperatorRelationshipNotFound) =>
-        logger.error("Error while getting operators of client {} by relationship {}", clientId, relationshipId, ex)
+        logger.error(
+          s"Error while getting operators of client ${clientId} by relationship ${relationshipId} - ${ex.getMessage}"
+        )
         getClientOperatorRelationshipById404(problemOf(StatusCodes.NotFound, ex))
       case Failure(ex) =>
-        logger.error("Error while getting operators of client {} by relationship {}", clientId, relationshipId, ex)
+        logger.error(
+          s"Error while getting operators of client ${clientId} by relationship ${relationshipId} - ${ex.getMessage}"
+        )
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientOperatorsRelationshipRetrievalError))
     }
   }
@@ -693,13 +702,15 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => addClientPurpose204
       case Failure(ex: PurposeManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error adding purpose {} to client {}", details.purposeId, clientId, ex)
+        logger.error(s"Error adding purpose ${details.purposeId} to client ${clientId} - ${ex.getMessage}")
         createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Purpose id ${details.purposeId}")))
       case Failure(ex: ClientPurposeAddAgreementNotFound) =>
-        logger.error("Error adding purpose {} to client {} - No valid Agreement found", details.purposeId, clientId, ex)
+        logger.error(
+          s"Error adding purpose ${details.purposeId} to client ${clientId} - No valid Agreement found - ${ex.getMessage}"
+        )
         createKeys400(problemOf(StatusCodes.BadRequest, ex))
       case Failure(ex) =>
-        logger.error("Error adding purpose {} to client {}", details.purposeId, clientId, ex)
+        logger.error(s"Error adding purpose ${details.purposeId} to client ${clientId} - ${ex.getMessage}")
         internalServerError(
           problemOf(StatusCodes.InternalServerError, ClientPurposeAddError(clientId, details.purposeId.toString))
         )
@@ -722,10 +733,10 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_) => addClientPurpose204
       case Failure(ex: PurposeManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error removing purpose {} from client {}", clientId, ex)
+        logger.error(s"Error removing purpose ${purposeId} from client ${clientId} - ${ex.getMessage}")
         createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Purpose id $purposeId")))
       case Failure(ex) =>
-        logger.error("Error removing purpose {} from client {}", clientId, ex)
+        logger.error(s"Error removing purpose ${purposeId} from client ${clientId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientPurposeRemoveError(clientId, purposeId)))
     }
   }
@@ -840,12 +851,12 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(key) => getEncodedClientKeyById200(key)
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error("Error while getting encoded client {} key by key id {}", clientId, keyId, ex)
+        logger.error(s"Error while getting encoded client ${clientId} key by key id ${keyId} - ${ex.getMessage}")
         getClientKeyById404(
           problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId - key id: $keyId"))
         )
       case Failure(ex) =>
-        logger.error("Error while getting encoded client {} key by key id {}", clientId, keyId, ex)
+        logger.error(s"Error while getting encoded client ${clientId} key by key id ${keyId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, EncodedClientKeyRetrievalError))
     }
   }
