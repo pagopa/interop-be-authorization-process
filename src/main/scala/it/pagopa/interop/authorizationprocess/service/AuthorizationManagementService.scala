@@ -3,7 +3,7 @@ package it.pagopa.interop.authorizationprocess.service
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.authorizationprocess.model.{
   Operator,
-  OperatorData,
+  OperatorDetails,
   ReadClientKey,
   ClientAgreementDetails => ApiClientAgreementDetails,
   ClientComponentState => ApiClientComponentState,
@@ -65,7 +65,7 @@ object AuthorizationManagementService {
     ReadClientKey(
       name = clientKey.name,
       createdAt = clientKey.createdAt,
-      operator = OperatorData(operator.relationshipId, operator.name, operator.surname),
+      operator = OperatorDetails(operator.relationshipId, operator.name, operator.surname),
       key = toApiKey(key)
     )
   }

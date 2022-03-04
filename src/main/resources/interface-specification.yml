@@ -906,8 +906,8 @@ components:
             $ref: '#/components/schemas/Client'
       required:
         - clients
-    OperatorData:
-      description: Contains some data about operator
+    OperatorDetails:
+      description: Contains some details about operator
       type: object
       properties:
         relationshipId:
@@ -1049,7 +1049,7 @@ components:
         name:
           type: string
         operator:
-          $ref: '#/components/schemas/OperatorData'
+          $ref: '#/components/schemas/OperatorDetails'
         createdAt:
           type: string
           format: date-time

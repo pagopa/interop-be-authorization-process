@@ -124,7 +124,7 @@ class KeyOperationSpec
         key = apiClientKey.key,
         name = apiClientKey.name,
         createdAt = apiClientKey.createdAt,
-        operator = OperatorData(relationshipId = relationship.id, name = user.name, surname = user.surname)
+        operator = OperatorDetails(relationshipId = relationship.id, name = user.name, surname = user.surname)
       )
 
       Get() ~> service.getClientKeys(client.id.toString) ~> check {
