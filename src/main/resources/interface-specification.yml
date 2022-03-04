@@ -1255,13 +1255,17 @@ components:
     ClientAgreementDetails:
       type: object
       properties:
-        agreementId:
+        eserviceId:
+          type: string
+          format: uuid
+        consumerId:
           type: string
           format: uuid
         state:
           $ref: '#/components/schemas/ClientComponentState'
       required:
-        - agreementId
+        - eserviceId
+        - consumerId
         - state
     ClientPurposeDetails:
       type: object

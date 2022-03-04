@@ -136,7 +136,11 @@ object AuthorizationManagementService {
     )
 
   def clientAgreementDetailsToApi(details: ClientAgreementDetails): ApiClientAgreementDetails =
-    ApiClientAgreementDetails(agreementId = details.agreementId, state = clientComponentStateToApi(details.state))
+    ApiClientAgreementDetails(
+      eserviceId = details.eserviceId,
+      consumerId = details.consumerId,
+      state = clientComponentStateToApi(details.state)
+    )
 
   def clientPurposeDetailsToApi(details: ClientPurposeDetails): ApiClientPurposeDetails =
     ApiClientPurposeDetails(purposeId = details.purposeId, state = clientComponentStateToApi(details.state))
