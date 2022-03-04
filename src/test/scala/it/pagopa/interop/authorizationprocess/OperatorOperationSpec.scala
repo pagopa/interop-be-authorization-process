@@ -10,7 +10,12 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipRoleToApi,
   relationshipStateToApi
 }
-import it.pagopa.interop.authorizationprocess.service.{AuthorizationManagementService, PartyManagementService}
+import it.pagopa.interop.authorizationprocess.service.{
+  AgreementManagementService,
+  AuthorizationManagementService,
+  CatalogManagementService,
+  PartyManagementService
+}
 import it.pagopa.interop.authorizationprocess.util.SpecUtils
 import it.pagopa.interop.partymanagement.client.{model => PartyManagementDependency}
 import org.scalamock.scalatest.MockFactory
@@ -59,11 +64,18 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
       mockClientComposition(withOperators = true, relationship = activeRelationship)
 
+      val expectedAgreement: Agreement = Agreement(
+        id = agreement.id,
+        eservice = CatalogManagementService.eServiceToApi(eService),
+        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId)),
+        state = AgreementManagementService.stateToApi(agreement.state)
+      )
+
       val expected = Client(
         id = client.id,
         consumer = Organization(consumer.institutionId, consumer.description),
         name = client.name,
-        purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
+        purposes = client.purposes.map(AuthorizationManagementService.purposeToApi(_, expectedAgreement)),
         description = client.description,
         operators = Some(
           Seq(

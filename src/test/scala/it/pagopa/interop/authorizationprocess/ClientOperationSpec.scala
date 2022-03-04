@@ -5,7 +5,12 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.model._
-import it.pagopa.interop.authorizationprocess.service.{AuthorizationManagementService, PartyManagementService}
+import it.pagopa.interop.authorizationprocess.service.{
+  AgreementManagementService,
+  AuthorizationManagementService,
+  CatalogManagementService,
+  PartyManagementService
+}
 import it.pagopa.interop.authorizationprocess.util.SpecUtils
 import it.pagopa.interop.partymanagement.client.model.Relationships
 import org.scalamock.scalatest.MockFactory
@@ -46,11 +51,18 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       mockClientComposition(withOperators = false)
 
+      val expectedAgreement: Agreement = Agreement(
+        id = agreement.id,
+        eservice = CatalogManagementService.eServiceToApi(eService),
+        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId)),
+        state = AgreementManagementService.stateToApi(agreement.state)
+      )
+
       val expected = Client(
         id = client.id,
         consumer = Organization(consumer.institutionId, consumer.description),
         name = client.name,
-        purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
+        purposes = client.purposes.map(AuthorizationManagementService.purposeToApi(_, expectedAgreement)),
         description = client.description,
         operators = Some(Seq.empty),
         kind = ClientKind.CONSUMER
@@ -81,12 +93,19 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       mockClientComposition(withOperators = false)
 
+      val expectedAgreement: Agreement = Agreement(
+        id = agreement.id,
+        eservice = CatalogManagementService.eServiceToApi(eService),
+        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId)),
+        state = AgreementManagementService.stateToApi(agreement.state)
+      )
+
       val expected =
         Client(
           id = client.id,
           consumer = Organization(consumer.institutionId, consumer.description),
           name = client.name,
-          purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
+          purposes = client.purposes.map(AuthorizationManagementService.purposeToApi(_, expectedAgreement)),
           description = client.description,
           operators = Some(Seq.empty),
           kind = ClientKind.CONSUMER
@@ -130,6 +149,20 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(Relationships(Seq(relationship))))
 
+      (mockAgreementManagementService
+        .getAgreements(_: String)(_: UUID, _: UUID))
+        .expects(bearerToken, client.purposes.head.states.eservice.eserviceId, client.consumerId)
+        .once()
+        .returns(Future.successful(Seq(agreement)))
+
+      (mockCatalogManagementService
+        .getEService(_: String)(_: UUID))
+        .expects(bearerToken, agreement.eserviceId)
+        .once()
+        .returns(
+          Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(id = agreement.descriptorId))))
+        )
+
       (mockAuthorizationManagementService
         .listClients(
           _: Option[Int],
@@ -157,13 +190,20 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(consumer))
 
+      val expectedAgreement: Agreement = Agreement(
+        id = agreement.id,
+        eservice = CatalogManagementService.eServiceToApi(eService),
+        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId)),
+        state = AgreementManagementService.stateToApi(agreement.state)
+      )
+
       val expected = Clients(
         List(
           Client(
             id = client.id,
             consumer = Organization(consumer.institutionId, consumer.description),
             name = client.name,
-            purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
+            purposes = client.purposes.map(AuthorizationManagementService.purposeToApi(_, expectedAgreement)),
             description = client.description,
             operators = Some(Seq.empty),
             kind = ClientKind.CONSUMER
