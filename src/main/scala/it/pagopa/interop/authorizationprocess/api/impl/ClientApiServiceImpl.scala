@@ -666,7 +666,11 @@ final case class ClientApiServiceImpl(
           voucherLifespan = descriptor.voucherLifespan
         ),
         agreement = AuthorizationManagementDependency
-          .ClientAgreementDetailsSeed(agreementId = agreement.id, state = agreementToComponentState(agreement)),
+          .ClientAgreementDetailsSeed(
+            eserviceId = agreement.eserviceId,
+            consumerId = agreement.consumerId,
+            state = agreementToComponentState(agreement)
+          ),
         purpose = AuthorizationManagementDependency.ClientPurposeDetailsSeed(
           purposeId = purpose.id,
           state = purposeToComponentState(purpose)

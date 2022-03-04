@@ -145,7 +145,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
           voucherLifespan = 10
         ),
         agreement = AuthorizationManagementDependency.ClientAgreementDetails(
-          agreementId = UUID.randomUUID(),
+          eserviceId = UUID.randomUUID(),
+          consumerId = UUID.randomUUID(),
           state = AuthorizationManagementDependency.ClientComponentState.ACTIVE
         ),
         purpose = AuthorizationManagementDependency.ClientPurposeDetails(
