@@ -11,7 +11,6 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipStateToApi
 }
 import it.pagopa.interop.authorizationprocess.service.{
-  AgreementManagementService,
   AuthorizationManagementService,
   CatalogManagementService,
   PartyManagementService
@@ -67,8 +66,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       val expectedAgreement: Agreement = Agreement(
         id = agreement.id,
         eservice = CatalogManagementService.eServiceToApi(eService),
-        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId)),
-        state = AgreementManagementService.stateToApi(agreement.state)
+        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId))
       )
 
       val expected = Client(

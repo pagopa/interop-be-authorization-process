@@ -6,7 +6,6 @@ import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.{
-  AgreementManagementService,
   AuthorizationManagementService,
   CatalogManagementService,
   PartyManagementService
@@ -54,8 +53,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expectedAgreement: Agreement = Agreement(
         id = agreement.id,
         eservice = CatalogManagementService.eServiceToApi(eService),
-        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId)),
-        state = AgreementManagementService.stateToApi(agreement.state)
+        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId))
       )
 
       val expected = Client(
@@ -96,8 +94,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expectedAgreement: Agreement = Agreement(
         id = agreement.id,
         eservice = CatalogManagementService.eServiceToApi(eService),
-        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId)),
-        state = AgreementManagementService.stateToApi(agreement.state)
+        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId))
       )
 
       val expected =
@@ -193,8 +190,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expectedAgreement: Agreement = Agreement(
         id = agreement.id,
         eservice = CatalogManagementService.eServiceToApi(eService),
-        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId)),
-        state = AgreementManagementService.stateToApi(agreement.state)
+        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId))
       )
 
       val expected = Clients(

@@ -1290,21 +1290,10 @@ components:
           $ref: '#/components/schemas/EService'
         descriptor:
           $ref: '#/components/schemas/EServiceDescriptor'
-        state:
-          $ref: '#/components/schemas/AgreementState'
       required:
         - id
         - eservice
         - descriptor
-        - state
-    AgreementState:
-      type: string
-      description: Agreement State
-      enum:
-        - ACTIVE
-        - PENDING
-        - SUSPENDED
-        - INACTIVE
     EService:
       type: object
       properties:
@@ -1324,21 +1313,9 @@ components:
           format: uuid
         version:
           type: string
-        state:
-          $ref: '#/components/schemas/EServiceDescriptorState'
       required:
         - id
         - version
-        - state
-    EServiceDescriptorState:
-      type: string
-      description: EService Descriptor State
-      enum:
-        - DRAFT
-        - PUBLISHED
-        - DEPRECATED
-        - SUSPENDED
-        - ARCHIVED
     Problem:
       properties:
         type:
