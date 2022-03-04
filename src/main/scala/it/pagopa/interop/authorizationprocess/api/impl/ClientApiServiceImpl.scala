@@ -719,20 +719,40 @@ final case class ClientApiServiceImpl(
   }
 
   private[this] def getClient(bearerToken: String, client: AuthorizationManagementDependency.Client): Future[Client] = {
-    for {
-      consumer  <- partyManagementService.getOrganization(client.consumerId)(bearerToken)
-      operators <- operatorsFromClient(client)(bearerToken)
-      agreements <- client.purposes.traverse(p =>
-        agreementManagementService
-          .getAgreements(bearerToken)(p.states.eservice.eserviceId, client.consumerId)
-          .map(_.sortBy(_.createdAt).lastOption.map(a => (p, a)))
+    def getLatestAgreement(
+      purpose: AuthorizationManagementDependency.Purpose
+    ): Future[AgreementManagementDependency.Agreement] = {
+      val eServiceId = purpose.states.eservice.eserviceId
+      agreementManagementService
+        .getAgreements(bearerToken)(eServiceId, client.consumerId)
+        .flatMap(
+          _.sortBy(_.createdAt).lastOption
+            .toFuture(AgreementNotFound(eServiceId.toString, client.consumerId.toString))
+        )
+    }
+
+    def enrichPurpose(
+      purpose: AuthorizationManagementDependency.Purpose,
+      agreement: AgreementManagementDependency.Agreement
+    ): Future[
+      (
+        AuthorizationManagementDependency.Purpose,
+        AgreementManagementDependency.Agreement,
+        CatalogManagementDependency.EService,
+        CatalogManagementDependency.EServiceDescriptor
       )
-      purposesDetails <- agreements.flatten.traverse { case (purpose, agreement) =>
-        for {
-          eService   <- catalogManagementService.getEService(bearerToken)(agreement.eserviceId)
-          descriptor <- eService.descriptors.find(_.id == agreement.descriptorId).toFuture(new RuntimeException())
-        } yield (purpose, agreement, eService, descriptor)
-      }
+    ] = for {
+      eService <- catalogManagementService.getEService(bearerToken)(agreement.eserviceId)
+      descriptor <- eService.descriptors
+        .find(_.id == agreement.descriptorId)
+        .toFuture(DescriptorNotFound(agreement.eserviceId.toString, agreement.descriptorId.toString))
+    } yield (purpose, agreement, eService, descriptor)
+
+    for {
+      consumer        <- partyManagementService.getOrganization(client.consumerId)(bearerToken)
+      operators       <- operatorsFromClient(client)(bearerToken)
+      agreements      <- client.purposes.traverse(purpose => getLatestAgreement(purpose).map(a => (purpose, a)))
+      purposesDetails <- agreements.traverse(t => (enrichPurpose _).tupled(t))
     } yield clientToApi(client, consumer, purposesDetails, operators)
   }
 
