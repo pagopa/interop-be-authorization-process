@@ -83,4 +83,10 @@ object AuthorizationProcessErrors {
         s"A user is not allowed to remove own relationship from client. Client $clientId Relationship $relationshipId"
       )
 
+  final case class AgreementNotFound(eServiceId: String, consumerId: String)
+      extends ComponentError("0048", s"Agreement not found for EService $eServiceId and Consumer $consumerId")
+
+  final case class DescriptorNotFound(eServiceId: String, descriptorId: String)
+      extends ComponentError("0049", s"Descriptor $descriptorId not found for EService $eServiceId")
+
 }

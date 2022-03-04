@@ -2,6 +2,7 @@ package it.pagopa.interop.authorizationprocess.service
 
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.authorizationprocess.model.{
+  Agreement,
   Operator,
   OperatorDetails,
   ReadClientKey,
@@ -115,8 +116,8 @@ object AuthorizationManagementService {
       case ApiKeyUse.ENC => KeyUse.ENC
     }
 
-  def purposeToApi(purpose: Purpose): ApiPurpose =
-    ApiPurpose(purposeId = purpose.purposeId, states = clientStatesChainToApi(purpose.states))
+  def purposeToApi(purpose: Purpose, agreement: Agreement): ApiPurpose =
+    ApiPurpose(purposeId = purpose.purposeId, states = clientStatesChainToApi(purpose.states), agreement = agreement)
 
   def clientStatesChainToApi(states: ClientStatesChain): ApiClientStatesChain =
     ApiClientStatesChain(

@@ -9,7 +9,7 @@ import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop._
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError => AuthorizationManagementApiError}
-import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationmanagementDependency}
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.api.ClientApiService
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
@@ -183,7 +183,7 @@ final case class ClientApiServiceImpl(
       bearerToken  <- getFutureBearer(contexts)
       personId     <- getUidFuture(contexts).flatMap(_.toFutureUUID)
       consumerUuid <- consumerId.toFutureUUID
-      clientKind   <- kind.traverse(AuthorizationmanagementDependency.ClientKind.fromValue).toFuture
+      clientKind   <- kind.traverse(AuthorizationManagementDependency.ClientKind.fromValue).toFuture
       relationships <-
         partyManagementService
           .getRelationships(
@@ -624,26 +624,26 @@ final case class ClientApiServiceImpl(
 
     def descriptorToComponentState(
       descriptor: CatalogManagementDependency.EServiceDescriptor
-    ): AuthorizationmanagementDependency.ClientComponentState = descriptor.state match {
+    ): AuthorizationManagementDependency.ClientComponentState = descriptor.state match {
       case CatalogManagementDependency.EServiceDescriptorState.PUBLISHED =>
-        AuthorizationmanagementDependency.ClientComponentState.ACTIVE
-      case _ => AuthorizationmanagementDependency.ClientComponentState.INACTIVE
+        AuthorizationManagementDependency.ClientComponentState.ACTIVE
+      case _ => AuthorizationManagementDependency.ClientComponentState.INACTIVE
     }
 
     def agreementToComponentState(
       agreement: AgreementManagementDependency.Agreement
-    ): AuthorizationmanagementDependency.ClientComponentState = agreement.state match {
+    ): AuthorizationManagementDependency.ClientComponentState = agreement.state match {
       case AgreementManagementDependency.AgreementState.ACTIVE =>
-        AuthorizationmanagementDependency.ClientComponentState.ACTIVE
-      case _ => AuthorizationmanagementDependency.ClientComponentState.INACTIVE
+        AuthorizationManagementDependency.ClientComponentState.ACTIVE
+      case _ => AuthorizationManagementDependency.ClientComponentState.INACTIVE
     }
 
     def purposeToComponentState(
       purpose: PurposeManagementDependency.Purpose
-    ): AuthorizationmanagementDependency.ClientComponentState =
+    ): AuthorizationManagementDependency.ClientComponentState =
       if (purpose.versions.exists(_.state == PurposeManagementDependency.PurposeVersionState.ACTIVE))
-        AuthorizationmanagementDependency.ClientComponentState.ACTIVE
-      else AuthorizationmanagementDependency.ClientComponentState.INACTIVE
+        AuthorizationManagementDependency.ClientComponentState.ACTIVE
+      else AuthorizationManagementDependency.ClientComponentState.INACTIVE
 
     val result: Future[Unit] = for {
       bearerToken <- getFutureBearer(contexts)
@@ -658,21 +658,21 @@ final case class ClientApiServiceImpl(
       descriptor <- eService.descriptors
         .find(_.id == agreement.descriptorId)
         .toFuture(ClientPurposeAddDescriptorNotFound(purpose.eserviceId.toString, agreement.descriptorId.toString))
-      states = AuthorizationmanagementDependency.ClientStatesChainSeed(
-        eservice = AuthorizationmanagementDependency.ClientEServiceDetailsSeed(
+      states = AuthorizationManagementDependency.ClientStatesChainSeed(
+        eservice = AuthorizationManagementDependency.ClientEServiceDetailsSeed(
           eserviceId = eService.id,
           state = descriptorToComponentState(descriptor),
           audience = descriptor.audience,
           voucherLifespan = descriptor.voucherLifespan
         ),
-        agreement = AuthorizationmanagementDependency
+        agreement = AuthorizationManagementDependency
           .ClientAgreementDetailsSeed(agreementId = agreement.id, state = agreementToComponentState(agreement)),
-        purpose = AuthorizationmanagementDependency.ClientPurposeDetailsSeed(
+        purpose = AuthorizationManagementDependency.ClientPurposeDetailsSeed(
           purposeId = purpose.id,
           state = purposeToComponentState(purpose)
         )
       )
-      seed = AuthorizationmanagementDependency.PurposeSeed(details.purposeId, states)
+      seed = AuthorizationManagementDependency.PurposeSeed(details.purposeId, states)
       _ <- authorizationManagementService.addClientPurpose(clientUuid, seed)(bearerToken)
     } yield ()
 
@@ -718,11 +718,42 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  private[this] def getClient(bearerToken: String, client: AuthorizationmanagementDependency.Client): Future[Client] = {
+  private[this] def getClient(bearerToken: String, client: AuthorizationManagementDependency.Client): Future[Client] = {
+    def getLatestAgreement(
+      purpose: AuthorizationManagementDependency.Purpose
+    ): Future[AgreementManagementDependency.Agreement] = {
+      val eServiceId = purpose.states.eservice.eserviceId
+      agreementManagementService
+        .getAgreements(bearerToken)(eServiceId, client.consumerId)
+        .flatMap(
+          _.sortBy(_.createdAt).lastOption
+            .toFuture(AgreementNotFound(eServiceId.toString, client.consumerId.toString))
+        )
+    }
+
+    def enrichPurpose(
+      purpose: AuthorizationManagementDependency.Purpose,
+      agreement: AgreementManagementDependency.Agreement
+    ): Future[
+      (
+        AuthorizationManagementDependency.Purpose,
+        AgreementManagementDependency.Agreement,
+        CatalogManagementDependency.EService,
+        CatalogManagementDependency.EServiceDescriptor
+      )
+    ] = for {
+      eService <- catalogManagementService.getEService(bearerToken)(agreement.eserviceId)
+      descriptor <- eService.descriptors
+        .find(_.id == agreement.descriptorId)
+        .toFuture(DescriptorNotFound(agreement.eserviceId.toString, agreement.descriptorId.toString))
+    } yield (purpose, agreement, eService, descriptor)
+
     for {
-      consumer  <- partyManagementService.getOrganization(client.consumerId)(bearerToken)
-      operators <- operatorsFromClient(client)(bearerToken)
-    } yield clientToApi(client, consumer, operators)
+      consumer        <- partyManagementService.getOrganization(client.consumerId)(bearerToken)
+      operators       <- operatorsFromClient(client)(bearerToken)
+      agreements      <- client.purposes.traverse(purpose => getLatestAgreement(purpose).map(a => (purpose, a)))
+      purposesDetails <- agreements.traverse(t => (enrichPurpose _).tupled(t))
+    } yield clientToApi(client, consumer, purposesDetails, operators)
   }
 
   private[this] def getSecurityRelationship(
@@ -765,7 +796,7 @@ final case class ClientApiServiceImpl(
       securityOperatorRel = activeRelationships.headOption // Only one expected
     } yield securityOperatorRel
 
-  private[this] def operatorsFromClient(client: AuthorizationmanagementDependency.Client)(
+  private[this] def operatorsFromClient(client: AuthorizationManagementDependency.Client)(
     bearerToken: String
   ): Future[Seq[Operator]] =
     client.relationships.toSeq.traverse(r => operatorFromRelationship(r)(bearerToken))
@@ -794,19 +825,40 @@ final case class ClientApiServiceImpl(
     )
 
   private[this] def clientToApi(
-    client: AuthorizationmanagementDependency.Client,
+    client: AuthorizationManagementDependency.Client,
     consumer: PartyManagementDependency.Organization,
+    purposesDetails: Seq[
+      (
+        AuthorizationManagementDependency.Purpose,
+        AgreementManagementDependency.Agreement,
+        CatalogManagementDependency.EService,
+        CatalogManagementDependency.EServiceDescriptor
+      )
+    ],
     operator: Seq[Operator]
-  ): Client =
+  ): Client = {
+    def purposeToApi(
+      purpose: AuthorizationManagementDependency.Purpose,
+      agreement: AgreementManagementDependency.Agreement,
+      eService: CatalogManagementDependency.EService,
+      descriptor: CatalogManagementDependency.EServiceDescriptor
+    ): Purpose = {
+      val apiEService   = CatalogManagementService.eServiceToApi(eService)
+      val apiDescriptor = CatalogManagementService.descriptorToApi(descriptor)
+      val apiAgreement  = AgreementManagementService.agreementToApi(agreement, apiEService, apiDescriptor)
+      AuthorizationManagementService.purposeToApi(purpose, apiAgreement)
+    }
+
     Client(
       id = client.id,
       consumer = PartyManagementService.organizationToApi(consumer),
       name = client.name,
-      purposes = client.purposes.map(AuthorizationManagementService.purposeToApi),
+      purposes = purposesDetails.map(t => (purposeToApi _).tupled(t)),
       description = client.description,
       operators = Some(operator),
       kind = AuthorizationManagementService.convertToApiClientKind(client.kind)
     )
+  }
 
   /** Code: 200, Message: returns the corresponding base 64 encoded key, DataType: EncodedClientKey
     * Code: 401, Message: Unauthorized, DataType: Problem

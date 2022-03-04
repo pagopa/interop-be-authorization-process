@@ -1201,9 +1201,12 @@ components:
           format: uuid
         states:
           $ref: '#/components/schemas/ClientStatesChain'
+        agreement:
+          $ref: '#/components/schemas/Agreement'
       required:
         - purposeId
         - states
+        - agreement
     PurposeAdditionDetails:
       type: object
       properties:
@@ -1277,6 +1280,42 @@ components:
       enum:
         - ACTIVE
         - INACTIVE
+    Agreement:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eservice:
+          $ref: '#/components/schemas/EService'
+        descriptor:
+          $ref: '#/components/schemas/EServiceDescriptor'
+      required:
+        - id
+        - eservice
+        - descriptor
+    EService:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required:
+        - id
+        - name
+    EServiceDescriptor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: string
+      required:
+        - id
+        - version
     Problem:
       properties:
         type:
