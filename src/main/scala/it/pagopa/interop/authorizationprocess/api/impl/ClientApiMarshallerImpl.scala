@@ -38,4 +38,6 @@ case object ClientApiMarshallerImpl extends ClientApiMarshaller with SprayJsonSu
   override implicit def fromEntityUnmarshallerPurposeAdditionDetails: FromEntityUnmarshaller[PurposeAdditionDetails] =
     sprayJsonUnmarshaller[PurposeAdditionDetails]
 
+  override implicit def toEntityMarshallerReadClientKeys: ToEntityMarshaller[ReadClientKeys] =
+    sprayJsonMarshaller[ReadClientKeys]
 }
