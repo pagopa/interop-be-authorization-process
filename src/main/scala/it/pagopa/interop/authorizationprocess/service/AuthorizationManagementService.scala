@@ -116,8 +116,13 @@ object AuthorizationManagementService {
       case ApiKeyUse.ENC => KeyUse.ENC
     }
 
-  def purposeToApi(purpose: Purpose, agreement: Agreement): ApiPurpose =
-    ApiPurpose(purposeId = purpose.purposeId, states = clientStatesChainToApi(purpose.states), agreement = agreement)
+  def purposeToApi(purpose: Purpose, purposeTitle: String, agreement: Agreement): ApiPurpose =
+    ApiPurpose(
+      purposeId = purpose.purposeId,
+      title = purposeTitle,
+      states = clientStatesChainToApi(purpose.states),
+      agreement = agreement
+    )
 
   def clientStatesChainToApi(states: ClientStatesChain): ApiClientStatesChain =
     ApiClientStatesChain(

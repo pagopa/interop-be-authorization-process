@@ -1199,12 +1199,15 @@ components:
         purposeId:
           type: string
           format: uuid
+        title:
+          type: string
         states:
           $ref: '#/components/schemas/ClientStatesChain'
         agreement:
           $ref: '#/components/schemas/Agreement'
       required:
         - purposeId
+        - title
         - states
         - agreement
     PurposeAdditionDetails:

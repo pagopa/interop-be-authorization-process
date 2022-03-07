@@ -736,27 +736,29 @@ final case class ClientApiServiceImpl(
     }
 
     def enrichPurpose(
-      purpose: AuthorizationManagementDependency.Purpose,
+      clientPurpose: AuthorizationManagementDependency.Purpose,
       agreement: AgreementManagementDependency.Agreement
     ): Future[
       (
         AuthorizationManagementDependency.Purpose,
+        PurposeManagementDependency.Purpose,
         AgreementManagementDependency.Agreement,
         CatalogManagementDependency.EService,
         CatalogManagementDependency.EServiceDescriptor
       )
     ] = for {
+      purpose  <- purposeManagementService.getPurpose(bearerToken)(clientPurpose.purposeId)
       eService <- catalogManagementService.getEService(bearerToken)(agreement.eserviceId)
       descriptor <- eService.descriptors
         .find(_.id == agreement.descriptorId)
         .toFuture(DescriptorNotFound(agreement.eserviceId.toString, agreement.descriptorId.toString))
-    } yield (purpose, agreement, eService, descriptor)
+    } yield (clientPurpose, purpose, agreement, eService, descriptor)
 
     for {
-      consumer        <- partyManagementService.getOrganization(client.consumerId)(bearerToken)
-      operators       <- operatorsFromClient(client)(bearerToken)
-      agreements      <- client.purposes.traverse(purpose => getLatestAgreement(purpose).map(a => (purpose, a)))
-      purposesDetails <- agreements.traverse(t => (enrichPurpose _).tupled(t))
+      consumer              <- partyManagementService.getOrganization(client.consumerId)(bearerToken)
+      operators             <- operatorsFromClient(client)(bearerToken)
+      purposesAndAgreements <- client.purposes.traverse(purpose => getLatestAgreement(purpose).map((purpose, _)))
+      purposesDetails       <- purposesAndAgreements.traverse(t => (enrichPurpose _).tupled(t))
     } yield clientToApi(client, consumer, purposesDetails, operators)
   }
 
@@ -834,6 +836,7 @@ final case class ClientApiServiceImpl(
     purposesDetails: Seq[
       (
         AuthorizationManagementDependency.Purpose,
+        PurposeManagementDependency.Purpose,
         AgreementManagementDependency.Agreement,
         CatalogManagementDependency.EService,
         CatalogManagementDependency.EServiceDescriptor
@@ -842,7 +845,8 @@ final case class ClientApiServiceImpl(
     operator: Seq[Operator]
   ): Client = {
     def purposeToApi(
-      purpose: AuthorizationManagementDependency.Purpose,
+      clientPurpose: AuthorizationManagementDependency.Purpose,
+      purpose: PurposeManagementDependency.Purpose,
       agreement: AgreementManagementDependency.Agreement,
       eService: CatalogManagementDependency.EService,
       descriptor: CatalogManagementDependency.EServiceDescriptor
@@ -850,7 +854,7 @@ final case class ClientApiServiceImpl(
       val apiEService   = CatalogManagementService.eServiceToApi(eService)
       val apiDescriptor = CatalogManagementService.descriptorToApi(descriptor)
       val apiAgreement  = AgreementManagementService.agreementToApi(agreement, apiEService, apiDescriptor)
-      AuthorizationManagementService.purposeToApi(purpose, apiAgreement)
+      AuthorizationManagementService.purposeToApi(clientPurpose, purpose.title, apiAgreement)
     }
 
     Client(

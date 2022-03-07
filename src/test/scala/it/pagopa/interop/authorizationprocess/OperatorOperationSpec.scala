@@ -73,7 +73,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         id = client.id,
         consumer = Organization(consumer.institutionId, consumer.description),
         name = client.name,
-        purposes = client.purposes.map(AuthorizationManagementService.purposeToApi(_, expectedAgreement)),
+        purposes =
+          client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
         description = client.description,
         operators = Some(
           Seq(
