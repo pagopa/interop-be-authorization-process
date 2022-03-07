@@ -239,11 +239,22 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       .once()
       .returns(Future.successful(Seq(agreement)))
 
-    (mockCatalogManagementService
-      .getEService(_: String)(_: UUID))
-      .expects(bearerToken, agreement.eserviceId)
-      .once()
-      .returns(Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(id = agreement.descriptorId)))))
+    client.purposes.foreach { clientPurpose =>
+      (mockPurposeManagementService
+        .getPurpose(_: String)(_: UUID))
+        .expects(bearerToken, clientPurpose.purposeId)
+        .once()
+        .returns(Future.successful(purpose.copy(eserviceId = eService.id, consumerId = consumer.id)))
+
+      (mockCatalogManagementService
+        .getEService(_: String)(_: UUID))
+        .expects(bearerToken, agreement.eserviceId)
+        .once()
+        .returns(
+          Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(id = agreement.descriptorId))))
+        )
+
+    }
 
     if (withOperators) {
       (mockPartyManagementService

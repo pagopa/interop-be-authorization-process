@@ -60,7 +60,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         id = client.id,
         consumer = Organization(consumer.institutionId, consumer.description),
         name = client.name,
-        purposes = client.purposes.map(AuthorizationManagementService.purposeToApi(_, expectedAgreement)),
+        purposes =
+          client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
         description = client.description,
         operators = Some(Seq.empty),
         kind = ClientKind.CONSUMER
@@ -102,7 +103,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           id = client.id,
           consumer = Organization(consumer.institutionId, consumer.description),
           name = client.name,
-          purposes = client.purposes.map(AuthorizationManagementService.purposeToApi(_, expectedAgreement)),
+          purposes =
+            client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
           description = client.description,
           operators = Some(Seq.empty),
           kind = ClientKind.CONSUMER
@@ -152,6 +154,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(Seq(agreement)))
 
+      (mockPurposeManagementService
+        .getPurpose(_: String)(_: UUID))
+        .expects(bearerToken, clientPurpose.purposeId)
+        .once()
+        .returns(Future.successful(purpose.copy(eserviceId = eService.id, consumerId = consumer.id)))
+
       (mockCatalogManagementService
         .getEService(_: String)(_: UUID))
         .expects(bearerToken, agreement.eserviceId)
@@ -199,7 +207,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
             id = client.id,
             consumer = Organization(consumer.institutionId, consumer.description),
             name = client.name,
-            purposes = client.purposes.map(AuthorizationManagementService.purposeToApi(_, expectedAgreement)),
+            purposes =
+              client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
             description = client.description,
             operators = Some(Seq.empty),
             kind = ClientKind.CONSUMER
