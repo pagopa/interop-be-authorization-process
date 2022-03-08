@@ -1,6 +1,6 @@
 package it.pagopa.interop.authorizationprocess.util
 
-import it.pagopa.interop.authorizationprocess.model.{ClientKey, ClientKeys, ReadClientKeys}
+import it.pagopa.interop.authorizationprocess.model.{ReadClientKey, ClientKey, ClientKeys, ReadClientKeys}
 import org.scalatest.matchers.{MatchResult, Matcher}
 
 trait CustomMatchers {
@@ -26,6 +26,17 @@ trait CustomMatchers {
     }
   }
 
+  class ReadClientKeyMatcher(expectedKey: ReadClientKey) extends Matcher[ReadClientKey] {
+    def apply(left: ReadClientKey) = {
+      val clientKey = left.key
+      MatchResult(
+        clientKey == expectedKey.key,
+        s"""Read client key $clientKey is not equal to "${expectedKey.key}"""",
+        s"""Read client key $clientKey is equal to "${expectedKey.key}""""
+      )
+    }
+  }
+
   class ReadClientKeysMatcher(expectedKeys: ReadClientKeys) extends Matcher[ReadClientKeys] {
     def apply(left: ReadClientKeys) = {
       val clientKeys = left.keys.map(_.key)
@@ -39,6 +50,7 @@ trait CustomMatchers {
 
   def haveTheSameKey(expectedKey: ClientKey)                = new ClientKeyMatcher(expectedKey)
   def haveTheSameKeys(expectedKeys: ClientKeys)             = new ClientKeysMatcher(expectedKeys)
+  def haveTheSameReadKey(expectedReadKey: ReadClientKey)    = new ReadClientKeyMatcher(expectedReadKey)
   def haveTheSameReadKeys(expectedReadKeys: ReadClientKeys) = new ReadClientKeysMatcher(expectedReadKeys)
 }
 

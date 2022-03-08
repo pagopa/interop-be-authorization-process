@@ -24,7 +24,7 @@ class OperatorKeyOperationSpec
     with ScalatestRouteTest
     with CustomMatchers {
 
-  import clientApiMarshaller._
+  import operatorApiMarshaller._
 
   val service: OperatorApiServiceImpl =
     OperatorApiServiceImpl(mockAuthorizationManagementService, mockPartyManagementService)(ExecutionContext.global)

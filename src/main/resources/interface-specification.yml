@@ -455,7 +455,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClientKey'
+                $ref: '#/components/schemas/ReadClientKey'
         '401':
           description: Unauthorized
           content:
