@@ -392,18 +392,19 @@ final case class ClientApiServiceImpl(
     */
   override def getClientKeyById(clientId: String, keyId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerClientKey: ToEntityMarshaller[ClientKey],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerReadClientKey: ToEntityMarshaller[ReadClientKey]
   ): Route = {
     logger.info("Getting client {} key by id {}", clientId, keyId)
     val result = for {
       bearerToken <- getFutureBearer(contexts)
       clientUuid  <- clientId.toFutureUUID
       key         <- authorizationManagementService.getKey(clientUuid, keyId)(bearerToken)
-    } yield AuthorizationManagementService.keyToApi(key)
+      operator    <- operatorFromRelationship(key.relationshipId)(bearerToken)
+    } yield AuthorizationManagementService.readKeyToApi(key, operator)
 
     onComplete(result) {
-      case Success(key) => getClientKeyById200(key)
+      case Success(readKey) => getClientKeyById200(readKey)
       case Failure(MissingBearer) =>
         logger.error(s"Error while getting client ${clientId} key by id ${keyId} - ${MissingBearer.getMessage}")
         getClientKeyById401(problemOf(StatusCodes.Unauthorized, MissingBearer))
