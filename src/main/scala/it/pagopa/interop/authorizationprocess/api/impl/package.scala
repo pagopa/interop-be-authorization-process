@@ -9,11 +9,8 @@ import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 package object impl extends SprayJsonSupport with DefaultJsonProtocol {
 
-  implicit val problemErrorFormat: RootJsonFormat[ProblemError] = jsonFormat2(ProblemError)
-  implicit val problemFormat: RootJsonFormat[Problem]           = jsonFormat5(Problem)
-  implicit val clientCredentialsResponseFormat: RootJsonFormat[ClientCredentialsResponse] = jsonFormat3(
-    ClientCredentialsResponse
-  )
+  implicit val problemErrorFormat: RootJsonFormat[ProblemError]           = jsonFormat2(ProblemError)
+  implicit val problemFormat: RootJsonFormat[Problem]                     = jsonFormat5(Problem)
   implicit val organizationFormat: RootJsonFormat[Organization]           = jsonFormat2(Organization)
   implicit val operatorProductFormat: RootJsonFormat[RelationshipProduct] = jsonFormat3(RelationshipProduct)
   implicit val operatorFormat: RootJsonFormat[Operator]                   = jsonFormat7(Operator)
@@ -24,7 +21,6 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val encodedClientKeyFormat: RootJsonFormat[EncodedClientKey]   = jsonFormat1(EncodedClientKey)
   implicit val clientKeysFormat: RootJsonFormat[ClientKeys]               = jsonFormat1(ClientKeys)
   implicit val keySeedFormat: RootJsonFormat[KeySeed]                     = jsonFormat5(KeySeed)
-  implicit val operatorKeySeedFormat: RootJsonFormat[OperatorKeySeed]     = jsonFormat5(OperatorKeySeed)
   implicit val OperatorDetailsFormat: RootJsonFormat[OperatorDetails]     = jsonFormat3(OperatorDetails)
   implicit val readClientKeyFormat: RootJsonFormat[ReadClientKey]         = jsonFormat4(ReadClientKey)
   implicit val readClientKeysFormat: RootJsonFormat[ReadClientKeys]       = jsonFormat1(ReadClientKeys)
