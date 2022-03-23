@@ -3,7 +3,7 @@ object Versions {
   lazy val akkaHttpVersion          = "10.2.6"
   lazy val akkaManagementVersion    = "1.1.1"
   lazy val akkaPersistenceS3Version = "1.0.16"
-  lazy val akkaVersion              = "2.6.17"
+  lazy val akkaVersion              = "2.6.19"
   lazy val bouncycastleVersion      = "1.70"
   lazy val catsVersion              = "2.7.0"
   lazy val jacksonVersion           = "2.11.4" // This cannot be updated yet because akka-serialization use 2.11.x version
