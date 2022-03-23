@@ -53,7 +53,7 @@ trait JWTMaker {
     val signer = if (algo == "RSA") new RSASSASigner(jwk.toRSAKey.toPrivateKey) else new ECDSASigner(jwk.toECKey)
 
     val claimsSet = new JWTClaimsSet.Builder()
-      .issuer(ApplicationConfiguration.getInteropIdIssuer) //TODO Interop issuer uuid
+      .issuer(ApplicationConfiguration.getInteropIdIssuer) // TODO Interop issuer uuid
       .subject(clientId)
       .jwtID(UUID.randomUUID.toString)
       .audience(audience)

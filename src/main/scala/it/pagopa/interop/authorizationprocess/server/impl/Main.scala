@@ -67,10 +67,10 @@ trait UserRegistryManagementDependency {
 }
 
 trait AuthorizationManagementDependency {
-  val authorizationManagementClientApi: AuthorizationClientApi = AuthorizationClientApi(
+  val authorizationManagementClientApi: AuthorizationClientApi       = AuthorizationClientApi(
     ApplicationConfiguration.getAuthorizationManagementURL
   )
-  val authorizationManagementKeyApi: AuthorizationKeyApi = AuthorizationKeyApi(
+  val authorizationManagementKeyApi: AuthorizationKeyApi             = AuthorizationKeyApi(
     ApplicationConfiguration.getAuthorizationManagementURL
   )
   val authorizationManagementService: AuthorizationManagementService = AuthorizationManagementServiceImpl(
@@ -115,7 +115,7 @@ object Main
   val dependenciesLoaded: Future[JWTReader] = for {
     keyset <- JWTConfiguration.jwtReader.loadKeyset().toFuture
     jwtValidator = new DefaultJWTReader with PublicKeysHolder {
-      var publicKeyset: Map[KID, SerializedKey] = keyset
+      var publicKeyset: Map[KID, SerializedKey]                                        = keyset
       override protected val claimsVerifier: DefaultJWTClaimsVerifier[SecurityContext] =
         getClaimsVerifier(audience = ApplicationConfiguration.jwtAudience)
     }
@@ -123,7 +123,7 @@ object Main
 
   dependenciesLoaded.transformWith {
     case Success(jwtValidator) => launchApp(jwtValidator)
-    case Failure(ex) =>
+    case Failure(ex)           =>
       classicActorSystem.log.error(s"Startup error: ${ex.getMessage}")
       classicActorSystem.log.error(s"${ex.getStackTrace.mkString("\n")}")
       CoordinatedShutdown(classicActorSystem).run(StartupErrorShutdown)

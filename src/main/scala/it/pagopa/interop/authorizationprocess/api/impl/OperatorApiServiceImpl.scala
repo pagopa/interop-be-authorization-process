@@ -51,8 +51,8 @@ final case class OperatorApiServiceImpl(
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
-      case Success(result) => getClientOperatorKeys200(result)
-      case Failure(MissingBearer) =>
+      case Success(result)                                                   => getClientOperatorKeys200(result)
+      case Failure(MissingBearer)                                            =>
         logger.error(
           s"Error while getting client ${clientId} keys for operator ${operatorId} keys - ${MissingBearer.getMessage}"
         )
@@ -62,12 +62,12 @@ final case class OperatorApiServiceImpl(
         getClientOperatorKeys404(
           problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"client id: $clientId, operator id: $operatorId"))
         )
-      case Failure(NoResultsError) =>
+      case Failure(NoResultsError)                                           =>
         logger.error(
           s"Error while getting client ${clientId} keys for operator ${operatorId} keys - ${NoResultsError.getMessage}"
         )
         getClientOperatorKeys404(problemOf(StatusCodes.NotFound, NoResultsError))
-      case Failure(ex) =>
+      case Failure(ex)                                                       =>
         logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys - ${ex.getMessage}")
         val error = problemOf(StatusCodes.InternalServerError, OperatorKeysRetrievalError)
         complete((error.status, error))
