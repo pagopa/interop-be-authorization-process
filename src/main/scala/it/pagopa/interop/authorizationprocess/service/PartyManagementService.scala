@@ -34,9 +34,9 @@ object PartyManagementService {
       case RelationshipState.ACTIVE    => Right(ApiOperatorState.ACTIVE)
       case RelationshipState.SUSPENDED => Right(ApiOperatorState.SUSPENDED)
       case RelationshipState.DELETED   => Right(ApiOperatorState.DELETED)
-      case RelationshipState.PENDING =>
+      case RelationshipState.PENDING   =>
         Left(new RuntimeException(s"State ${RelationshipState.PENDING.toString} not allowed for security operator"))
-      case RelationshipState.REJECTED =>
+      case RelationshipState.REJECTED  =>
         Left(new RuntimeException(s"State ${RelationshipState.REJECTED.toString} not allowed for security operator"))
     }
 

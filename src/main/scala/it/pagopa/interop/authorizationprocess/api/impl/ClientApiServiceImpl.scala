@@ -65,17 +65,17 @@ final case class ClientApiServiceImpl(
     logger.info("Creating CONSUMER client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
     val result = for {
       bearerToken <- getFutureBearer(contexts)
-      client <- authorizationManagementService.createClient(
+      client      <- authorizationManagementService.createClient(
         clientSeed.consumerId,
         clientSeed.name,
         clientSeed.description,
         authorizationmanagement.client.model.ClientKind.CONSUMER
       )(bearerToken)
-      apiClient <- getClient(bearerToken, client)
+      apiClient   <- getClient(bearerToken, client)
     } yield apiClient
 
     onComplete(result) {
-      case Success(client) => createConsumerClient201(client)
+      case Success(client)        => createConsumerClient201(client)
       case Failure(MissingBearer) =>
         logger.error(
           "Error in creating client {} for consumer {}",
@@ -84,7 +84,7 @@ final case class ClientApiServiceImpl(
           MissingBearer
         )
         createConsumerClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      case Failure(ex) =>
+      case Failure(ex)            =>
         logger.error(
           s"Error in creating CONSUMER client ${clientSeed.name} for consumer ${clientSeed.consumerId} - ${ex.getMessage}"
         )
@@ -100,17 +100,17 @@ final case class ClientApiServiceImpl(
     logger.info("Creating API client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
     val result = for {
       bearerToken <- getFutureBearer(contexts)
-      client <- authorizationManagementService.createClient(
+      client      <- authorizationManagementService.createClient(
         clientSeed.consumerId,
         clientSeed.name,
         clientSeed.description,
         authorizationmanagement.client.model.ClientKind.API
       )(bearerToken)
-      apiClient <- getClient(bearerToken, client)
+      apiClient   <- getClient(bearerToken, client)
     } yield apiClient
 
     onComplete(result) {
-      case Success(client) => createApiClient201(client)
+      case Success(client)        => createApiClient201(client)
       case Failure(MissingBearer) =>
         logger.error(
           "Error in creating API client {} for consumer {}",
@@ -119,7 +119,7 @@ final case class ClientApiServiceImpl(
           MissingBearer
         )
         createApiClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      case Failure(ex) =>
+      case Failure(ex)            =>
         logger.error(
           s"Error in creating client ${clientSeed.name} for consumer ${clientSeed.consumerId} - ${ex.getMessage}"
         )
@@ -146,14 +146,14 @@ final case class ClientApiServiceImpl(
     } yield apiClient
 
     onComplete(result) {
-      case Success(client) => getClient200(client)
-      case Failure(MissingBearer) =>
+      case Success(client)                                                   => getClient200(client)
+      case Failure(MissingBearer)                                            =>
         logger.error(s"Error in getting client ${clientId} - ${MissingBearer.getMessage}")
         getClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error in getting client ${clientId} - ${ex.getMessage}")
         getClient404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId")))
-      case Failure(ex) =>
+      case Failure(ex)                                                       =>
         logger.error(s"Error in getting client ${clientId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientRetrievalError))
     }
@@ -180,11 +180,11 @@ final case class ClientApiServiceImpl(
 
     // TODO Improve multiple requests
     val result: Future[Seq[Client]] = for {
-      bearerToken  <- getFutureBearer(contexts)
-      personId     <- getUidFuture(contexts).flatMap(_.toFutureUUID)
-      consumerUuid <- consumerId.toFutureUUID
-      clientKind   <- kind.traverse(AuthorizationManagementDependency.ClientKind.fromValue).toFuture
-      relationships <-
+      bearerToken       <- getFutureBearer(contexts)
+      personId          <- getUidFuture(contexts).flatMap(_.toFutureUUID)
+      consumerUuid      <- consumerId.toFutureUUID
+      clientKind        <- kind.traverse(AuthorizationManagementDependency.ClientKind.fromValue).toFuture
+      relationships     <-
         partyManagementService
           .getRelationships(
             consumerUuid,
@@ -195,7 +195,7 @@ final case class ClientApiServiceImpl(
             _.items
               .filter(_.state == RelationshipState.ACTIVE)
           )
-      purposeUuid <- purposeId.traverse(_.toFutureUUID)
+      purposeUuid       <- purposeId.traverse(_.toFutureUUID)
       managementClients <-
         if (relationships.exists(_.product.role == PartyManagementService.PRODUCT_ROLE_ADMIN))
           authorizationManagementService.listClients(
@@ -224,18 +224,18 @@ final case class ClientApiServiceImpl(
     } yield clients
 
     onComplete(result) {
-      case Success(clients) => listClients200(Clients(clients))
+      case Success(clients)                 => listClients200(Clients(clients))
       case Failure(ex: UUIDConversionError) =>
         logger.error(
           s"Error while listing clients (offset: ${offset} and limit: ${limit}) for purposeId ${purposeId} and consumer ${consumerId} of kind ${kind} - ${ex.getMessage}"
         )
         listClients400(problemOf(StatusCodes.BadRequest, ex))
-      case Failure(MissingBearer) =>
+      case Failure(MissingBearer)           =>
         logger.error(
           s"Error while listing clients (offset: ${offset} and limit: ${limit}) for purposeId ${purposeId} and consumer ${consumerId} of kind ${kind} - ${MissingBearer.getMessage}"
         )
         listClients401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      case Failure(ex) =>
+      case Failure(ex)                      =>
         logger.error(
           s"Error while listing clients (offset: ${offset} and limit: ${limit}) for purposeId ${purposeId} and consumer ${consumerId} of kind ${kind} - ${ex.getMessage}"
         )
@@ -259,14 +259,14 @@ final case class ClientApiServiceImpl(
     } yield ()
 
     onComplete(result) {
-      case Success(_) => deleteClient204
-      case Failure(MissingBearer) =>
+      case Success(_)                                                        => deleteClient204
+      case Failure(MissingBearer)                                            =>
         logger.error(s"Error while deleting client ${clientId} - ${MissingBearer.getMessage}")
         deleteClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error while deleting client ${clientId} - ${ex.getMessage}")
         deleteClient404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId")))
-      case Failure(ex) =>
+      case Failure(ex)                                                       =>
         logger.error(s"Error while deleting client ${clientId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientDeletionError))
     }
@@ -289,28 +289,28 @@ final case class ClientApiServiceImpl(
       relationshipUUID <- relationshipId.toFutureUUID
       client           <- authorizationManagementService.getClient(clientUUID)(bearerToken)
       relationship     <- getSecurityRelationship(relationshipUUID)(bearerToken)
-      updatedClient <- client.relationships
+      updatedClient    <- client.relationships
         .find(_ === relationship.id)
         .fold(authorizationManagementService.addRelationship(clientUUID, relationship.id)(bearerToken))(_ =>
           Future.failed(OperatorRelationshipAlreadyAssigned(client.id, relationship.id))
         )
-      apiClient <- getClient(bearerToken, updatedClient)
+      apiClient        <- getClient(bearerToken, updatedClient)
     } yield apiClient
 
     onComplete(result) {
-      case Success(client) => clientOperatorRelationshipBinding201(client)
-      case Failure(MissingBearer) =>
+      case Success(client)                                    => clientOperatorRelationshipBinding201(client)
+      case Failure(MissingBearer)                             =>
         logger.error(
           s"Error while binding client ${clientId} with relationship ${relationshipId} - ${MissingBearer.getMessage}"
         )
         clientOperatorRelationshipBinding401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      case Failure(ex: UUIDConversionError) =>
+      case Failure(ex: UUIDConversionError)                   =>
         logger.error(s"Error while binding client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}")
         clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, ex))
       case Failure(ex: SecurityOperatorRelationshipNotActive) =>
         logger.error(s"Error while binding client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}")
         clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, ex))
-      case Failure(ex: OperatorRelationshipAlreadyAssigned) =>
+      case Failure(ex: OperatorRelationshipAlreadyAssigned)   =>
         logger.error(s"Error while binding client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}")
         clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
@@ -321,7 +321,7 @@ final case class ClientApiServiceImpl(
             ResourceNotFoundError(s"Client id $clientId - relationship id: $relationshipId")
           )
         )
-      case Failure(ex) =>
+      case Failure(ex)                                                       =>
         logger.error(s"Error while binding client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, OperatorAdditionError))
     }
@@ -344,25 +344,25 @@ final case class ClientApiServiceImpl(
       clientUUID             <- clientId.toFutureUUID
       relationshipUUID       <- relationshipId.toFutureUUID
       requesterRelationships <- partyManagementService.getRelationshipsByPersonId(userUUID, Seq.empty)(bearerToken)
-      _ <- Future
+      _                      <- Future
         .failed(UserNotAllowedToRemoveOwnRelationship(clientId, relationshipId))
         .whenA(requesterRelationships.items.exists(_.id == relationshipUUID))
       _ <- authorizationManagementService.removeClientRelationship(clientUUID, relationshipUUID)(bearerToken)
     } yield ()
 
     onComplete(result) {
-      case Success(_) => removeClientOperatorRelationship204
-      case Failure(MissingBearer) =>
+      case Success(_)                                                        => removeClientOperatorRelationship204
+      case Failure(MissingBearer)                                            =>
         logger.error(
           s"Removing binding between client ${clientId} with relationship ${relationshipId} - ${MissingBearer.getMessage}"
         )
         removeClientOperatorRelationship401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      case Failure(ex: UUIDConversionError) =>
+      case Failure(ex: UUIDConversionError)                                  =>
         logger.error(
           s"Removing binding between client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}"
         )
         removeClientOperatorRelationship400(problemOf(StatusCodes.BadRequest, ex))
-      case Failure(ex: UserNotAllowedToRemoveOwnRelationship) =>
+      case Failure(ex: UserNotAllowedToRemoveOwnRelationship)                =>
         logger.error(
           s"Removing binding between client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}"
         )
@@ -377,7 +377,7 @@ final case class ClientApiServiceImpl(
             ResourceNotFoundError(s"Client id $clientId - relationship id: $relationshipId")
           )
         )
-      case Failure(ex) =>
+      case Failure(ex)                                                       =>
         logger.error(
           s"Removing binding between client ${clientId} with relationship ${relationshipId} - ${ex.getMessage}"
         )
@@ -404,8 +404,8 @@ final case class ClientApiServiceImpl(
     } yield AuthorizationManagementService.readKeyToApi(key, operator)
 
     onComplete(result) {
-      case Success(readKey) => getClientKeyById200(readKey)
-      case Failure(MissingBearer) =>
+      case Success(readKey)                                                  => getClientKeyById200(readKey)
+      case Failure(MissingBearer)                                            =>
         logger.error(s"Error while getting client ${clientId} key by id ${keyId} - ${MissingBearer.getMessage}")
         getClientKeyById401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
@@ -413,7 +413,7 @@ final case class ClientApiServiceImpl(
         getClientKeyById404(
           problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId - key id: $keyId"))
         )
-      case Failure(ex) =>
+      case Failure(ex)                                                       =>
         logger.error(s"Error while getting client ${clientId} key by id ${keyId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientKeyRetrievalError))
     }
@@ -436,8 +436,8 @@ final case class ClientApiServiceImpl(
     } yield ()
 
     onComplete(result) {
-      case Success(_) => deleteClientKeyById204
-      case Failure(MissingBearer) =>
+      case Success(_)                                                        => deleteClientKeyById204
+      case Failure(MissingBearer)                                            =>
         logger.error(s"Error while deleting client ${clientId} key by id ${keyId} - ${MissingBearer.getMessage}")
         deleteClientKeyById401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
@@ -445,7 +445,7 @@ final case class ClientApiServiceImpl(
         deleteClientKeyById404(
           problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId - key id: $keyId"))
         )
-      case Failure(ex) =>
+      case Failure(ex)                                                       =>
         logger.error(s"Error while deleting client ${clientId} key by id ${keyId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientKeyDeletionError))
     }
@@ -463,39 +463,39 @@ final case class ClientApiServiceImpl(
   ): Route = {
     logger.info("Creating keys for client {}", clientId)
     val result = for {
-      bearerToken <- getFutureBearer(contexts)
-      clientUuid  <- clientId.toFutureUUID
-      client      <- authorizationManagementService.getClient(clientUuid)(bearerToken)
+      bearerToken      <- getFutureBearer(contexts)
+      clientUuid       <- clientId.toFutureUUID
+      client           <- authorizationManagementService.getClient(clientUuid)(bearerToken)
       relationshipsIds <- keysSeeds.traverse(seed =>
         securityOperatorRelationship(client.consumerId, seed.operatorId)(bearerToken)
       )
-      seeds <- keysSeeds
+      seeds            <- keysSeeds
         .zip(relationshipsIds)
         .traverse {
           case (seed, Some(relationship)) =>
             Right(AuthorizationManagementService.toDependencyKeySeed(seed, relationship.id))
-          case (seed, None) =>
+          case (seed, None)               =>
             Left(SecurityOperatorRelationshipNotFound(client.consumerId, seed.operatorId))
         }
         .toFuture
-      keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(bearerToken)
+      keysResponse     <- authorizationManagementService.createKeys(clientUuid, seeds)(bearerToken)
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
-      case Success(keys) => createKeys201(keys)
-      case Failure(MissingBearer) =>
+      case Success(keys)                                                     => createKeys201(keys)
+      case Failure(MissingBearer)                                            =>
         logger.error(s"Error while creating keys for client ${clientId} - ${MissingBearer.getMessage}")
         createKeys401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      case Failure(ex: EnumParameterError) =>
+      case Failure(ex: EnumParameterError)                                   =>
         logger.error(s"Error while creating keys for client ${clientId} - ${ex.getMessage}")
         createKeys400(problemOf(StatusCodes.BadRequest, ex))
-      case Failure(ex: SecurityOperatorRelationshipNotFound) =>
+      case Failure(ex: SecurityOperatorRelationshipNotFound)                 =>
         logger.error(s"Error while creating keys for client ${clientId} - ${ex.getMessage}")
         createKeys403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error while creating keys for client ${clientId} - ${ex.getMessage}")
         createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId")))
-      case Failure(ex) =>
+      case Failure(ex)                                                       =>
         logger.error(s"Error while creating keys for client ${clientId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientKeyCreationError))
     }
@@ -516,7 +516,7 @@ final case class ClientApiServiceImpl(
       bearerToken  <- getFutureBearer(contexts)
       clientUuid   <- clientId.toFutureUUID
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)(bearerToken)
-      keys <- keysResponse.keys.traverse(k =>
+      keys         <- keysResponse.keys.traverse(k =>
         operatorFromRelationship(k.relationshipId)(bearerToken).map(operator =>
           AuthorizationManagementService.readKeyToApi(k, operator)
         )
@@ -524,14 +524,14 @@ final case class ClientApiServiceImpl(
     } yield ReadClientKeys(keys)
 
     onComplete(result) {
-      case Success(keys) => getClientKeys200(keys)
-      case Failure(MissingBearer) =>
+      case Success(keys)                                                     => getClientKeys200(keys)
+      case Failure(MissingBearer)                                            =>
         logger.error(s"Error while getting keys of client ${clientId} - ${MissingBearer.getMessage}")
         getClientKeys401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error while getting keys of client ${clientId} - ${ex.getMessage}")
         getClientKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId ")))
-      case Failure(ex) =>
+      case Failure(ex)                                                       =>
         logger.error(s"Error while getting keys of client ${clientId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientKeysRetrievalError))
     }
@@ -555,14 +555,14 @@ final case class ClientApiServiceImpl(
     } yield operators
 
     onComplete(result) {
-      case Success(keys) => getClientOperators200(keys)
-      case Failure(MissingBearer) =>
+      case Success(keys)                                                     => getClientOperators200(keys)
+      case Failure(MissingBearer)                                            =>
         logger.error(s"Error while getting operators of client ${clientId} - ${MissingBearer.getMessage}")
         getClientOperators401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error while getting operators of client ${clientId} - ${ex.getMessage}")
         getClientOperators404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId ")))
-      case Failure(ex) =>
+      case Failure(ex)                                                       =>
         logger.error(s"Error while getting operators of client ${clientId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientOperatorsRetrievalError))
     }
@@ -588,7 +588,7 @@ final case class ClientApiServiceImpl(
     } yield operator
 
     onComplete(result) {
-      case Success(operator) => getClientOperatorRelationshipById200(operator)
+      case Success(operator)      => getClientOperatorRelationshipById200(operator)
       case Failure(MissingBearer) =>
         logger.error(
           s"Error while getting operators of client ${clientId} by relationship ${relationshipId} - ${MissingBearer.getMessage}"
@@ -604,12 +604,12 @@ final case class ClientApiServiceImpl(
             ResourceNotFoundError(s"Client id $clientId - relationship id: $relationshipId")
           )
         )
-      case Failure(ex: SecurityOperatorRelationshipNotFound) =>
+      case Failure(ex: SecurityOperatorRelationshipNotFound)                 =>
         logger.error(
           s"Error while getting operators of client ${clientId} by relationship ${relationshipId} - ${ex.getMessage}"
         )
         getClientOperatorRelationshipById404(problemOf(StatusCodes.NotFound, ex))
-      case Failure(ex) =>
+      case Failure(ex)                                                       =>
         logger.error(
           s"Error while getting operators of client ${clientId} by relationship ${relationshipId} - ${ex.getMessage}"
         )
@@ -652,11 +652,11 @@ final case class ClientApiServiceImpl(
       purpose     <- purposeManagementService.getPurpose(bearerToken)(details.purposeId)
       eService    <- catalogManagementService.getEService(bearerToken)(purpose.eserviceId)
       agreements  <- agreementManagementService.getAgreements(bearerToken)(purpose.eserviceId, purpose.consumerId)
-      agreement <- agreements
+      agreement   <- agreements
         .filter(_.state != AgreementManagementDependency.AgreementState.PENDING)
         .maxByOption(_.createdAt)
         .toFuture(ClientPurposeAddAgreementNotFound(purpose.eserviceId.toString, purpose.consumerId.toString))
-      descriptor <- eService.descriptors
+      descriptor  <- eService.descriptors
         .find(_.id == agreement.descriptorId)
         .toFuture(ClientPurposeAddDescriptorNotFound(purpose.eserviceId.toString, agreement.descriptorId.toString))
       states = AuthorizationManagementDependency.ClientStatesChainSeed(
@@ -677,21 +677,21 @@ final case class ClientApiServiceImpl(
           state = purposeToComponentState(purpose)
         )
       )
-      seed = AuthorizationManagementDependency.PurposeSeed(details.purposeId, states)
+      seed   = AuthorizationManagementDependency.PurposeSeed(details.purposeId, states)
       _ <- authorizationManagementService.addClientPurpose(clientUuid, seed)(bearerToken)
     } yield ()
 
     onComplete(result) {
-      case Success(_) => addClientPurpose204
+      case Success(_)                                                  => addClientPurpose204
       case Failure(ex: PurposeManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error adding purpose ${details.purposeId} to client ${clientId} - ${ex.getMessage}")
         createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Purpose id ${details.purposeId}")))
-      case Failure(ex: ClientPurposeAddAgreementNotFound) =>
+      case Failure(ex: ClientPurposeAddAgreementNotFound)              =>
         logger.error(
           s"Error adding purpose ${details.purposeId} to client ${clientId} - No valid Agreement found - ${ex.getMessage}"
         )
         createKeys400(problemOf(StatusCodes.BadRequest, ex))
-      case Failure(ex) =>
+      case Failure(ex)                                                 =>
         logger.error(s"Error adding purpose ${details.purposeId} to client ${clientId} - ${ex.getMessage}")
         internalServerError(
           problemOf(StatusCodes.InternalServerError, ClientPurposeAddError(clientId, details.purposeId.toString))
@@ -713,11 +713,11 @@ final case class ClientApiServiceImpl(
     } yield ()
 
     onComplete(result) {
-      case Success(_) => addClientPurpose204
+      case Success(_)                                                  => addClientPurpose204
       case Failure(ex: PurposeManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error removing purpose ${purposeId} from client ${clientId} - ${ex.getMessage}")
         createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Purpose id $purposeId")))
-      case Failure(ex) =>
+      case Failure(ex)                                                 =>
         logger.error(s"Error removing purpose ${purposeId} from client ${clientId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientPurposeRemoveError(clientId, purposeId)))
     }
@@ -748,8 +748,8 @@ final case class ClientApiServiceImpl(
         CatalogManagementDependency.EServiceDescriptor
       )
     ] = for {
-      purpose  <- purposeManagementService.getPurpose(bearerToken)(clientPurpose.purposeId)
-      eService <- catalogManagementService.getEService(bearerToken)(agreement.eserviceId)
+      purpose    <- purposeManagementService.getPurpose(bearerToken)(clientPurpose.purposeId)
+      eService   <- catalogManagementService.getEService(bearerToken)(agreement.eserviceId)
       descriptor <- eService.descriptors
         .find(_.id == agreement.descriptorId)
         .toFuture(DescriptorNotFound(agreement.eserviceId.toString, agreement.descriptorId.toString))
@@ -887,13 +887,13 @@ final case class ClientApiServiceImpl(
     } yield EncodedClientKey(key = encodedKey.key)
 
     onComplete(result) {
-      case Success(key) => getEncodedClientKeyById200(key)
+      case Success(key)                                                      => getEncodedClientKeyById200(key)
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error while getting encoded client ${clientId} key by key id ${keyId} - ${ex.getMessage}")
         getClientKeyById404(
           problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId - key id: $keyId"))
         )
-      case Failure(ex) =>
+      case Failure(ex)                                                       =>
         logger.error(s"Error while getting encoded client ${clientId} key by key id ${keyId} - ${ex.getMessage}")
         internalServerError(problemOf(StatusCodes.InternalServerError, EncodedClientKeyRetrievalError))
     }

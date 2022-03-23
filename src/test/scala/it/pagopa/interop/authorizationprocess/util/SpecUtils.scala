@@ -44,7 +44,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val taxCode: String        = "taxCode"
   val institutionId: String  = "some-external-id1"
   val clientSeed: ClientSeed = ClientSeed(organizationId, "client name", Some("client description"))
-  val user: User = User(
+  val user: User             = User(
     id = personId,
     externalId = taxCode,
     surname = "Surname",
@@ -120,7 +120,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     dailyCalls = 10,
     riskAnalysis = None
   )
-  val purpose: PurposeManagementDependency.Purpose = PurposeManagementDependency.Purpose(
+  val purpose: PurposeManagementDependency.Purpose               = PurposeManagementDependency.Purpose(
     id = UUID.randomUUID(),
     eserviceId = eService.id,
     consumerId = consumer.id,
