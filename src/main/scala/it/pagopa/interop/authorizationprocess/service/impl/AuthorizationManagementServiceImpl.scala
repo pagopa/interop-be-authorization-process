@@ -1,36 +1,50 @@
 package it.pagopa.interop.authorizationprocess.service.impl
 
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
-import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiRequest, BearerToken}
+import it.pagopa.interop.authorizationmanagement.client.invoker.BearerToken
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.authorizationprocess.service.{AuthorizationManagementInvoker, AuthorizationManagementService}
+import it.pagopa.interop.commons.utils.TypeConversions.EitherOps
+import it.pagopa.interop.commons.utils.extractHeaders
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 final case class AuthorizationManagementServiceImpl(
   invoker: AuthorizationManagementInvoker,
   clientApi: ClientApi,
   keyApi: KeyApi,
   purposeApi: PurposeApi
-) extends AuthorizationManagementService {
+)(implicit ec: ExecutionContext)
+    extends AuthorizationManagementService {
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   override def createClient(consumerId: UUID, name: String, description: Option[String], kind: ClientKind)(
-    bearer: String
+    contexts: Seq[(String, String)]
   ): Future[Client] = {
-    val request: ApiRequest[Client] =
-      clientApi.createClient(ClientSeed(consumerId = consumerId, name = name, description = description, kind = kind))(
-        BearerToken(bearer)
-      )
-    invoker.invoke(request, "Client creation")
+
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = clientApi.createClient(
+        xCorrelationId = correlationId,
+        ClientSeed(consumerId = consumerId, name = name, description = description, kind = kind),
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
+      result <- invoker.invoke(request, "Client creation")
+    } yield result
+
   }
 
-  override def getClient(clientId: UUID)(bearer: String): Future[Client] = {
-    val request: ApiRequest[Client] = clientApi.getClient(clientId)(BearerToken(bearer))
-    invoker.invoke(request, "Client retrieve")
+  override def getClient(clientId: UUID)(contexts: Seq[(String, String)]): Future[Client] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = clientApi.getClient(xCorrelationId = correlationId, clientId, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
+      result <- invoker.invoke(request, "Client retrieve")
+    } yield result
   }
 
   override def listClients(
@@ -40,69 +54,136 @@ final case class AuthorizationManagementServiceImpl(
     consumerId: Option[UUID],
     purposeId: Option[UUID],
     kind: Option[ClientKind] = None
-  )(bearer: String): Future[Seq[Client]] = {
-    val request: ApiRequest[Seq[Client]] =
-      clientApi.listClients(
+  )(contexts: Seq[(String, String)]): Future[Seq[Client]] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = clientApi.listClients(
+        xCorrelationId = correlationId,
+        xForwardedFor = ip,
         offset = offset,
         limit = limit,
         relationshipId = relationshipId,
         consumerId = consumerId,
         purposeId = purposeId,
         kind = kind
-      )(BearerToken(bearer))
-    invoker.invoke(request, "Client list")
+      )(BearerToken(bearerToken))
+      result <- invoker.invoke(request, "Client list")
+    } yield result
   }
 
-  override def deleteClient(clientId: UUID)(bearer: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = clientApi.deleteClient(clientId.toString)(BearerToken(bearer))
-    invoker.invoke(request, "Client delete")
+  override def deleteClient(clientId: UUID)(contexts: Seq[(String, String)]): Future[Unit] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = clientApi.deleteClient(xCorrelationId = correlationId, clientId.toString, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
+      result <- invoker.invoke(request, "Client delete")
+    } yield result
   }
 
-  override def addRelationship(clientId: UUID, relationshipId: UUID)(bearer: String): Future[Client] = {
-    val request: ApiRequest[Client] =
-      clientApi.addRelationship(clientId, PartyRelationshipSeed(relationshipId))(BearerToken(bearer))
-    invoker.invoke(request, "Operator addition to client")
+  override def addRelationship(clientId: UUID, relationshipId: UUID)(
+    contexts: Seq[(String, String)]
+  ): Future[Client] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = clientApi.addRelationship(
+        xCorrelationId = correlationId,
+        clientId,
+        PartyRelationshipSeed(relationshipId),
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
+      result <- invoker.invoke(request, "Operator addition to client")
+    } yield result
   }
 
-  override def removeClientRelationship(clientId: UUID, relationshipId: UUID)(bearer: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = clientApi.removeClientRelationship(clientId, relationshipId)(BearerToken(bearer))
-    invoker.invoke(request, "Operator removal from client")
+  override def removeClientRelationship(clientId: UUID, relationshipId: UUID)(
+    contexts: Seq[(String, String)]
+  ): Future[Unit] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = clientApi.removeClientRelationship(
+        xCorrelationId = correlationId,
+        clientId,
+        relationshipId,
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
+      result <- invoker.invoke(request, "Operator removal from client")
+    } yield result
   }
 
-  override def getKey(clientId: UUID, kid: String)(bearer: String): Future[ClientKey] = {
-    val request: ApiRequest[ClientKey] = keyApi.getClientKeyById(clientId, kid)(BearerToken(bearer))
-    invoker.invoke(request, "Key Retrieve")
+  override def getKey(clientId: UUID, kid: String)(contexts: Seq[(String, String)]): Future[ClientKey] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = keyApi.getClientKeyById(xCorrelationId = correlationId, clientId, kid, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
+      result <- invoker.invoke(request, "Key Retrieve")
+    } yield result
   }
 
-  override def deleteKey(clientId: UUID, kid: String)(bearer: String): Future[Unit] = {
-    val request: ApiRequest[Unit] = keyApi.deleteClientKeyById(clientId, kid)(BearerToken(bearer))
-    invoker.invoke(request, "Key Delete")
+  override def deleteKey(clientId: UUID, kid: String)(contexts: Seq[(String, String)]): Future[Unit] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = keyApi.deleteClientKeyById(xCorrelationId = correlationId, clientId, kid, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
+      result <- invoker.invoke(request, "Key Delete")
+    } yield result
   }
 
-  override def getClientKeys(clientId: UUID)(bearer: String): Future[KeysResponse] = {
-    val request: ApiRequest[KeysResponse] = keyApi.getClientKeys(clientId)(BearerToken(bearer))
-    invoker.invoke(request, "Client keys retrieve")
+  override def getClientKeys(clientId: UUID)(contexts: Seq[(String, String)]): Future[KeysResponse] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = keyApi.getClientKeys(xCorrelationId = correlationId, clientId, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
+      result <- invoker.invoke(request, "Client keys retrieve")
+    } yield result
   }
 
-  def getEncodedClientKey(clientId: UUID, kid: String)(bearer: String): Future[EncodedClientKey] = {
-    val request: ApiRequest[EncodedClientKey] = keyApi.getEncodedClientKeyById(clientId, kid)(BearerToken(bearer))
-    invoker.invoke(request, "Key Retrieve")
+  def getEncodedClientKey(clientId: UUID, kid: String)(contexts: Seq[(String, String)]): Future[EncodedClientKey] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = keyApi.getEncodedClientKeyById(xCorrelationId = correlationId, clientId, kid, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
+      result <- invoker.invoke(request, "Key Retrieve")
+    } yield result
   }
 
-  override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(bearer: String): Future[KeysResponse] = {
-    val request: ApiRequest[KeysResponse] = keyApi.createKeys(clientId, keysSeeds)(BearerToken(bearer))
-    invoker.invoke(request, "Key creation")
+  override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(
+    contexts: Seq[(String, String)]
+  ): Future[KeysResponse] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = keyApi.createKeys(xCorrelationId = correlationId, clientId, keysSeeds, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
+      result <- invoker.invoke(request, "Key creation")
+    } yield result
   }
 
-  override def addClientPurpose(clientId: UUID, purposeSeed: PurposeSeed)(bearer: String): Future[Purpose] = {
-    val request: ApiRequest[Purpose] =
-      purposeApi.addClientPurpose(clientId, purposeSeed)(BearerToken(bearer))
-    invoker.invoke(request, "Purpose addition to client")
+  override def addClientPurpose(clientId: UUID, purposeSeed: PurposeSeed)(
+    contexts: Seq[(String, String)]
+  ): Future[Purpose] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = purposeApi.addClientPurpose(xCorrelationId = correlationId, clientId, purposeSeed, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
+      result <- invoker.invoke(request, "Purpose addition to client")
+    } yield result
   }
 
-  override def removeClientPurpose(clientId: UUID, purposeId: UUID)(bearer: String): Future[Unit] = {
-    val request: ApiRequest[Unit] =
-      purposeApi.removeClientPurpose(clientId, purposeId)(BearerToken(bearer))
-    invoker.invoke(request, "Purpose remove from client")
+  override def removeClientPurpose(clientId: UUID, purposeId: UUID)(contexts: Seq[(String, String)]): Future[Unit] = {
+
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = purposeApi.removeClientPurpose(xCorrelationId = correlationId, clientId, purposeId, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
+      result <- invoker.invoke(request, "Purpose remove from client")
+    } yield result
+
   }
 }

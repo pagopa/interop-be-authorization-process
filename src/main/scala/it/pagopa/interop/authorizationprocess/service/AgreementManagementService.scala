@@ -11,7 +11,7 @@ import java.util.UUID
 import scala.concurrent.Future
 
 trait AgreementManagementService {
-  def getAgreements(bearerToken: String)(eServiceId: UUID, consumerId: UUID): Future[Seq[Agreement]]
+  def getAgreements(contexts: Seq[(String, String)])(eServiceId: UUID, consumerId: UUID): Future[Seq[Agreement]]
 
 }
 

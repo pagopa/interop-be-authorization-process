@@ -36,14 +36,14 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     "succeed" in {
       (mockAuthorizationManagementService
         .createClient(_: UUID, _: String, _: Option[String], _: authorizationmanagement.client.model.ClientKind)(
-          _: String
+          _: Seq[(String, String)]
         ))
         .expects(
           organization.id,
           clientSeed.name,
           clientSeed.description,
           authorizationmanagement.client.model.ClientKind.CONSUMER,
-          bearerToken
+          *
         )
         .once()
         .returns(Future.successful(client))
@@ -85,8 +85,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
   "Client retrieve" should {
     "succeed" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(*, bearerToken)
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
         .once()
         .returns(Future.successful(client))
 
@@ -118,8 +118,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(*, bearerToken)
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
         .once()
         .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 
@@ -149,20 +149,20 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returns(Future.successful(Relationships(Seq(relationship))))
 
       (mockAgreementManagementService
-        .getAgreements(_: String)(_: UUID, _: UUID))
-        .expects(bearerToken, client.purposes.head.states.eservice.eserviceId, client.consumerId)
+        .getAgreements(_: Seq[(String, String)])(_: UUID, _: UUID))
+        .expects(*, client.purposes.head.states.eservice.eserviceId, client.consumerId)
         .once()
         .returns(Future.successful(Seq(agreement)))
 
       (mockPurposeManagementService
-        .getPurpose(_: String)(_: UUID))
-        .expects(bearerToken, clientPurpose.purposeId)
+        .getPurpose(_: Seq[(String, String)])(_: UUID))
+        .expects(*, clientPurpose.purposeId)
         .once()
         .returns(Future.successful(purpose.copy(eserviceId = eService.id, consumerId = consumer.id)))
 
       (mockCatalogManagementService
-        .getEService(_: String)(_: UUID))
-        .expects(bearerToken, agreement.eserviceId)
+        .getEService(_: Seq[(String, String)])(_: UUID))
+        .expects(*, agreement.eserviceId)
         .once()
         .returns(
           Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(id = agreement.descriptorId))))
@@ -176,7 +176,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           _: Option[UUID],
           _: Option[UUID],
           _: Option[authorizationmanagement.client.model.ClientKind]
-        )(_: String))
+        )(_: Seq[(String, String)]))
         .expects(
           offset,
           limit,
@@ -184,7 +184,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           consumerUuid,
           purposeUuid,
           Some(authorizationmanagement.client.model.ClientKind.CONSUMER),
-          bearerToken
+          *
         )
         .once()
         .returns(Future.successful(Seq(client)))
@@ -217,9 +217,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       )
 
       Get() ~> service.listClients(
-        client.consumerId.toString,
         offset,
         limit,
+        client.consumerId.toString,
         Some(clientPurpose.purposeId.toString),
         Some("CONSUMER")
       ) ~> check {
@@ -232,8 +232,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
   "Client delete" should {
     "succeed" in {
       (mockAuthorizationManagementService
-        .deleteClient(_: UUID)(_: String))
-        .expects(*, bearerToken)
+        .deleteClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
         .once()
         .returns(Future.successful(()))
 
@@ -244,8 +244,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService
-        .deleteClient(_: UUID)(_: String))
-        .expects(*, bearerToken)
+        .deleteClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
         .once()
         .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 

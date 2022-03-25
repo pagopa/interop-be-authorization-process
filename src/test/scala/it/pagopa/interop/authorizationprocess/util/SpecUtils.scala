@@ -226,7 +226,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     withOperators: Boolean,
     client: authorizationmanagement.client.model.Client = client,
     relationship: PartyManagementDependency.Relationship = relationship
-  ): Unit = {
+  )(implicit contexts: Seq[(String, String)]): Unit = {
 
     (mockPartyManagementService
       .getOrganization(_: UUID)(_: String))
@@ -235,21 +235,21 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       .returns(Future.successful(consumer))
 
     (mockAgreementManagementService
-      .getAgreements(_: String)(_: UUID, _: UUID))
-      .expects(bearerToken, client.purposes.head.states.eservice.eserviceId, client.consumerId)
+      .getAgreements(_: Seq[(String, String)])(_: UUID, _: UUID))
+      .expects(contexts, client.purposes.head.states.eservice.eserviceId, client.consumerId)
       .once()
       .returns(Future.successful(Seq(agreement)))
 
     client.purposes.foreach { clientPurpose =>
       (mockPurposeManagementService
-        .getPurpose(_: String)(_: UUID))
-        .expects(bearerToken, clientPurpose.purposeId)
+        .getPurpose(_: Seq[(String, String)])(_: UUID))
+        .expects(contexts, clientPurpose.purposeId)
         .once()
         .returns(Future.successful(purpose.copy(eserviceId = eService.id, consumerId = consumer.id)))
 
       (mockCatalogManagementService
-        .getEService(_: String)(_: UUID))
-        .expects(bearerToken, agreement.eserviceId)
+        .getEService(_: Seq[(String, String)])(_: UUID))
+        .expects(contexts, agreement.eserviceId)
         .once()
         .returns(
           Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(id = agreement.descriptorId))))

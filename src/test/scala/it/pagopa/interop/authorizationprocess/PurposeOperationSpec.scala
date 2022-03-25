@@ -54,8 +54,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
       )
 
       (mockPurposeManagementService
-        .getPurpose(_: String)(_: UUID))
-        .expects(bearerToken, purpose.id)
+        .getPurpose(_: Seq[(String, String)])(_: UUID))
+        .expects(*, purpose.id)
         .once()
         .returns(
           Future.successful(
@@ -65,8 +65,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         )
 
       (mockCatalogManagementService
-        .getEService(_: String)(_: UUID))
-        .expects(bearerToken, eService.id)
+        .getEService(_: Seq[(String, String)])(_: UUID))
+        .expects(*, eService.id)
         .once()
         .returns(
           Future.successful(
@@ -77,14 +77,14 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         )
 
       (mockAgreementManagementService
-        .getAgreements(_: String)(_: UUID, _: UUID))
-        .expects(bearerToken, eService.id, consumer.id)
+        .getAgreements(_: Seq[(String, String)])(_: UUID, _: UUID))
+        .expects(*, eService.id, consumer.id)
         .once()
         .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.SUSPENDED))))
 
       (mockAuthorizationManagementService
-        .addClientPurpose(_: UUID, _: AuthorizationManagementDependency.PurposeSeed)(_: String))
-        .expects(client.id, purposeSeed, bearerToken)
+        .addClientPurpose(_: UUID, _: AuthorizationManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
+        .expects(client.id, purposeSeed, *)
         .once()
         .returns(Future.successful(clientPurpose))
 
@@ -95,8 +95,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
     "fail if no valid agreement exists" in {
       (mockPurposeManagementService
-        .getPurpose(_: String)(_: UUID))
-        .expects(bearerToken, purpose.id)
+        .getPurpose(_: Seq[(String, String)])(_: UUID))
+        .expects(*, purpose.id)
         .once()
         .returns(
           Future.successful(
@@ -106,8 +106,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         )
 
       (mockCatalogManagementService
-        .getEService(_: String)(_: UUID))
-        .expects(bearerToken, eService.id)
+        .getEService(_: Seq[(String, String)])(_: UUID))
+        .expects(*, eService.id)
         .once()
         .returns(
           Future.successful(
@@ -118,8 +118,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         )
 
       (mockAgreementManagementService
-        .getAgreements(_: String)(_: UUID, _: UUID))
-        .expects(bearerToken, eService.id, consumer.id)
+        .getAgreements(_: Seq[(String, String)])(_: UUID, _: UUID))
+        .expects(*, eService.id, consumer.id)
         .once()
         .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.PENDING))))
 
@@ -131,8 +131,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
     "fail if Purpose does not exist" in {
       (mockPurposeManagementService
-        .getPurpose(_: String)(_: UUID))
-        .expects(bearerToken, purpose.id)
+        .getPurpose(_: Seq[(String, String)])(_: UUID))
+        .expects(*, purpose.id)
         .once()
         .returns(Future.failed(purposemanagement.client.invoker.ApiError(404, "message", None)))
 

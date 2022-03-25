@@ -39,8 +39,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
   "Operator addition" should {
     "succeed on existing relationship" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(client.id, bearerToken)
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
         .once()
         .returns(Future.successful(client))
 
@@ -56,8 +56,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(activeRelationship))
 
       (mockAuthorizationManagementService
-        .addRelationship(_: UUID, _: UUID)(_: String))
-        .expects(client.id, relationship.id, bearerToken)
+        .addRelationship(_: UUID, _: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, relationship.id, *)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
 
@@ -101,8 +101,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(*, bearerToken)
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
         .once()
         .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "Some message", None)))
 
@@ -119,8 +119,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       )
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(client.id, bearerToken)
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
@@ -146,8 +146,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(relationships.copy(items = Seq.empty)))
 
       (mockAuthorizationManagementService
-        .removeClientRelationship(_: UUID, _: UUID)(_: String))
-        .expects(client.id, relationship.id, bearerToken)
+        .removeClientRelationship(_: UUID, _: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, relationship.id, *)
         .once()
         .returns(Future.successful(()))
 
@@ -190,8 +190,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(relationships.copy(items = Seq.empty)))
 
       (mockAuthorizationManagementService
-        .removeClientRelationship(_: UUID, _: UUID)(_: String))
-        .expects(client.id, relationship.id, bearerToken)
+        .removeClientRelationship(_: UUID, _: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, relationship.id, *)
         .once()
         .returns(Future.failed(new RuntimeException("error")))
 
@@ -210,8 +210,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       )
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(client.id, bearerToken)
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
@@ -255,8 +255,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(client.id, bearerToken)
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
         .once()
         .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "Some message", None)))
 
@@ -269,8 +269,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
   "Operator retrieve by external id" should {
     "succeed" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(client.id, bearerToken)
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
         .once()
         .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
 
@@ -314,8 +314,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(client.id, bearerToken)
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
         .once()
         .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "Some message", None)))
 
@@ -326,8 +326,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if operator is not found" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(client.id, bearerToken)
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
         .once()
         .returns(Future.successful(client))
 

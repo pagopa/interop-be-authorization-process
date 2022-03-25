@@ -66,8 +66,8 @@ class KeyOperationSpec
     "succeed" in {
       val kid = "some-kid"
       (mockAuthorizationManagementService
-        .getKey(_: UUID, _: String)(_: String))
-        .expects(client.id, kid, bearerToken)
+        .getKey(_: UUID, _: String)(_: Seq[(String, String)]))
+        .expects(client.id, kid, *)
         .once()
         .returns(Future.successful(createdKey))
 
@@ -106,8 +106,8 @@ class KeyOperationSpec
     "fail if client or key do not exist" in {
       val kid = "some-kid"
       (mockAuthorizationManagementService
-        .getKey(_: UUID, _: String)(_: String))
-        .expects(*, *, bearerToken)
+        .getKey(_: UUID, _: String)(_: Seq[(String, String)]))
+        .expects(*, *, *)
         .once()
         .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 
@@ -120,8 +120,8 @@ class KeyOperationSpec
   "Retrieve all client keys" should {
     "succeed" in {
       (mockAuthorizationManagementService
-        .getClientKeys(_: UUID)(_: String))
-        .expects(client.id, bearerToken)
+        .getClientKeys(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
         .once()
         .returns(Future.successful(KeysResponse(Seq(createdKey))))
 
@@ -158,8 +158,8 @@ class KeyOperationSpec
 
     "fail if client or key do not exist" in {
       (mockAuthorizationManagementService
-        .getClientKeys(_: UUID)(_: String))
-        .expects(*, bearerToken)
+        .getClientKeys(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
         .once()
         .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 
@@ -175,8 +175,8 @@ class KeyOperationSpec
         Seq(KeySeed(operatorId = user.id, key = "key", use = KeyUse.SIG, alg = "123", name = "test"))
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(client.id, bearerToken)
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
         .once()
         .returns(Future.successful(client))
 
@@ -187,8 +187,8 @@ class KeyOperationSpec
         .returns(Future.successful(relationships))
 
       (mockAuthorizationManagementService
-        .createKeys(_: UUID, _: Seq[KeyMgmtSeed])(_: String))
-        .expects(client.id, *, bearerToken)
+        .createKeys(_: UUID, _: Seq[KeyMgmtSeed])(_: Seq[(String, String)]))
+        .expects(client.id, *, *)
         .once()
         .returns(Future.successful(KeysResponse(Seq(createdKey))))
 
@@ -209,8 +209,8 @@ class KeyOperationSpec
 
     "fail if client or key do not exist" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: String))
-        .expects(client.id, bearerToken)
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
         .once()
         .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "Some message", None)))
 
@@ -224,8 +224,8 @@ class KeyOperationSpec
     "succeed" in {
       val kid = "some-kid"
       (mockAuthorizationManagementService
-        .deleteKey(_: UUID, _: String)(_: String))
-        .expects(client.id, kid, bearerToken)
+        .deleteKey(_: UUID, _: String)(_: Seq[(String, String)]))
+        .expects(client.id, kid, *)
         .once()
         .returns(Future.successful(()))
 
@@ -234,19 +234,11 @@ class KeyOperationSpec
       }
     }
 
-    "fail if missing authorization header" in {
-      implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      val kid                                      = "some-kid"
-      Get() ~> service.deleteClientKeyById(client.id.toString, kid) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
-      }
-    }
-
     "fail if client or key do not exist" in {
       val kid = "some-kid"
       (mockAuthorizationManagementService
-        .deleteKey(_: UUID, _: String)(_: String))
-        .expects(*, *, bearerToken)
+        .deleteKey(_: UUID, _: String)(_: Seq[(String, String)]))
+        .expects(*, *, *)
         .once()
         .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
 

@@ -34,6 +34,9 @@ tags:
       url: http://swagger.io
 paths:
   /clientsConsumer:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
     post:
       tags:
         - client
@@ -60,6 +63,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
   /clientsApi:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
     post:
       tags:
         - client
@@ -86,6 +92,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
   /clients:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
     get:
       tags:
         - client
@@ -143,6 +152,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
   /clients/{clientId}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
     get:
       description: Retrieves a Client
       tags:
@@ -204,6 +216,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
   '/clients/{clientId}/operators':
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
     get:
       tags:
         - client
@@ -239,6 +254,8 @@ paths:
                 $ref: '#/components/schemas/Problem'
   '/clients/{clientId}/relationships/{relationshipId}':
     parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
       - name: clientId
         in: path
         description: The Client id
@@ -343,6 +360,9 @@ paths:
                 $ref: '#/components/schemas/Problem'
       description: Binds a security operator belonging to a consumer to a Client
   '/clients/{clientId}/keys':
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
     post:
       tags:
         - client
@@ -429,6 +449,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
   '/clients/{clientId}/keys/{keyId}':
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
     get:
       tags:
         - client
@@ -504,6 +527,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
   '/clients/{clientId}/encoded/keys/{keyId}':
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
     get:
       tags:
         - client
@@ -545,6 +571,8 @@ paths:
                 $ref: '#/components/schemas/Problem'
   '/clients/{clientId}/operators/{operatorId}/keys':
     parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
       - name: clientId
         in: path
         description: ID of the client holding the key
@@ -585,6 +613,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
   '/clients/{clientId}/purposes':
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
     post:
       tags:
         - client
@@ -628,6 +659,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
   '/clients/{clientId}/purposes/{purposeId}':
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
     delete:
       tags:
         - client
@@ -671,6 +705,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
 components:
+  parameters:
+    CorrelationIdHeader:
+      in: header
+      name: X-Correlation-Id
+      required: true
+      schema:
+        type: string
+    IpAddress:
+      in: header
+      name: X-Forwarded-For
+      schema:
+        type: string
   schemas:
     ClientSeed:
       description: Client creation request body

@@ -45,7 +45,7 @@ final case class OperatorApiServiceImpl(
       operatorUuid  <- operatorId.toFutureUUID
       relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)(bearerToken)
       clientUuid    <- clientId.toFutureUUID
-      clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)(bearerToken)
+      clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)(contexts)
       operatorKeys = clientKeys.keys.filter(key => relationships.items.exists(_.id == key.relationshipId))
       keysResponse = authorizationmanagement.client.model.KeysResponse(operatorKeys)
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
