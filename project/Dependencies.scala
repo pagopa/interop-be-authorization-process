@@ -25,7 +25,7 @@ object Dependencies {
   }
 
   private[this] object pagopa {
-    lazy val namespace = "it.pagopa"
+    lazy val namespace               = "it.pagopa"
     lazy val authorizationManagement =
       namespace %% "interop-be-authorization-management-client" % authorizationManagementVersion
     lazy val agreementManagement =
@@ -120,9 +120,9 @@ object Dependencies {
         jackson.databind    % Compile,
         jackson.scalaModule % Compile
       )
-    lazy val `server`: Seq[ModuleID] = Seq(
+    lazy val `server`: Seq[ModuleID]  = Seq(
       // For making Java 12 happy
-      "javax.annotation" % "javax.annotation-api" % "1.3.2" % "compile",
+      "javax.annotation"             % "javax.annotation-api" % "1.3.2" % "compile",
       //
       akka.actor                     % Compile,
       akka.actorTyped                % Compile,
@@ -166,7 +166,7 @@ object Dependencies {
       scalatest.core                 % Test,
       scalamock.core                 % Test
     )
-    lazy val client: Seq[ModuleID] =
+    lazy val client: Seq[ModuleID]    =
       Seq(
         akka.stream     % Compile,
         akka.http       % Compile,
