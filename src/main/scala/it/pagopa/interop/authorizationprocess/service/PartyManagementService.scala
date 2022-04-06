@@ -13,7 +13,7 @@ import scala.concurrent.Future
 
 trait PartyManagementService {
 
-  def getOrganization(organizationId: UUID)(bearerToken: String): Future[Organization]
+  def getInstitution(institutionId: UUID)(bearerToken: String): Future[Institution]
   def getRelationships(organizationId: UUID, personId: UUID, productRoles: Seq[String])(
     bearerToken: String
   ): Future[Relationships]
@@ -26,8 +26,8 @@ object PartyManagementService {
   final val PRODUCT_ROLE_SECURITY_OPERATOR = "security"
   final val PRODUCT_ROLE_ADMIN             = "admin"
 
-  def organizationToApi(organization: Organization): ApiOrganization =
-    ApiOrganization(organization.institutionId, organization.description)
+  def institutionToApi(institution: Institution): ApiOrganization =
+    ApiOrganization(institution.institutionId, institution.description)
 
   def relationshipStateToApi(state: RelationshipState): Either[Throwable, ApiOperatorState] =
     state match {

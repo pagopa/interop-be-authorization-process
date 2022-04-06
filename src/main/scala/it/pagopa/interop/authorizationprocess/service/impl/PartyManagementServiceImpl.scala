@@ -15,9 +15,9 @@ final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  override def getOrganization(organizationId: UUID)(bearerToken: String): Future[Organization] = {
-    val request: ApiRequest[Organization] = api.getOrganizationById(organizationId)(BearerToken(bearerToken))
-    invoker.invoke(request, "Retrieve Organization")
+  override def getInstitution(institutionId: UUID)(bearerToken: String): Future[Institution] = {
+    val request: ApiRequest[Institution] = api.getInstitutionById(institutionId)(BearerToken(bearerToken))
+    invoker.invoke(request, "Retrieve Institution")
   }
 
   override def getRelationships(organizationId: UUID, personId: UUID, productRoles: Seq[String])(

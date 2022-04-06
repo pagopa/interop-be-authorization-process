@@ -756,7 +756,7 @@ final case class ClientApiServiceImpl(
     } yield (clientPurpose, purpose, agreement, eService, descriptor)
 
     for {
-      consumer              <- partyManagementService.getOrganization(client.consumerId)(bearerToken)
+      consumer              <- partyManagementService.getInstitution(client.consumerId)(bearerToken)
       operators             <- operatorsFromClient(client)(bearerToken)
       purposesAndAgreements <- client.purposes.traverse(purpose => getLatestAgreement(purpose).map((purpose, _)))
       purposesDetails       <- purposesAndAgreements.traverse(t => (enrichPurpose _).tupled(t))
@@ -833,7 +833,7 @@ final case class ClientApiServiceImpl(
 
   private[this] def clientToApi(
     client: AuthorizationManagementDependency.Client,
-    consumer: PartyManagementDependency.Organization,
+    consumer: PartyManagementDependency.Institution,
     purposesDetails: Seq[
       (
         AuthorizationManagementDependency.Purpose,
@@ -860,7 +860,7 @@ final case class ClientApiServiceImpl(
 
     Client(
       id = client.id,
-      consumer = PartyManagementService.organizationToApi(consumer),
+      consumer = PartyManagementService.institutionToApi(consumer),
       name = client.name,
       purposes = purposesDetails.map(t => (purposeToApi _).tupled(t)),
       description = client.description,

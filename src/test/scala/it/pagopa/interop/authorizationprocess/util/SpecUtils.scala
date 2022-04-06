@@ -88,7 +88,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     createdAt = timestamp
   )
 
-  val organization: PartyManagementDependency.Organization = PartyManagementDependency.Organization(
+  val institution: PartyManagementDependency.Institution = PartyManagementDependency.Institution(
     institutionId = institutionId,
     description = "Organization description",
     digitalAddress = "or2@test.pec.pagopa.it",
@@ -99,7 +99,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     zipCode = "00000"
   )
 
-  val consumer: PartyManagementDependency.Organization = PartyManagementDependency.Organization(
+  val consumer: PartyManagementDependency.Institution = PartyManagementDependency.Institution(
     institutionId = "some-external-id2",
     description = "Organization description",
     digitalAddress = "org2@test.pec.pagopa.it",
@@ -182,7 +182,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val relationship: PartyManagementDependency.Relationship = PartyManagementDependency.Relationship(
     id = UUID.fromString(relationshipId),
     from = user.id,
-    to = organization.id,
+    to = institution.id,
     role = PartyManagementDependency.PartyRole.OPERATOR,
     product = PartyManagementDependency.RelationshipProduct("Interop", "aPlatformRole", timestamp),
     state = PartyManagementDependency.RelationshipState.ACTIVE,
@@ -229,7 +229,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   )(implicit contexts: Seq[(String, String)]): Unit = {
 
     (mockPartyManagementService
-      .getOrganization(_: UUID)(_: String))
+      .getInstitution(_: UUID)(_: String))
       .expects(client.consumerId, bearerToken)
       .once()
       .returns(Future.successful(consumer))
