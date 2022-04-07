@@ -39,7 +39,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           _: Seq[(String, String)]
         ))
         .expects(
-          organization.id,
+          institution.id,
           clientSeed.name,
           clientSeed.description,
           authorizationmanagement.client.model.ClientKind.CONSUMER,
@@ -190,7 +190,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returns(Future.successful(Seq(client)))
 
       (mockPartyManagementService
-        .getOrganization(_: UUID)(_: String))
+        .getInstitution(_: UUID)(_: String))
         .expects(client.consumerId, bearerToken)
         .once()
         .returns(Future.successful(consumer))
