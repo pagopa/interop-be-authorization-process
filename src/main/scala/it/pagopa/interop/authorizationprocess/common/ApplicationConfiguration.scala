@@ -2,30 +2,31 @@ package it.pagopa.interop.authorizationprocess.common
 
 import com.typesafe.config.{Config, ConfigFactory}
 
-import scala.jdk.CollectionConverters.ListHasAsScala
-
 object ApplicationConfiguration {
-  lazy val config: Config = ConfigFactory.load()
+  val config: Config = ConfigFactory.load()
 
-  lazy val serverPort: Int = config.getInt("authorization-process.port")
+  val serverPort: Int = config.getInt("authorization-process.port")
 
-  lazy val getAuthorizationManagementURL: String =
+  val getAuthorizationManagementURL: String =
     config.getString("authorization-process.services.authorization-management")
 
-  lazy val getAgreementManagementURL: String = config.getString("authorization-process.services.agreement-management")
+  val getAgreementManagementURL: String = config.getString("authorization-process.services.agreement-management")
 
-  lazy val getCatalogManagementURL: String = config.getString("authorization-process.services.catalog-management")
+  val getCatalogManagementURL: String = config.getString("authorization-process.services.catalog-management")
 
-  lazy val getPartyManagementURL: String = config.getString("authorization-process.services.party-management")
+  val getPartyManagementURL: String = config.getString("authorization-process.services.party-management")
 
-  lazy val getPurposeManagementURL: String = config.getString("authorization-process.services.purpose-management")
+  val getPurposeManagementURL: String = config.getString("authorization-process.services.purpose-management")
 
-  lazy val getUserRegistryManagementURL: String =
+  val getUserRegistryManagementURL: String =
     config.getString("authorization-process.services.user-registry-management")
 
-  lazy val userRegistryApiKey: String = config.getString("authorization-process.services.user-registry-api-key")
+  val userRegistryApiKey: String = config.getString("authorization-process.services.user-registry-api-key")
 
-  lazy val getInteropIdIssuer: String = config.getString("authorization-process.issuer")
+  val getInteropIdIssuer: String = config.getString("authorization-process.issuer")
 
-  lazy val jwtAudience: Set[String] = config.getStringList("authorization-process.jwt.audience").asScala.toSet
+  val jwtAudience: Set[String] =
+    config.getString("authorization-process.jwt.audience").split(",").toSet.filter(_.nonEmpty)
+
+  require(jwtAudience.nonEmpty, "Audience cannot be empty")
 }
