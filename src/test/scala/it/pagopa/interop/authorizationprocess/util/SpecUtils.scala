@@ -233,8 +233,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   )(implicit contexts: Seq[(String, String)]): Unit = {
 
     (mockPartyManagementService
-      .getInstitution(_: UUID)(_: String))
-      .expects(client.consumerId, bearerToken)
+      .getInstitution(_: UUID)(_: String)(_: Seq[(String, String)]))
+      .expects(client.consumerId, bearerToken, *)
       .once()
       .returns(Future.successful(consumer))
 
@@ -263,13 +263,14 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
     if (withOperators) {
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String))
-        .expects(relationship.id, bearerToken)
+        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
+        .expects(relationship.id, bearerToken, *)
         .once()
         .returns(Future.successful(relationship))
 
-      (mockUserRegistryManagementService.getUserById _)
-        .expects(relationship.from)
+      (mockUserRegistryManagementService
+        .getUserById(_: UUID)(_: Seq[(String, String)]))
+        .expects(relationship.from, *)
         .once()
         .returns(Future.successful(user))
     }
