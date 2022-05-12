@@ -53,22 +53,18 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(result)                                                   => getClientOperatorKeys200(result)
       case Failure(MissingBearer)                                            =>
-        logger.error(
-          s"Error while getting client ${clientId} keys for operator ${operatorId} keys - ${MissingBearer.getMessage}"
-        )
+        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys", MissingBearer)
         getClientOperatorKeys401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys - ${ex.getMessage}")
+        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys", ex)
         getClientOperatorKeys404(
           problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"client id: $clientId, operator id: $operatorId"))
         )
       case Failure(NoResultsError)                                           =>
-        logger.error(
-          s"Error while getting client ${clientId} keys for operator ${operatorId} keys - ${NoResultsError.getMessage}"
-        )
+        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys", NoResultsError)
         getClientOperatorKeys404(problemOf(StatusCodes.NotFound, NoResultsError))
       case Failure(ex)                                                       =>
-        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys - ${ex.getMessage}")
+        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys", ex)
         val error = problemOf(StatusCodes.InternalServerError, OperatorKeysRetrievalError)
         complete((error.status, error))
     }

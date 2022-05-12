@@ -89,9 +89,11 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   )
 
   val institution: PartyManagementDependency.Institution = PartyManagementDependency.Institution(
-    institutionId = institutionId,
     description = "Organization description",
     digitalAddress = "or2@test.pec.pagopa.it",
+    originId = organizationId.toString(),
+    externalId = organizationId.toString(),
+    origin = organizationId.toString(),
     id = organizationId,
     attributes = Seq.empty,
     taxCode = "123",
@@ -100,10 +102,12 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   )
 
   val consumer: PartyManagementDependency.Institution = PartyManagementDependency.Institution(
-    institutionId = "some-external-id2",
     description = "Organization description",
     digitalAddress = "org2@test.pec.pagopa.it",
-    id = consumerId,
+    originId = "some-external-id2",
+    externalId = "some-external-id2",
+    origin = "some-external-id2",
+    id = organizationId,
     attributes = Seq.empty,
     taxCode = "123",
     address = "address",
@@ -235,21 +239,21 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       .returns(Future.successful(consumer))
 
     (mockAgreementManagementService
-      .getAgreements(_: Seq[(String, String)])(_: UUID, _: UUID))
-      .expects(contexts, client.purposes.head.states.eservice.eserviceId, client.consumerId)
+      .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
+      .expects(client.purposes.head.states.eservice.eserviceId, client.consumerId, contexts)
       .once()
       .returns(Future.successful(Seq(agreement)))
 
     client.purposes.foreach { clientPurpose =>
       (mockPurposeManagementService
-        .getPurpose(_: Seq[(String, String)])(_: UUID))
-        .expects(contexts, clientPurpose.purposeId)
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(clientPurpose.purposeId, contexts)
         .once()
         .returns(Future.successful(purpose.copy(eserviceId = eService.id, consumerId = consumer.id)))
 
       (mockCatalogManagementService
-        .getEService(_: Seq[(String, String)])(_: UUID))
-        .expects(contexts, agreement.eserviceId)
+        .getEService(_: UUID)(_: Seq[(String, String)]))
+        .expects(agreement.eserviceId, contexts)
         .once()
         .returns(
           Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(id = agreement.descriptorId))))

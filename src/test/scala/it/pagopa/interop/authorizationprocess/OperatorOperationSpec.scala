@@ -71,7 +71,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
       val expected = Client(
         id = client.id,
-        consumer = Organization(consumer.institutionId, consumer.description),
+        consumer = Organization(consumer.originId, consumer.description),
         name = client.name,
         purposes =
           client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),

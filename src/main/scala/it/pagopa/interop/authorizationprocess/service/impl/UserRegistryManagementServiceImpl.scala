@@ -15,7 +15,7 @@ final case class UserRegistryManagementServiceImpl(invoker: UserRegistryManageme
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  override def getUserById(id: UUID): Future[User] = {
+  override def getUserById(id: UUID)(implicit contexts: Seq[(String, String)]): Future[User] = {
     val request: ApiRequest[User] = api.getUserById(id)
     invoker.invoke(request, "Retrieve User by ID")
   }

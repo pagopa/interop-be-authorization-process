@@ -15,14 +15,16 @@ final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  override def getInstitution(institutionId: UUID)(bearerToken: String): Future[Institution] = {
+  override def getInstitution(
+    institutionId: UUID
+  )(bearerToken: String)(implicit contexts: Seq[(String, String)]): Future[Institution] = {
     val request: ApiRequest[Institution] = api.getInstitutionById(institutionId)(BearerToken(bearerToken))
     invoker.invoke(request, "Retrieve Institution")
   }
 
   override def getRelationships(organizationId: UUID, personId: UUID, productRoles: Seq[String])(
     bearerToken: String
-  ): Future[Relationships] = {
+  )(implicit contexts: Seq[(String, String)]): Future[Relationships] = {
     val request: ApiRequest[Relationships] =
       api.getRelationships(
         from = Some(personId),
@@ -37,7 +39,7 @@ final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api
 
   override def getRelationshipsByPersonId(personId: UUID, productRoles: Seq[String])(
     bearerToken: String
-  ): Future[Relationships] = {
+  )(implicit contexts: Seq[(String, String)]): Future[Relationships] = {
     val request: ApiRequest[Relationships] =
       api.getRelationships(
         from = Some(personId),
@@ -50,7 +52,9 @@ final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api
     invoker.invoke(request, "Retrieve Relationships By Person Id")
   }
 
-  override def getRelationshipById(relationshipId: UUID)(bearerToken: String): Future[Relationship] = {
+  override def getRelationshipById(
+    relationshipId: UUID
+  )(bearerToken: String)(implicit contexts: Seq[(String, String)]): Future[Relationship] = {
     val request: ApiRequest[Relationship] = api.getRelationshipById(relationshipId)(BearerToken(bearerToken))
     invoker.invoke(request, "Retrieve Relationship By Id")
   }
