@@ -140,8 +140,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "succeed" in {
 
       (mockPartyManagementService
-        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
-        .expects(personId, Seq.empty, bearerToken)
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String)(_: Seq[(String, String)]))
+        .expects(personId, Seq.empty, bearerToken, *)
         .once()
         .returns(Future.successful(relationships.copy(items = Seq.empty)))
 

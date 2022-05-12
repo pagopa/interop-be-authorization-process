@@ -127,8 +127,8 @@ class KeyOperationSpec
         .returns(Future.successful(KeysResponse(Seq(createdKey))))
 
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String))
-        .expects(*, bearerToken)
+        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
+        .expects(*, bearerToken, *)
         .once()
         .returns(Future.successful(relationship))
 
@@ -183,8 +183,8 @@ class KeyOperationSpec
         .returns(Future.successful(client))
 
       (mockPartyManagementService
-        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: String))
-        .expects(client.consumerId, user.id, Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR), bearerToken)
+        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: String)(_: Seq[(String, String)]))
+        .expects(client.consumerId, user.id, Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR), bearerToken, *)
         .once()
         .returns(Future.successful(relationships))
 

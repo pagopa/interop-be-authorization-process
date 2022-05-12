@@ -28,7 +28,6 @@ import it.pagopa.interop.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.interop.partymanagement.client.{model => PartyManagementDependency}
 import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeManagementApiError}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
-import org.slf4j.LoggerFactory
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -44,8 +43,7 @@ final case class ClientApiServiceImpl(
 )(implicit ec: ExecutionContext)
     extends ClientApiService {
 
-  val logger: LoggerTakingImplicit[ContextFieldsToLog] =
-    Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
+  val logger: LoggerTakingImplicit[ContextFieldsToLog] = Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   def internalServerError(responseProblem: Problem)(implicit
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]

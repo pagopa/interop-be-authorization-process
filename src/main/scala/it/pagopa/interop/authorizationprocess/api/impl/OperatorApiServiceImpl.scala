@@ -16,7 +16,6 @@ import it.pagopa.interop.commons.utils.AkkaUtils.getFutureBearer
 import it.pagopa.interop.commons.utils.TypeConversions.StringOps
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{MissingBearer, ResourceNotFoundError}
 import it.pagopa.interop.partymanagement.client.model.{Problem => _}
-import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -27,8 +26,7 @@ final case class OperatorApiServiceImpl(
 )(implicit ec: ExecutionContext)
     extends OperatorApiService {
 
-  val logger: LoggerTakingImplicit[ContextFieldsToLog] =
-    Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
+  val logger: LoggerTakingImplicit[ContextFieldsToLog] = Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   /** Code: 200, Message: returns the corresponding array of keys, DataType: ClientKeys
     * Code: 401, Message: Unauthorized, DataType: Problem

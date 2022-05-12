@@ -5,7 +5,8 @@ import it.pagopa.interop.partymanagement.client.api.PartyApi
 import it.pagopa.interop.partymanagement.client.invoker.{ApiRequest, BearerToken}
 import it.pagopa.interop.partymanagement.client.model._
 import it.pagopa.interop.commons.utils.INTEROP_PRODUCT_NAME
-import org.slf4j.{Logger, LoggerFactory}
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
+import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
 import java.util.UUID
 import scala.concurrent.Future
@@ -13,7 +14,8 @@ import scala.concurrent.Future
 final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)
     extends PartyManagementService {
 
-  implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
+    Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   override def getInstitution(
     institutionId: UUID
