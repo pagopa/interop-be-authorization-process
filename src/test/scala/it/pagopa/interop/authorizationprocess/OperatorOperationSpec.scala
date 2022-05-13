@@ -50,8 +50,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         )
 
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String))
-        .expects(UUID.fromString(relationshipId), bearerToken)
+        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
+        .expects(UUID.fromString(relationshipId), bearerToken, *)
         .once()
         .returns(Future.successful(activeRelationship))
 
@@ -71,7 +71,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
       val expected = Client(
         id = client.id,
-        consumer = Organization(consumer.institutionId, consumer.description),
+        consumer = Organization(consumer.originId, consumer.description),
         name = client.name,
         purposes =
           client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
@@ -125,8 +125,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String))
-        .expects(UUID.fromString(relationshipId), bearerToken)
+        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
+        .expects(UUID.fromString(relationshipId), bearerToken, *)
         .once()
         .returns(Future.successful(operatorRelationship))
 
@@ -140,8 +140,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "succeed" in {
 
       (mockPartyManagementService
-        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
-        .expects(personId, Seq.empty, bearerToken)
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String)(_: Seq[(String, String)]))
+        .expects(personId, Seq.empty, bearerToken, *)
         .once()
         .returns(Future.successful(relationships.copy(items = Seq.empty)))
 
@@ -170,8 +170,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       val userRelationships = relationships.copy(items = Seq(relationship.copy(id = relationshipId)))
 
       (mockPartyManagementService
-        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
-        .expects(personId, Seq.empty, bearerToken)
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String)(_: Seq[(String, String)]))
+        .expects(personId, Seq.empty, bearerToken, *)
         .once()
         .returns(Future.successful(userRelationships))
 
@@ -184,8 +184,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "fail if client does not exist" in {
 
       (mockPartyManagementService
-        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String))
-        .expects(personId, Seq.empty, bearerToken)
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String)(_: Seq[(String, String)]))
+        .expects(personId, Seq.empty, bearerToken, *)
         .once()
         .returns(Future.successful(relationships.copy(items = Seq.empty)))
 
@@ -216,13 +216,14 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String))
-        .expects(operatorRelationship.id, bearerToken)
+        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
+        .expects(operatorRelationship.id, bearerToken, *)
         .once()
         .returns(Future.successful(operatorRelationship))
 
-      (mockUserRegistryManagementService.getUserById _)
-        .expects(operatorRelationship.from)
+      (mockUserRegistryManagementService
+        .getUserById(_: UUID)(_: Seq[(String, String)]))
+        .expects(operatorRelationship.from, *)
         .once()
         .returns(Future.successful(user))
 
@@ -275,13 +276,14 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
 
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String))
-        .expects(relationship.id, bearerToken)
+        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
+        .expects(relationship.id, bearerToken, *)
         .once()
         .returns(Future.successful(relationship))
 
-      (mockUserRegistryManagementService.getUserById _)
-        .expects(relationship.from)
+      (mockUserRegistryManagementService
+        .getUserById(_: UUID)(_: Seq[(String, String)]))
+        .expects(relationship.from, *)
         .once()
         .returns(Future.successful(user))
 

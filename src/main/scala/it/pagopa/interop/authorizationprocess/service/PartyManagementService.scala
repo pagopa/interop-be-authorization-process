@@ -13,12 +13,18 @@ import scala.concurrent.Future
 
 trait PartyManagementService {
 
-  def getInstitution(institutionId: UUID)(bearerToken: String): Future[Institution]
-  def getRelationships(organizationId: UUID, personId: UUID, productRoles: Seq[String])(
-    bearerToken: String
+  def getInstitution(institutionId: UUID)(bearerToken: String)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Institution]
+  def getRelationships(organizationId: UUID, personId: UUID, productRoles: Seq[String])(bearerToken: String)(implicit
+    contexts: Seq[(String, String)]
   ): Future[Relationships]
-  def getRelationshipsByPersonId(personId: UUID, productRole: Seq[String])(bearerToken: String): Future[Relationships]
-  def getRelationshipById(relationshipId: UUID)(bearerToken: String): Future[Relationship]
+  def getRelationshipsByPersonId(personId: UUID, productRole: Seq[String])(bearerToken: String)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Relationships]
+  def getRelationshipById(relationshipId: UUID)(bearerToken: String)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Relationship]
 }
 
 object PartyManagementService {
@@ -27,7 +33,7 @@ object PartyManagementService {
   final val PRODUCT_ROLE_ADMIN             = "admin"
 
   def institutionToApi(institution: Institution): ApiOrganization =
-    ApiOrganization(institution.institutionId, institution.description)
+    ApiOrganization(institution.originId, institution.description)
 
   def relationshipStateToApi(state: RelationshipState): Either[Throwable, ApiOperatorState] =
     state match {

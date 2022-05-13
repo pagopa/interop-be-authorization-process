@@ -16,7 +16,6 @@ import it.pagopa.interop.commons.utils.AkkaUtils.getFutureBearer
 import it.pagopa.interop.commons.utils.TypeConversions.StringOps
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{MissingBearer, ResourceNotFoundError}
 import it.pagopa.interop.partymanagement.client.model.{Problem => _}
-import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -27,8 +26,7 @@ final case class OperatorApiServiceImpl(
 )(implicit ec: ExecutionContext)
     extends OperatorApiService {
 
-  val logger: LoggerTakingImplicit[ContextFieldsToLog] =
-    Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
+  val logger: LoggerTakingImplicit[ContextFieldsToLog] = Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   /** Code: 200, Message: returns the corresponding array of keys, DataType: ClientKeys
     * Code: 401, Message: Unauthorized, DataType: Problem
@@ -53,22 +51,18 @@ final case class OperatorApiServiceImpl(
     onComplete(result) {
       case Success(result)                                                   => getClientOperatorKeys200(result)
       case Failure(MissingBearer)                                            =>
-        logger.error(
-          s"Error while getting client ${clientId} keys for operator ${operatorId} keys - ${MissingBearer.getMessage}"
-        )
+        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys", MissingBearer)
         getClientOperatorKeys401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys - ${ex.getMessage}")
+        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys", ex)
         getClientOperatorKeys404(
           problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"client id: $clientId, operator id: $operatorId"))
         )
       case Failure(NoResultsError)                                           =>
-        logger.error(
-          s"Error while getting client ${clientId} keys for operator ${operatorId} keys - ${NoResultsError.getMessage}"
-        )
+        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys", NoResultsError)
         getClientOperatorKeys404(problemOf(StatusCodes.NotFound, NoResultsError))
       case Failure(ex)                                                       =>
-        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys - ${ex.getMessage}")
+        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys", ex)
         val error = problemOf(StatusCodes.InternalServerError, OperatorKeysRetrievalError)
         complete((error.status, error))
     }

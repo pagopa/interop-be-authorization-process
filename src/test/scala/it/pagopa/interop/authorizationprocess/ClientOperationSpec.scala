@@ -58,7 +58,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       val expected = Client(
         id = client.id,
-        consumer = Organization(consumer.institutionId, consumer.description),
+        consumer = Organization(consumer.originId, consumer.description),
         name = client.name,
         purposes =
           client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
@@ -101,7 +101,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expected =
         Client(
           id = client.id,
-          consumer = Organization(consumer.institutionId, consumer.description),
+          consumer = Organization(consumer.originId, consumer.description),
           name = client.name,
           purposes =
             client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
@@ -138,31 +138,32 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val purposeUuid: Option[UUID]      = Some(clientPurpose.purposeId)
 
       (mockPartyManagementService
-        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: String))
+        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: String)(_: Seq[(String, String)]))
         .expects(
           consumerId,
           personId,
           Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
-          bearerToken
+          bearerToken,
+          *
         )
         .once()
         .returns(Future.successful(Relationships(Seq(relationship))))
 
       (mockAgreementManagementService
-        .getAgreements(_: Seq[(String, String)])(_: UUID, _: UUID))
-        .expects(*, client.purposes.head.states.eservice.eserviceId, client.consumerId)
+        .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
+        .expects(client.purposes.head.states.eservice.eserviceId, client.consumerId, *)
         .once()
         .returns(Future.successful(Seq(agreement)))
 
       (mockPurposeManagementService
-        .getPurpose(_: Seq[(String, String)])(_: UUID))
-        .expects(*, clientPurpose.purposeId)
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(clientPurpose.purposeId, *)
         .once()
         .returns(Future.successful(purpose.copy(eserviceId = eService.id, consumerId = consumer.id)))
 
       (mockCatalogManagementService
-        .getEService(_: Seq[(String, String)])(_: UUID))
-        .expects(*, agreement.eserviceId)
+        .getEService(_: UUID)(_: Seq[(String, String)]))
+        .expects(agreement.eserviceId, *)
         .once()
         .returns(
           Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(id = agreement.descriptorId))))
@@ -190,8 +191,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returns(Future.successful(Seq(client)))
 
       (mockPartyManagementService
-        .getInstitution(_: UUID)(_: String))
-        .expects(client.consumerId, bearerToken)
+        .getInstitution(_: UUID)(_: String)(_: Seq[(String, String)]))
+        .expects(client.consumerId, bearerToken, *)
         .once()
         .returns(Future.successful(consumer))
 
@@ -205,7 +206,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         List(
           Client(
             id = client.id,
-            consumer = Organization(consumer.institutionId, consumer.description),
+            consumer = Organization(consumer.originId, consumer.description),
             name = client.name,
             purposes =
               client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),

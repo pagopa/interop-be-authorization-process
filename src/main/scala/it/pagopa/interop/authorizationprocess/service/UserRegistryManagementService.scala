@@ -7,5 +7,5 @@ import scala.concurrent.Future
 
 trait UserRegistryManagementService {
 
-  def getUserById(id: UUID): Future[User]
+  def getUserById(id: UUID)(implicit contexts: Seq[(String, String)]): Future[User]
 }

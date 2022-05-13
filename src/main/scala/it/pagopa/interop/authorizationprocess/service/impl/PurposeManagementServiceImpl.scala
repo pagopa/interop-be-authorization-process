@@ -6,7 +6,8 @@ import it.pagopa.interop.commons.utils.extractHeaders
 import it.pagopa.interop.purposemanagement.client.api.PurposeApi
 import it.pagopa.interop.purposemanagement.client.invoker.BearerToken
 import it.pagopa.interop.purposemanagement.client.model.Purpose
-import org.slf4j.{Logger, LoggerFactory}
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
+import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -15,9 +16,10 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   ec: ExecutionContext
 ) extends PurposeManagementService {
 
-  implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
+    Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
-  override def getPurpose(contexts: Seq[(String, String)])(purposeId: UUID): Future[Purpose] = {
+  override def getPurpose(purposeId: UUID)(implicit contexts: Seq[(String, String)]): Future[Purpose] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = api.getPurpose(xCorrelationId = correlationId, purposeId, xForwardedFor = ip)(BearerToken(bearerToken))

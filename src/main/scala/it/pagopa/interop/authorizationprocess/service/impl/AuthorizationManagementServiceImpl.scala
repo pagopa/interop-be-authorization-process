@@ -6,7 +6,8 @@ import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.authorizationprocess.service.{AuthorizationManagementInvoker, AuthorizationManagementService}
 import it.pagopa.interop.commons.utils.TypeConversions.EitherOps
 import it.pagopa.interop.commons.utils.extractHeaders
-import org.slf4j.{Logger, LoggerFactory}
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
+import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -19,9 +20,10 @@ final case class AuthorizationManagementServiceImpl(
 )(implicit ec: ExecutionContext)
     extends AuthorizationManagementService {
 
-  implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
+    Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
-  override def createClient(consumerId: UUID, name: String, description: Option[String], kind: ClientKind)(
+  override def createClient(consumerId: UUID, name: String, description: Option[String], kind: ClientKind)(implicit
     contexts: Seq[(String, String)]
   ): Future[Client] = {
 
@@ -37,7 +39,7 @@ final case class AuthorizationManagementServiceImpl(
 
   }
 
-  override def getClient(clientId: UUID)(contexts: Seq[(String, String)]): Future[Client] = {
+  override def getClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Client] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = clientApi.getClient(xCorrelationId = correlationId, clientId, xForwardedFor = ip)(
@@ -54,7 +56,7 @@ final case class AuthorizationManagementServiceImpl(
     consumerId: Option[UUID],
     purposeId: Option[UUID],
     kind: Option[ClientKind] = None
-  )(contexts: Seq[(String, String)]): Future[Seq[Client]] = {
+  )(implicit contexts: Seq[(String, String)]): Future[Seq[Client]] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = clientApi.listClients(
@@ -71,7 +73,7 @@ final case class AuthorizationManagementServiceImpl(
     } yield result
   }
 
-  override def deleteClient(clientId: UUID)(contexts: Seq[(String, String)]): Future[Unit] = {
+  override def deleteClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = clientApi.deleteClient(xCorrelationId = correlationId, clientId.toString, xForwardedFor = ip)(
@@ -81,7 +83,7 @@ final case class AuthorizationManagementServiceImpl(
     } yield result
   }
 
-  override def addRelationship(clientId: UUID, relationshipId: UUID)(
+  override def addRelationship(clientId: UUID, relationshipId: UUID)(implicit
     contexts: Seq[(String, String)]
   ): Future[Client] = {
     for {
@@ -96,7 +98,7 @@ final case class AuthorizationManagementServiceImpl(
     } yield result
   }
 
-  override def removeClientRelationship(clientId: UUID, relationshipId: UUID)(
+  override def removeClientRelationship(clientId: UUID, relationshipId: UUID)(implicit
     contexts: Seq[(String, String)]
   ): Future[Unit] = {
     for {
@@ -111,7 +113,7 @@ final case class AuthorizationManagementServiceImpl(
     } yield result
   }
 
-  override def getKey(clientId: UUID, kid: String)(contexts: Seq[(String, String)]): Future[ClientKey] = {
+  override def getKey(clientId: UUID, kid: String)(implicit contexts: Seq[(String, String)]): Future[ClientKey] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = keyApi.getClientKeyById(xCorrelationId = correlationId, clientId, kid, xForwardedFor = ip)(
@@ -121,7 +123,7 @@ final case class AuthorizationManagementServiceImpl(
     } yield result
   }
 
-  override def deleteKey(clientId: UUID, kid: String)(contexts: Seq[(String, String)]): Future[Unit] = {
+  override def deleteKey(clientId: UUID, kid: String)(implicit contexts: Seq[(String, String)]): Future[Unit] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = keyApi.deleteClientKeyById(xCorrelationId = correlationId, clientId, kid, xForwardedFor = ip)(
@@ -131,7 +133,7 @@ final case class AuthorizationManagementServiceImpl(
     } yield result
   }
 
-  override def getClientKeys(clientId: UUID)(contexts: Seq[(String, String)]): Future[KeysResponse] = {
+  override def getClientKeys(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[KeysResponse] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = keyApi.getClientKeys(xCorrelationId = correlationId, clientId, xForwardedFor = ip)(
@@ -141,7 +143,9 @@ final case class AuthorizationManagementServiceImpl(
     } yield result
   }
 
-  def getEncodedClientKey(clientId: UUID, kid: String)(contexts: Seq[(String, String)]): Future[EncodedClientKey] = {
+  def getEncodedClientKey(clientId: UUID, kid: String)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[EncodedClientKey] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = keyApi.getEncodedClientKeyById(xCorrelationId = correlationId, clientId, kid, xForwardedFor = ip)(
@@ -151,7 +155,7 @@ final case class AuthorizationManagementServiceImpl(
     } yield result
   }
 
-  override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(
+  override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(implicit
     contexts: Seq[(String, String)]
   ): Future[KeysResponse] = {
     for {
@@ -163,7 +167,7 @@ final case class AuthorizationManagementServiceImpl(
     } yield result
   }
 
-  override def addClientPurpose(clientId: UUID, purposeSeed: PurposeSeed)(
+  override def addClientPurpose(clientId: UUID, purposeSeed: PurposeSeed)(implicit
     contexts: Seq[(String, String)]
   ): Future[Purpose] = {
     for {
@@ -175,7 +179,9 @@ final case class AuthorizationManagementServiceImpl(
     } yield result
   }
 
-  override def removeClientPurpose(clientId: UUID, purposeId: UUID)(contexts: Seq[(String, String)]): Future[Unit] = {
+  override def removeClientPurpose(clientId: UUID, purposeId: UUID)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Unit] = {
 
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture

@@ -54,8 +54,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
       )
 
       (mockPurposeManagementService
-        .getPurpose(_: Seq[(String, String)])(_: UUID))
-        .expects(*, purpose.id)
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purpose.id, *)
         .once()
         .returns(
           Future.successful(
@@ -65,8 +65,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         )
 
       (mockCatalogManagementService
-        .getEService(_: Seq[(String, String)])(_: UUID))
-        .expects(*, eService.id)
+        .getEService(_: UUID)(_: Seq[(String, String)]))
+        .expects(eService.id, *)
         .once()
         .returns(
           Future.successful(
@@ -77,8 +77,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         )
 
       (mockAgreementManagementService
-        .getAgreements(_: Seq[(String, String)])(_: UUID, _: UUID))
-        .expects(*, eService.id, consumer.id)
+        .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
+        .expects(eService.id, consumer.id, *)
         .once()
         .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.SUSPENDED))))
 
@@ -95,8 +95,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
     "fail if no valid agreement exists" in {
       (mockPurposeManagementService
-        .getPurpose(_: Seq[(String, String)])(_: UUID))
-        .expects(*, purpose.id)
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purpose.id, *)
         .once()
         .returns(
           Future.successful(
@@ -106,8 +106,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         )
 
       (mockCatalogManagementService
-        .getEService(_: Seq[(String, String)])(_: UUID))
-        .expects(*, eService.id)
+        .getEService(_: UUID)(_: Seq[(String, String)]))
+        .expects(eService.id, *)
         .once()
         .returns(
           Future.successful(
@@ -118,8 +118,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         )
 
       (mockAgreementManagementService
-        .getAgreements(_: Seq[(String, String)])(_: UUID, _: UUID))
-        .expects(*, eService.id, consumer.id)
+        .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
+        .expects(eService.id, consumer.id, *)
         .once()
         .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.PENDING))))
 
@@ -131,8 +131,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
     "fail if Purpose does not exist" in {
       (mockPurposeManagementService
-        .getPurpose(_: Seq[(String, String)])(_: UUID))
-        .expects(*, purpose.id)
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purpose.id, *)
         .once()
         .returns(Future.failed(purposemanagement.client.invoker.ApiError(404, "message", None)))
 
