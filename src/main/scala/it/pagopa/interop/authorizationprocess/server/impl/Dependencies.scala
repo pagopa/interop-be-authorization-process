@@ -11,7 +11,6 @@ import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.ValidationR
 import it.pagopa.interop.commons.utils.OpenapiUtils
 import it.pagopa.interop.authorizationprocess.api.impl.problemOf
 import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
-import it.pagopa.interop.authorizationprocess.common.system.{classicActorSystem, executionContext}
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.service.impl.{
   AgreementManagementServiceImpl,
@@ -43,46 +42,60 @@ import scala.concurrent.Future
 import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
 import it.pagopa.interop.commons.utils.TypeConversions.TryOps
+import akka.actor.typed.ActorSystem
+import scala.concurrent.ExecutionContext
 
 trait Dependencies {
-  val partyManagementService: PartyManagementService = PartyManagementServiceImpl(
-    PartyManagementInvoker(),
-    PartyManagementApi(ApplicationConfiguration.getPartyManagementURL)
-  )
+  def partyManagementService()(implicit actorSystem: ActorSystem[_]): PartyManagementService =
+    PartyManagementServiceImpl(
+      PartyManagementInvoker()(actorSystem.classicSystem),
+      PartyManagementApi(ApplicationConfiguration.getPartyManagementURL)
+    )
 
-  implicit val apiKey: ApiKeyValue = ApiKeyValue(ApplicationConfiguration.userRegistryApiKey)
-  val userRegistryManagementService: UserRegistryManagementServiceImpl = UserRegistryManagementServiceImpl(
-    UserRegistryManagementInvoker(),
-    UserRegistryManagementApi(ApplicationConfiguration.getUserRegistryManagementURL)
-  )
+  def userRegistryManagementService()(implicit actorSystem: ActorSystem[_]): UserRegistryManagementServiceImpl =
+    UserRegistryManagementServiceImpl(
+      UserRegistryManagementInvoker()(actorSystem.classicSystem),
+      UserRegistryManagementApi(ApplicationConfiguration.getUserRegistryManagementURL)
+    )(ApiKeyValue(ApplicationConfiguration.userRegistryApiKey))
 
-  val authorizationManagementClientApi: AuthorizationClientApi       = AuthorizationClientApi(
+  val authorizationManagementClientApi: AuthorizationClientApi = AuthorizationClientApi(
     ApplicationConfiguration.getAuthorizationManagementURL
   )
-  val authorizationManagementKeyApi: AuthorizationKeyApi             = AuthorizationKeyApi(
+
+  val authorizationManagementKeyApi: AuthorizationKeyApi = AuthorizationKeyApi(
     ApplicationConfiguration.getAuthorizationManagementURL
   )
-  val authorizationManagementService: AuthorizationManagementService = AuthorizationManagementServiceImpl(
-    AuthorizationManagementInvoker(),
+
+  def authorizationManagementService()(implicit
+    actorSystem: ActorSystem[_],
+    ec: ExecutionContext
+  ): AuthorizationManagementService = AuthorizationManagementServiceImpl(
+    AuthorizationManagementInvoker()(actorSystem.classicSystem),
     AuthorizationClientApi(ApplicationConfiguration.getAuthorizationManagementURL),
     AuthorizationKeyApi(ApplicationConfiguration.getAuthorizationManagementURL),
     AuthorizationPurposeApi(ApplicationConfiguration.getAuthorizationManagementURL)
   )
 
-  val agreementManagementService: AgreementManagementService = AgreementManagementServiceImpl(
-    AgreementManagementInvoker(),
-    AgreementManagementApi(ApplicationConfiguration.getAgreementManagementURL)
-  )
+  def agreementManagementService(implicit
+    actorSystem: ActorSystem[_],
+    ec: ExecutionContext
+  ): AgreementManagementService =
+    AgreementManagementServiceImpl(
+      AgreementManagementInvoker()(actorSystem.classicSystem),
+      AgreementManagementApi(ApplicationConfiguration.getAgreementManagementURL)
+    )
 
-  val catalogManagementService: CatalogManagementService = CatalogManagementServiceImpl(
-    CatalogManagementInvoker(),
-    CatalogManagementApi(ApplicationConfiguration.getCatalogManagementURL)
-  )
+  def catalogManagementService(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): CatalogManagementService =
+    CatalogManagementServiceImpl(
+      CatalogManagementInvoker()(actorSystem.classicSystem),
+      CatalogManagementApi(ApplicationConfiguration.getCatalogManagementURL)
+    )
 
-  val purposeManagementService: PurposeManagementService = PurposeManagementServiceImpl(
-    PurposeManagementInvoker(),
-    PurposeManagementApi(ApplicationConfiguration.getPurposeManagementURL)
-  )
+  def purposeManagementService(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): PurposeManagementService =
+    PurposeManagementServiceImpl(
+      PurposeManagementInvoker()(actorSystem.classicSystem),
+      PurposeManagementApi(ApplicationConfiguration.getPurposeManagementURL)
+    )
 
   val validationExceptionToRoute: ValidationReport => Route = report => {
     val error =
@@ -90,26 +103,28 @@ trait Dependencies {
     complete(error.status, error)(ClientApiMarshallerImpl.toEntityMarshallerProblem)
   }
 
-  def clientApi(jwtReader: JWTReader): ClientApi = new ClientApi(
-    ClientApiServiceImpl(
-      authorizationManagementService,
-      agreementManagementService,
-      catalogManagementService,
-      partyManagementService,
-      purposeManagementService,
-      userRegistryManagementService
-    ),
-    ClientApiMarshallerImpl,
-    jwtReader.OAuth2JWTValidatorAsContexts
-  )
+  def clientApi(jwtReader: JWTReader)(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): ClientApi =
+    new ClientApi(
+      ClientApiServiceImpl(
+        authorizationManagementService(),
+        agreementManagementService,
+        catalogManagementService,
+        partyManagementService(),
+        purposeManagementService,
+        userRegistryManagementService()
+      ),
+      ClientApiMarshallerImpl,
+      jwtReader.OAuth2JWTValidatorAsContexts
+    )
 
-  def operatorApi(jwtReader: JWTReader): OperatorApi = new OperatorApi(
-    OperatorApiServiceImpl(authorizationManagementService, partyManagementService),
-    OperatorApiMarshallerImpl,
-    jwtReader.OAuth2JWTValidatorAsContexts
-  )
+  def operatorApi(jwtReader: JWTReader)(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): OperatorApi =
+    new OperatorApi(
+      OperatorApiServiceImpl(authorizationManagementService(), partyManagementService()),
+      OperatorApiMarshallerImpl,
+      jwtReader.OAuth2JWTValidatorAsContexts
+    )
 
-  def getJwtValidator(): Future[JWTReader] = JWTConfiguration.jwtReader
+  def getJwtValidator()(implicit ec: ExecutionContext): Future[JWTReader] = JWTConfiguration.jwtReader
     .loadKeyset()
     .toFuture
     .map(keyset =>

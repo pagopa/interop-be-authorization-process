@@ -24,7 +24,7 @@ object Main extends App with CORSSupport with Dependencies {
 
   System.setProperty("kanela.show-banner", "false")
 
-  val system = ActorSystem[Nothing](
+  val system: ActorSystem[Nothing] = ActorSystem[Nothing](
     Behaviors.setup[Nothing] { context =>
       implicit val actorSystem: ActorSystem[_]        = context.system
       implicit val executionContext: ExecutionContext = actorSystem.executionContext
@@ -52,7 +52,7 @@ object Main extends App with CORSSupport with Dependencies {
           logger.error("Startup error: ", e)
       }
 
-      Behaviors.empty
+      Behaviors.empty[Nothing]
     },
     BuildInfo.name
   )
