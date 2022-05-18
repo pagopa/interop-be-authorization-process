@@ -29,4 +29,6 @@ object ApplicationConfiguration {
     config.getString("authorization-process.jwt.audience").split(",").toSet.filter(_.nonEmpty)
 
   require(jwtAudience.nonEmpty, "Audience cannot be empty")
+
+  val partyManagementApiKey: String = config.getString("authorization-process.api-keys.party-management")
 }

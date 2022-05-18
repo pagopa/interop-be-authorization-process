@@ -2,9 +2,11 @@ package it.pagopa.interop.authorizationprocess
 
 import akka.actor.ActorSystem
 import it.pagopa.interop.authorizationmanagement.client.model.Client
-import it.pagopa.pdnd.interop.uservice._
+import it.pagopa.interop.selfcare.userregistry
 import it.pagopa.interop._
 import it.pagopa.interop.authorizationmanagement
+import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
+import it.pagopa.interop.selfcare.partymanagement
 
 package object service {
   type CatalogManagementInvoker       = catalogmanagement.client.invoker.ApiInvoker
@@ -12,9 +14,16 @@ package object service {
   type PartyManagementInvoker         = partymanagement.client.invoker.ApiInvoker
   type PurposeManagementInvoker       = purposemanagement.client.invoker.ApiInvoker
   type AuthorizationManagementInvoker = authorizationmanagement.client.invoker.ApiInvoker
-  type UserRegistryManagementInvoker  = userregistrymanagement.client.invoker.ApiInvoker
+  type UserRegistryManagementInvoker  = userregistry.client.invoker.ApiInvoker
 
   type ManagementClient = Client
+
+  type PartyManagementApiKeyValue = selfcare.partymanagement.client.invoker.ApiKeyValue
+
+  object PartyManagementApiKeyValue {
+    def apply(): PartyManagementApiKeyValue =
+      partymanagement.client.invoker.ApiKeyValue(ApplicationConfiguration.partyManagementApiKey)
+  }
 
   object AgreementManagementInvoker {
     def apply()(implicit actorSystem: ActorSystem): AgreementManagementInvoker =
@@ -43,6 +52,6 @@ package object service {
 
   object UserRegistryManagementInvoker {
     def apply()(implicit actorSystem: ActorSystem): UserRegistryManagementInvoker =
-      userregistrymanagement.client.invoker.ApiInvoker(userregistrymanagement.client.api.EnumsSerializers.all)
+      userregistry.client.invoker.ApiInvoker(userregistry.client.api.EnumsSerializers.all)
   }
 }

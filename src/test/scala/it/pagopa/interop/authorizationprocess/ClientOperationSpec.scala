@@ -3,15 +3,18 @@ package it.pagopa.interop.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
+import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.model._
+import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
 import it.pagopa.interop.authorizationprocess.service.{
+  AuthorizationManagementInvoker,
   AuthorizationManagementService,
   CatalogManagementService,
   PartyManagementService
 }
 import it.pagopa.interop.authorizationprocess.util.SpecUtils
-import it.pagopa.interop.partymanagement.client.model.Relationships
+import it.pagopa.interop.selfcare.partymanagement.client.model.Relationships
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -75,6 +78,14 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
+      val service: ClientApiServiceImpl            = ClientApiServiceImpl(
+        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        mockAgreementManagementService,
+        mockCatalogManagementService,
+        mockPartyManagementService,
+        mockPurposeManagementService,
+        mockUserRegistryManagementService
+      )(ExecutionContext.global)
       Get() ~> service.createConsumerClient(clientSeed) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
@@ -138,12 +149,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val purposeUuid: Option[UUID]      = Some(clientPurpose.purposeId)
 
       (mockPartyManagementService
-        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: String)(_: Seq[(String, String)]))
+        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
         .expects(
           consumerId,
           personId,
           Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
-          bearerToken,
+          *,
           *
         )
         .once()
@@ -191,8 +202,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returns(Future.successful(Seq(client)))
 
       (mockPartyManagementService
-        .getInstitution(_: UUID)(_: String)(_: Seq[(String, String)]))
-        .expects(client.consumerId, bearerToken, *)
+        .getInstitution(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(client.consumerId, *, *)
         .once()
         .returns(Future.successful(consumer))
 

@@ -1,51 +1,47 @@
 package it.pagopa.interop.authorizationprocess.server.impl
 
+import akka.actor.typed.ActorSystem
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Directives.complete
+import akka.http.scaladsl.server.Route
+import com.atlassian.oai.validator.report.ValidationReport
+import com.nimbusds.jose.proc.SecurityContext
+import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
+import it.pagopa.interop.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
 import it.pagopa.interop.authorizationmanagement.client.api.{
   ClientApi => AuthorizationClientApi,
   KeyApi => AuthorizationKeyApi,
   PurposeApi => AuthorizationPurposeApi
 }
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Directives.complete
-import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.ValidationRequestError
-import it.pagopa.interop.commons.utils.OpenapiUtils
-import it.pagopa.interop.authorizationprocess.api.impl.problemOf
-import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
-import it.pagopa.interop.authorizationprocess.service._
-import it.pagopa.interop.authorizationprocess.service.impl.{
-  AgreementManagementServiceImpl,
-  AuthorizationManagementServiceImpl,
-  CatalogManagementServiceImpl,
-  PartyManagementServiceImpl,
-  PurposeManagementServiceImpl,
-  UserRegistryManagementServiceImpl
-}
 import it.pagopa.interop.authorizationprocess.api.impl.{
   ClientApiMarshallerImpl,
   ClientApiServiceImpl,
   OperatorApiMarshallerImpl,
-  OperatorApiServiceImpl
+  OperatorApiServiceImpl,
+  problemOf
 }
 import it.pagopa.interop.authorizationprocess.api.{ClientApi, OperatorApi}
-import it.pagopa.interop.partymanagement.client.api.{PartyApi => PartyManagementApi}
-import it.pagopa.interop.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
+import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
+import it.pagopa.interop.authorizationprocess.service._
+import it.pagopa.interop.authorizationprocess.service.impl._
 import it.pagopa.interop.catalogmanagement.client.api.{EServiceApi => CatalogManagementApi}
-import it.pagopa.interop.purposemanagement.client.api.{PurposeApi => PurposeManagementApi}
-import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.api.{UserApi => UserRegistryManagementApi}
-import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.invoker.ApiKeyValue
-import com.atlassian.oai.validator.report.ValidationReport
-import akka.http.scaladsl.server.Route
 import it.pagopa.interop.commons.jwt.service.JWTReader
-import com.nimbusds.jose.proc.SecurityContext
-import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
-import scala.concurrent.Future
 import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
+import it.pagopa.interop.commons.utils.OpenapiUtils
 import it.pagopa.interop.commons.utils.TypeConversions.TryOps
-import akka.actor.typed.ActorSystem
-import scala.concurrent.ExecutionContext
+import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.ValidationRequestError
+import it.pagopa.interop.purposemanagement.client.api.{PurposeApi => PurposeManagementApi}
+import it.pagopa.interop.selfcare.partymanagement.client.api.{PartyApi => PartyManagementApi}
+import it.pagopa.interop.selfcare.userregistry.client.api.{UserApi => UserRegistryManagementApi}
+import it.pagopa.interop.selfcare.userregistry.client.invoker.ApiKeyValue
+
+import scala.concurrent.{ExecutionContext, Future}
 
 trait Dependencies {
+
+  implicit val partyManagementApiKeyValue: PartyManagementApiKeyValue = PartyManagementApiKeyValue()
+
   def partyManagementService()(implicit actorSystem: ActorSystem[_]): PartyManagementService =
     PartyManagementServiceImpl(
       PartyManagementInvoker()(actorSystem.classicSystem),

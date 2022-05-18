@@ -11,15 +11,18 @@ import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiMarshallerImpl,
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
-import it.pagopa.interop.partymanagement.client.{model => PartyManagementDependency}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
-import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.Certification.NONE
-import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.{User, UserExtras}
+import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
+import it.pagopa.interop.selfcare.userregistry.client.model.{
+  CertifiableFieldResourceOfstring,
+  CertifiableFieldResourceOfstringEnums,
+  UserResource
+}
 import org.scalamock.scalatest.MockFactory
 
 import java.time.OffsetDateTime
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
 
 trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
@@ -44,14 +47,26 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val taxCode: String        = "taxCode"
   val institutionId: String  = "some-external-id1"
   val clientSeed: ClientSeed = ClientSeed(organizationId, "client name", Some("client description"))
-  val user: User             = User(
+  val user: UserResource     = UserResource(
     id = personId,
-    externalId = taxCode,
-    surname = "Surname",
-    name = "Name",
-    certification = NONE,
-    extras = UserExtras(email = None, birthDate = None)
+    fiscalCode = Some(taxCode),
+    familyName = Some(
+      CertifiableFieldResourceOfstring(
+        certification = CertifiableFieldResourceOfstringEnums.Certification.NONE,
+        value = "Surname"
+      )
+    ),
+    name = Some(
+      CertifiableFieldResourceOfstring(
+        certification = CertifiableFieldResourceOfstringEnums.Certification.NONE,
+        value = "Name"
+      )
+    ),
+    birthDate = None,
+    email = None,
+    workContacts = None
   )
+
   val relationshipId: String = UUID.randomUUID().toString
 
   val activeDescriptor: CatalogManagementDependency.EServiceDescriptor = CatalogManagementDependency.EServiceDescriptor(
@@ -91,14 +106,15 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val institution: PartyManagementDependency.Institution = PartyManagementDependency.Institution(
     description = "Organization description",
     digitalAddress = "or2@test.pec.pagopa.it",
-    originId = organizationId.toString(),
-    externalId = organizationId.toString(),
-    origin = organizationId.toString(),
+    originId = organizationId.toString,
+    externalId = organizationId.toString,
+    origin = organizationId.toString,
     id = organizationId,
     attributes = Seq.empty,
     taxCode = "123",
     address = "address",
-    zipCode = "00000"
+    zipCode = "00000",
+    institutionType = "PUBLIC"
   )
 
   val consumer: PartyManagementDependency.Institution = PartyManagementDependency.Institution(
@@ -111,7 +127,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     attributes = Seq.empty,
     taxCode = "123",
     address = "address",
-    zipCode = "00000"
+    zipCode = "00000",
+    institutionType = "PUBLIC"
   )
 
   val purposeVersion: PurposeManagementDependency.PurposeVersion = PurposeManagementDependency.PurposeVersion(
@@ -175,9 +192,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val operator: Operator =
     Operator(
       relationshipId = UUID.fromString(relationshipId),
-      taxCode = user.externalId,
-      name = user.name,
-      surname = user.surname,
+      taxCode = user.fiscalCode.get,
+      name = user.name.get.value,
+      surname = user.familyName.get.value,
       role = OperatorRole.OPERATOR,
       product = RelationshipProduct("Interop", "aPlatformRole", timestamp),
       state = OperatorState.ACTIVE
@@ -233,8 +250,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   )(implicit contexts: Seq[(String, String)]): Unit = {
 
     (mockPartyManagementService
-      .getInstitution(_: UUID)(_: String)(_: Seq[(String, String)]))
-      .expects(client.consumerId, bearerToken, *)
+      .getInstitution(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+      .expects(client.consumerId, *, *)
       .once()
       .returns(Future.successful(consumer))
 
@@ -263,8 +280,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
     if (withOperators) {
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
-        .expects(relationship.id, bearerToken, *)
+        .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(relationship.id, *, *)
         .once()
         .returns(Future.successful(relationship))
 
