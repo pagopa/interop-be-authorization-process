@@ -9,19 +9,15 @@ object ApplicationConfiguration {
 
   val getAuthorizationManagementURL: String =
     config.getString("authorization-process.services.authorization-management")
-
-  val getAgreementManagementURL: String = config.getString("authorization-process.services.agreement-management")
-
-  val getCatalogManagementURL: String = config.getString("authorization-process.services.catalog-management")
-
-  val getPartyManagementURL: String = config.getString("authorization-process.services.party-management")
-
-  val getPurposeManagementURL: String = config.getString("authorization-process.services.purpose-management")
-
-  val getUserRegistryManagementURL: String =
+  val getAgreementManagementURL: String     = config.getString("authorization-process.services.agreement-management")
+  val getCatalogManagementURL: String       = config.getString("authorization-process.services.catalog-management")
+  val getPartyManagementURL: String         = config.getString("authorization-process.services.party-management")
+  val getPurposeManagementURL: String       = config.getString("authorization-process.services.purpose-management")
+  val getUserRegistryManagementURL: String  =
     config.getString("authorization-process.services.user-registry-management")
 
-  val userRegistryApiKey: String = config.getString("authorization-process.services.user-registry-api-key")
+  val userRegistryApiKey: String    = config.getString("authorization-process.api-keys.user-registry-api-key")
+  val partyManagementApiKey: String = config.getString("authorization-process.api-keys.party-management")
 
   val getInteropIdIssuer: String = config.getString("authorization-process.issuer")
 
@@ -30,5 +26,4 @@ object ApplicationConfiguration {
 
   require(jwtAudience.nonEmpty, "Audience cannot be empty")
 
-  val partyManagementApiKey: String = config.getString("authorization-process.api-keys.party-management")
 }
