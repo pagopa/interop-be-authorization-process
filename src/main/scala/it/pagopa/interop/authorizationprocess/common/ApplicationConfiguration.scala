@@ -16,7 +16,7 @@ object ApplicationConfiguration {
   val getUserRegistryManagementURL: String  =
     config.getString("authorization-process.services.user-registry-management")
 
-  val userRegistryApiKey: String    = config.getString("authorization-process.api-keys.user-registry-api-key")
+  val userRegistryApiKey: String    = config.getString("authorization-process.api-keys.user-registry")
   val partyManagementApiKey: String = config.getString("authorization-process.api-keys.party-management")
 
   val getInteropIdIssuer: String = config.getString("authorization-process.issuer")
