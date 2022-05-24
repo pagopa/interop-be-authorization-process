@@ -100,7 +100,7 @@ class KeyOperationSpec
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val kid                                      = "some-kid"
       Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 
@@ -154,7 +154,7 @@ class KeyOperationSpec
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       Get() ~> service.getClientKeys(client.id.toString) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 
@@ -205,7 +205,7 @@ class KeyOperationSpec
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 

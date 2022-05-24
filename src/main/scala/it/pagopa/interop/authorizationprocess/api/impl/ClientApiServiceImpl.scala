@@ -20,6 +20,7 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
 }
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
+import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, SECURITY_ROLE}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils.{getFutureBearer, getUidFuture}
 import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
@@ -59,7 +60,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info("Creating CONSUMER client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
     val result = for {
       bearerToken <- getFutureBearer(contexts)
@@ -92,7 +93,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info("Creating API client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
     val result = for {
       bearerToken <- getFutureBearer(contexts)
@@ -130,7 +131,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
     logger.info("Getting client {}", clientId)
     val result = for {
       bearerToken <- getFutureBearer(contexts)
@@ -167,7 +168,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerClients: ToEntityMarshaller[Clients],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
     logger.info(
       s"Listing clients (offset: ${offset} and limit: ${limit}) for purposeId ${purposeId} and consumer ${consumerId} of kind ${kind}"
     )
@@ -247,26 +248,27 @@ final case class ClientApiServiceImpl(
     */
   override def deleteClient(
     clientId: String
-  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
-    logger.info("Deleting client {}", clientId)
-    val result = for {
-      clientUuid <- clientId.toFutureUUID
-      _          <- authorizationManagementService.deleteClient(clientUuid)(contexts)
-    } yield ()
+  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
+    authorize(ADMIN_ROLE) {
+      logger.info("Deleting client {}", clientId)
+      val result = for {
+        clientUuid <- clientId.toFutureUUID
+        _          <- authorizationManagementService.deleteClient(clientUuid)(contexts)
+      } yield ()
 
-    onComplete(result) {
-      case Success(_)                                                        => deleteClient204
-      case Failure(MissingBearer)                                            =>
-        logger.error(s"Error while deleting client ${clientId}", MissingBearer)
-        deleteClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error(s"Error while deleting client ${clientId}", ex)
-        deleteClient404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId")))
-      case Failure(ex)                                                       =>
-        logger.error(s"Error while deleting client ${clientId}", ex)
-        internalServerError(problemOf(StatusCodes.InternalServerError, ClientDeletionError))
+      onComplete(result) {
+        case Success(_)                                                        => deleteClient204
+        case Failure(MissingBearer)                                            =>
+          logger.error(s"Error while deleting client ${clientId}", MissingBearer)
+          deleteClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
+        case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
+          logger.error(s"Error while deleting client ${clientId}", ex)
+          deleteClient404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId")))
+        case Failure(ex)                                                       =>
+          logger.error(s"Error while deleting client ${clientId}", ex)
+          internalServerError(problemOf(StatusCodes.InternalServerError, ClientDeletionError))
+      }
     }
-  }
 
   /** Code: 201, Message: Operator added, DataType: Client
     * Code: 401, Message: Unauthorized, DataType: Problem
@@ -277,7 +279,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info("Binding client {} with relationship {}", clientId, relationshipId)
     val result = for {
       bearerToken      <- getFutureBearer(contexts)
@@ -329,7 +331,7 @@ final case class ClientApiServiceImpl(
   override def removeClientOperatorRelationship(clientId: String, relationshipId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info("Removing binding between client {} with relationship {}", clientId, relationshipId)
     val result = for {
       bearerToken            <- getFutureBearer(contexts)
@@ -378,7 +380,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerReadClientKey: ToEntityMarshaller[ReadClientKey]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
     logger.info("Getting client {} key by id {}", clientId, keyId)
     val result = for {
       bearerToken <- getFutureBearer(contexts)
@@ -411,7 +413,7 @@ final case class ClientApiServiceImpl(
   override def deleteClientKeyById(clientId: String, keyId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE) {
     logger.info("Deleting client {} key by id {}", clientId, keyId)
     val result = for {
       clientUuid <- clientId.toFutureUUID
@@ -443,7 +445,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE) {
     logger.info("Creating keys for client {}", clientId)
     val result = for {
       bearerToken      <- getFutureBearer(contexts)
@@ -493,7 +495,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKeys: ToEntityMarshaller[ReadClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
     logger.info("Getting keys of client {}", clientId)
     val result = for {
       bearerToken  <- getFutureBearer(contexts)
@@ -528,7 +530,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerOperatorarray: ToEntityMarshaller[Seq[Operator]],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE) {
     logger.info("Getting operators of client {}", clientId)
     val result = for {
       bearerToken <- getFutureBearer(contexts)
@@ -559,7 +561,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerOperator: ToEntityMarshaller[Operator],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
     logger.info("Getting operators of client {} by relationship {}", clientId, relationshipId)
     val result = for {
       bearerToken      <- getFutureBearer(contexts)
@@ -598,7 +600,7 @@ final case class ClientApiServiceImpl(
   override def addClientPurpose(clientId: String, details: PurposeAdditionDetails)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info("Adding Purpose {} to Client {}", details.purposeId, clientId)
 
     def descriptorToComponentState(
@@ -677,7 +679,7 @@ final case class ClientApiServiceImpl(
   override def removeClientPurpose(clientId: String, purposeId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info("Removing Purpose from Client {}", clientId)
 
     val result: Future[Unit] = for {
@@ -856,7 +858,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerEncodedClientKey: ToEntityMarshaller[EncodedClientKey],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
     logger.info("Getting encoded client {} key by key id {}", clientId, keyId)
     val result = for {
       clientUuid <- clientId.toFutureUUID

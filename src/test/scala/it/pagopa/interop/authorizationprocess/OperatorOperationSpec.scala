@@ -95,7 +95,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       val seed                                     = relationshipId
 
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, seed) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 
@@ -160,7 +160,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
 
       Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationship.id.toString) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 
@@ -250,7 +250,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
 
       Get() ~> service.getClientOperators(client.id.toString) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 
@@ -310,7 +310,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
 
       Get() ~> service.getClientOperatorRelationshipById(client.id.toString, relationship.id.toString) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 

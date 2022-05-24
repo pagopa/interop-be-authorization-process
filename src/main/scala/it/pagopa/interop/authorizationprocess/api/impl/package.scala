@@ -1,10 +1,14 @@
 package it.pagopa.interop.authorizationprocess.api
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.StatusCode
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.model.{StatusCode, StatusCodes}
+import akka.http.scaladsl.server.Route
 import it.pagopa.interop.authorizationprocess.model._
+import it.pagopa.interop.commons.jwt.{authorizeInterop, hasPermissions}
 import it.pagopa.interop.commons.utils.SprayCommonFormats.{offsetDateTimeFormat, uuidFormat}
 import it.pagopa.interop.commons.utils.errors.ComponentError
+import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.OperationForbidden
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 package object impl extends SprayJsonSupport with DefaultJsonProtocol {
@@ -54,4 +58,12 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
         )
       )
     )
+
+  private[impl] def authorize(roles: String*)(
+    route: => Route
+  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
+    authorizeInterop(hasPermissions(roles: _*), problemOf(StatusCodes.Forbidden, OperationForbidden)) {
+      route
+    }
+
 }

@@ -11,6 +11,7 @@ import it.pagopa.interop.authorizationprocess.api.OperatorApiService
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
+import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, SECURITY_ROLE}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils.getFutureBearer
 import it.pagopa.interop.commons.utils.TypeConversions.StringOps
@@ -36,7 +37,7 @@ final case class OperatorApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE) {
     logger.info("Getting client keys {} for operator {}", clientId, operatorId)
     val result = for {
       bearerToken   <- getFutureBearer(contexts)

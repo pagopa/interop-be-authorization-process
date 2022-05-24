@@ -76,7 +76,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       Get() ~> service.createConsumerClient(clientSeed) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 

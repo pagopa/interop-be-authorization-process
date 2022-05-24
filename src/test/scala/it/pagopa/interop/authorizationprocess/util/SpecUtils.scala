@@ -11,6 +11,7 @@ import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiMarshallerImpl,
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
+import it.pagopa.interop.commons.utils.USER_ROLES
 import it.pagopa.interop.partymanagement.client.{model => PartyManagementDependency}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.pdnd.interop.uservice.userregistrymanagement.client.model.Certification.NONE
@@ -284,7 +285,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val operatorApiMarshaller: OperatorApiMarshallerImpl.type = OperatorApiMarshallerImpl
 
-  implicit val contexts: Seq[(String, String)] = Seq("bearer" -> bearerToken, "uid" -> personId.toString)
+  implicit val contexts: Seq[(String, String)] =
+    Seq("bearer" -> bearerToken, "uid" -> personId.toString, USER_ROLES -> "admin")
 
   implicit def fromResponseUnmarshallerClientRequest: FromEntityUnmarshaller[Client] =
     sprayJsonUnmarshaller[Client]
