@@ -3,10 +3,12 @@ package it.pagopa.interop.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
+import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationmanagement.client.model.{KeysResponse, KeySeed => KeyMgmtSeed}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.model._
-import it.pagopa.interop.authorizationprocess.service.PartyManagementService
+import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
+import it.pagopa.interop.authorizationprocess.service.{AuthorizationManagementInvoker, PartyManagementService}
 import it.pagopa.interop.authorizationprocess.util.{CustomMatchers, SpecUtils}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
@@ -72,8 +74,8 @@ class KeyOperationSpec
         .returns(Future.successful(createdKey))
 
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
-        .expects(*, bearerToken, *)
+        .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(*, *, *)
         .once()
         .returns(Future.successful(relationship))
 
@@ -87,7 +89,11 @@ class KeyOperationSpec
         key = apiClientKey.key,
         name = apiClientKey.name,
         createdAt = apiClientKey.createdAt,
-        operator = OperatorDetails(relationshipId = relationship.id, name = user.name, surname = user.surname)
+        operator = OperatorDetails(
+          relationshipId = relationship.id,
+          name = user.name.get.value,
+          surname = user.familyName.get.value
+        )
       )
 
       Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
@@ -98,6 +104,14 @@ class KeyOperationSpec
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
+      val service: ClientApiServiceImpl            = ClientApiServiceImpl(
+        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        mockAgreementManagementService,
+        mockCatalogManagementService,
+        mockPartyManagementService,
+        mockPurposeManagementService,
+        mockUserRegistryManagementService
+      )(ExecutionContext.global)
       val kid                                      = "some-kid"
       Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.Unauthorized
@@ -127,8 +141,8 @@ class KeyOperationSpec
         .returns(Future.successful(KeysResponse(Seq(createdKey))))
 
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
-        .expects(*, bearerToken, *)
+        .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(*, *, *)
         .once()
         .returns(Future.successful(relationship))
 
@@ -142,7 +156,11 @@ class KeyOperationSpec
         key = apiClientKey.key,
         name = apiClientKey.name,
         createdAt = apiClientKey.createdAt,
-        operator = OperatorDetails(relationshipId = relationship.id, name = user.name, surname = user.surname)
+        operator = OperatorDetails(
+          relationshipId = relationship.id,
+          name = user.name.get.value,
+          surname = user.familyName.get.value
+        )
       )
 
       Get() ~> service.getClientKeys(client.id.toString) ~> check {
@@ -153,6 +171,14 @@ class KeyOperationSpec
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
+      val service: ClientApiServiceImpl            = ClientApiServiceImpl(
+        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        mockAgreementManagementService,
+        mockCatalogManagementService,
+        mockPartyManagementService,
+        mockPurposeManagementService,
+        mockUserRegistryManagementService
+      )(ExecutionContext.global)
       Get() ~> service.getClientKeys(client.id.toString) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }
@@ -183,8 +209,8 @@ class KeyOperationSpec
         .returns(Future.successful(client))
 
       (mockPartyManagementService
-        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: String)(_: Seq[(String, String)]))
-        .expects(client.consumerId, user.id, Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR), bearerToken, *)
+        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(client.consumerId, user.id, Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR), *, *)
         .once()
         .returns(Future.successful(relationships))
 
@@ -204,6 +230,14 @@ class KeyOperationSpec
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
+      val service: ClientApiServiceImpl            = ClientApiServiceImpl(
+        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        mockAgreementManagementService,
+        mockCatalogManagementService,
+        mockPartyManagementService,
+        mockPurposeManagementService,
+        mockUserRegistryManagementService
+      )(ExecutionContext.global)
       Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.Unauthorized
       }

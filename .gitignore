@@ -18,4 +18,3 @@ client/project/build.properties
 .bsp
 .DS_Store
 .env
-python
