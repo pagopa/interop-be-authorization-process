@@ -1,0 +1,85 @@
+{
+  "endpoints": [
+    {
+      "route": "createConsumerClient",
+      "verb": "POST",
+      "roles": ["admin"]
+    },
+    {
+      "route": "createApiClient",
+      "verb": "POST",
+      "roles": ["admin"]
+    },
+    {
+      "route": "getClient",
+      "verb": "GET",
+      "roles": ["admin", "security", "m2m"]
+    },
+    {
+      "route": "listClients",
+      "verb": "GET",
+      "roles": ["admin", "security", "m2m"]
+    },
+    {
+      "route": "deleteClient",
+      "verb": "DELETE",
+      "roles": ["admin"]
+    },
+    {
+      "route": "clientOperatorRelationshipBinding",
+      "verb": "POST",
+      "roles": ["admin"]
+    },
+    {
+      "route": "removeClientOperatorRelationship",
+      "verb": "DELETE",
+      "roles": ["admin"]
+    },
+    {
+      "route": "getClientKeyById",
+      "verb": "GET",
+      "roles": ["admin", "security", "m2m"]
+    },
+    {
+      "route": "deleteClientKeyById",
+      "verb": "DELETE",
+      "roles": ["admin", "security", "m2m"]
+    },
+    {
+      "route": "createKeys",
+      "verb": "POST",
+      "roles": ["admin", "security"]
+    },
+    {
+      "route": "getClientKeys",
+      "verb": "GET",
+      "roles": ["admin", "security", "m2m"]
+    },
+    {
+      "route": "getClientOperators",
+      "verb": "GET",
+      "roles": ["admin", "security"]
+    },
+    {
+      "route": "getClientOperatorRelationshipById",
+      "verb": "GET",
+      "roles": ["admin", "security"]
+    },
+    {
+      "route": "addClientPurpose",
+      "verb": "POST",
+      "roles": ["admin"]
+    },
+    {
+      "route": "removeClientPurpose",
+      "verb": "DELETE",
+      "roles": ["admin"]
+    },
+    {
+      "route": "getEncodedClientKeyById",
+      "verb": "GET",
+      "roles": ["admin", "security", "m2m"]
+    }
+  ]
+}
+

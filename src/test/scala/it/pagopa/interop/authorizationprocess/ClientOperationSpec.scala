@@ -79,7 +79,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         status shouldEqual StatusCodes.Forbidden
       }
     }
-
   }
 
   "Client retrieve" should {

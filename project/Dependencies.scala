@@ -99,6 +99,11 @@ object Dependencies {
     lazy val core      = namespace %% "scalatest" % scalatestVersion
   }
 
+  private[this] object nameOf {
+    lazy val namespace = "com.github.dwickern"
+    lazy val nameOf    = namespace %% "scala-nameof" % nameOfVersion
+  }
+
   private[this] object scalamock {
     lazy val namespace = "org.scalamock"
     lazy val core      = namespace %% "scalamock" % scalaMockVersion
@@ -164,7 +169,8 @@ object Dependencies {
       akka.streamTestkit             % Test,
       akka.testkit                   % Test,
       scalatest.core                 % Test,
-      scalamock.core                 % Test
+      scalamock.core                 % Test,
+      nameOf.nameOf                  % Test
     )
     lazy val client: Seq[ModuleID]    =
       Seq(akka.stream, akka.http, akka.httpJson4s, akka.slf4j, json4s.jackson, json4s.ext, pagopa.commons).map(
