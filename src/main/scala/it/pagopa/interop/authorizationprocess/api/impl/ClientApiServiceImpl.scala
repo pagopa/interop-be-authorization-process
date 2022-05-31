@@ -786,14 +786,23 @@ final case class ClientApiServiceImpl(
   )(implicit contexts: Seq[(String, String)]): Future[partymanagement.client.model.Relationship] = {
 
     def isActiveSecurityOperatorRelationship(relationship: Relationship): Future[Boolean] = {
-      val condition = relationship.product.role == PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR &&
-        relationship.role == PartyManagementDependency.PartyRole.OPERATOR &&
-        relationship.state == PartyManagementDependency.RelationshipState.ACTIVE
-      if (condition) {
-        Future.successful(true)
-      } else {
-        Future.failed(SecurityOperatorRelationshipNotActive(relationshipId))
-      }
+
+      val isValidProductRole: Boolean =
+        Set(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
+          .contains(relationship.product.role)
+
+      val isValidPartyRole: Boolean = Set[PartyRole](
+        PartyManagementDependency.PartyRole.MANAGER,
+        PartyManagementDependency.PartyRole.DELEGATE,
+        PartyManagementDependency.PartyRole.OPERATOR
+      ).contains(relationship.role)
+
+      val isActive: Boolean = relationship.state == PartyManagementDependency.RelationshipState.ACTIVE
+
+      val condition: Boolean = isValidProductRole && isValidPartyRole && isActive
+
+      if (condition) Future.successful(true)
+      else Future.failed(SecurityOperatorRelationshipNotActive(relationshipId))
     }
 
     for {
