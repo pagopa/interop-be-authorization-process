@@ -31,7 +31,7 @@ tags:
     description: Verify service status
     externalDocs:
       description: Find out more
-      url: 'http://swagger.io'
+      url: http://swagger.io
 paths:
   /clientsConsumer:
     parameters:
