@@ -13,6 +13,9 @@ import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
+/**
+ * Holds fake implementation of dependencies for tests not requiring neither mocks or stubs
+ */
 object FakeDependencies {
   class FakeAgreementManagementService     extends AgreementManagementService     {
     override def getAgreements(eServiceId: UUID, consumerId: UUID)(implicit

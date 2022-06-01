@@ -74,6 +74,7 @@ class ClientOperationAuthzSpec
       val routeName = nameOf[ClientApiServiceImpl](_.deleteClient(???)(???, ???))
       val endpoint  = AuthorizedRoutes.endpoints(routeName)
 
+      // for each role of this route, it checks if it is properly authorized
       endpoint.rolesInContexts.foreach(contexts => {
         implicit val ctx = contexts
         validRoleCheck(
@@ -83,6 +84,7 @@ class ClientOperationAuthzSpec
         )
       })
 
+      // given a fake role, check that its invocation is forbidden
       implicit val invalidCtx = endpoint.contextsWithInvalidRole
       invalidRoleCheck(
         invalidCtx.toMap.get(USER_ROLES).toString,
