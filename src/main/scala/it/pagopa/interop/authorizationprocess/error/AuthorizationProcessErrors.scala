@@ -89,4 +89,6 @@ object AuthorizationProcessErrors {
   final case class DescriptorNotFound(eServiceId: String, descriptorId: String)
       extends ComponentError("0049", s"Descriptor $descriptorId not found for EService $eServiceId")
 
+  final case class MissingUserInfo(userId: UUID) extends ComponentError("0050", s"Missing ${userId.toString} user info")
+
 }

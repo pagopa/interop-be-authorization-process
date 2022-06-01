@@ -6,7 +6,7 @@ import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagemen
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.model._
-import it.pagopa.interop.authorizationprocess.util.SpecUtils
+import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.interop.purposemanagement
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
@@ -17,7 +17,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
+class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsWithImplicit with ScalatestRouteTest {
 
   import clientApiMarshaller._
 

@@ -5,8 +5,8 @@ import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiMarshallerImpl.sprayJsonUnmarshaller
 import it.pagopa.interop.commons.utils.USER_ROLES
+import spray.json.DefaultJsonProtocol._
 import spray.json._
-import DefaultJsonProtocol._
 
 import java.util.UUID
 import scala.util.Random
@@ -16,9 +16,12 @@ case class Endpoints(endpoints: Set[Endpoint]) {
 }
 
 case class Endpoint(route: String, verb: String, roles: Seq[String]) {
-  def contextsWithRandomRole: Seq[(String, String)] = {
-    val randomAdmittedRole = roles(new Random().nextInt(roles.length))
-    Seq("bearer" -> "token", "uid" -> UUID.randomUUID().toString, USER_ROLES -> randomAdmittedRole)
+  def contextsWithInvalidRole: Seq[(String, String)] = {
+    Seq("bearer" -> "token", "uid" -> UUID.randomUUID().toString, USER_ROLES -> s"FakeRole-${Random.nextString(10)}")
+  }
+
+  def rolesInContexts: Seq[Seq[(String, String)]] = {
+    roles.map(role => Seq("bearer" -> "token", "uid" -> UUID.randomUUID().toString, USER_ROLES -> role))
   }
 
   def asRequest: HttpRequest = verb match {

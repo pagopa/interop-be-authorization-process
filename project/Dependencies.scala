@@ -33,11 +33,11 @@ object Dependencies {
     lazy val catalogManagement =
       namespace %% "interop-be-catalog-management-client" % catalogManagementVersion
     lazy val partyManagement =
-      namespace %% "interop-be-party-management-client" % partyManagementVersion
+      namespace %% "interop-selfcare-party-management-client" % partyManagementVersion
     lazy val purposeManagement =
       namespace %% "interop-be-purpose-management-client" % purposeManagementVersion
     lazy val userRegistryManagement =
-      namespace %% "pdnd-interop-uservice-user-registry-management-client" % userRegistryManagementVersion
+      namespace %% "interop-selfcare-user-registry-client" % userRegistryManagementVersion
 
     lazy val commons = namespace %% "interop-commons-utils" % commonsVersion
     lazy val jwt     = namespace %% "interop-commons-jwt"   % commonsVersion

@@ -1,30 +1,32 @@
 package it.pagopa.interop.authorizationprocess.service
 
 import it.pagopa.interop.authorizationprocess.model.{
-  Organization => ApiOrganization,
-  OperatorState => ApiOperatorState,
   OperatorRole => ApiOperatorRole,
+  OperatorState => ApiOperatorState,
+  Organization => ApiOrganization,
   RelationshipProduct => ApiOperatorRelationshipProduct
 }
-import it.pagopa.interop.partymanagement.client.model._
+import it.pagopa.interop.selfcare.partymanagement.client.model._
 
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait PartyManagementService {
 
-  def getInstitution(institutionId: UUID)(bearerToken: String)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Institution]
-  def getRelationships(organizationId: UUID, personId: UUID, productRoles: Seq[String])(bearerToken: String)(implicit
-    contexts: Seq[(String, String)]
+  def getInstitution(
+    institutionId: UUID
+  )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Institution]
+  def getRelationships(organizationId: UUID, personId: UUID, productRoles: Seq[String])(implicit
+    contexts: Seq[(String, String)],
+    ec: ExecutionContext
   ): Future[Relationships]
-  def getRelationshipsByPersonId(personId: UUID, productRole: Seq[String])(bearerToken: String)(implicit
-    contexts: Seq[(String, String)]
+  def getRelationshipsByPersonId(personId: UUID, productRole: Seq[String])(implicit
+    contexts: Seq[(String, String)],
+    ec: ExecutionContext
   ): Future[Relationships]
-  def getRelationshipById(relationshipId: UUID)(bearerToken: String)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Relationship]
+  def getRelationshipById(
+    relationshipId: UUID
+  )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Relationship]
 }
 
 object PartyManagementService {

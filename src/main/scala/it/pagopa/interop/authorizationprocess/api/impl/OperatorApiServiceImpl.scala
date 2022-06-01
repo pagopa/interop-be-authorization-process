@@ -13,10 +13,13 @@ import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, SECURITY_ROLE}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.AkkaUtils.getFutureBearer
 import it.pagopa.interop.commons.utils.TypeConversions.StringOps
-import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{MissingBearer, ResourceNotFoundError}
-import it.pagopa.interop.partymanagement.client.model.{Problem => _}
+import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{
+  MissingBearer,
+  MissingUserId,
+  ResourceNotFoundError
+}
+import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _}
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -40,9 +43,8 @@ final case class OperatorApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE) {
     logger.info("Getting client keys {} for operator {}", clientId, operatorId)
     val result = for {
-      bearerToken   <- getFutureBearer(contexts)
       operatorUuid  <- operatorId.toFutureUUID
-      relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)(bearerToken)
+      relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)
       clientUuid    <- clientId.toFutureUUID
       clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)(contexts)
       operatorKeys = clientKeys.keys.filter(key => relationships.items.exists(_.id == key.relationshipId))
@@ -51,19 +53,22 @@ final case class OperatorApiServiceImpl(
 
     onComplete(result) {
       case Success(result)                                                   => getClientOperatorKeys200(result)
+      case Failure(MissingUserId)                                            =>
+        logger.error(s"Error while getting client $clientId keys for operator $operatorId keys", MissingUserId)
+        getClientOperatorKeys401(problemOf(StatusCodes.Unauthorized, MissingUserId))
       case Failure(MissingBearer)                                            =>
-        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys", MissingBearer)
+        logger.error(s"Error while getting client $clientId keys for operator $operatorId keys", MissingBearer)
         getClientOperatorKeys401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
-        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys", ex)
+        logger.error(s"Error while getting client $clientId keys for operator $operatorId keys", ex)
         getClientOperatorKeys404(
           problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"client id: $clientId, operator id: $operatorId"))
         )
       case Failure(NoResultsError)                                           =>
-        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys", NoResultsError)
+        logger.error(s"Error while getting client $clientId keys for operator $operatorId keys", NoResultsError)
         getClientOperatorKeys404(problemOf(StatusCodes.NotFound, NoResultsError))
       case Failure(ex)                                                       =>
-        logger.error(s"Error while getting client ${clientId} keys for operator ${operatorId} keys", ex)
+        logger.error(s"Error while getting client $clientId keys for operator $operatorId keys", ex)
         val error = problemOf(StatusCodes.InternalServerError, OperatorKeysRetrievalError)
         complete((error.status, error))
     }

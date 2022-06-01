@@ -3,6 +3,7 @@ package it.pagopa.interop.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
+import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
@@ -10,13 +11,21 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipRoleToApi,
   relationshipStateToApi
 }
+import it.pagopa.interop.authorizationprocess.service.impl.{
+  AuthorizationManagementServiceImpl,
+  PartyManagementServiceImpl
+}
 import it.pagopa.interop.authorizationprocess.service.{
+  AuthorizationManagementInvoker,
   AuthorizationManagementService,
   CatalogManagementService,
+  PartyManagementApiKeyValue,
+  PartyManagementInvoker,
   PartyManagementService
 }
-import it.pagopa.interop.authorizationprocess.util.SpecUtils
-import it.pagopa.interop.partymanagement.client.{model => PartyManagementDependency}
+import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
+import it.pagopa.interop.selfcare.partymanagement.client.api.PartyApi
+import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -24,7 +33,11 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
+class OperatorOperationSpec
+    extends AnyWordSpecLike
+    with MockFactory
+    with SpecUtilsWithImplicit
+    with ScalatestRouteTest {
   import clientApiMarshaller._
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
@@ -50,8 +63,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         )
 
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
-        .expects(UUID.fromString(relationshipId), bearerToken, *)
+        .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(UUID.fromString(relationshipId), *, *)
         .once()
         .returns(Future.successful(activeRelationship))
 
@@ -93,7 +106,14 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val seed                                     = relationshipId
-
+      val service: ClientApiServiceImpl            = ClientApiServiceImpl(
+        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        mockAgreementManagementService,
+        mockCatalogManagementService,
+        mockPartyManagementService,
+        mockPurposeManagementService,
+        mockUserRegistryManagementService
+      )(ExecutionContext.global)
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, seed) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
@@ -125,8 +145,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
-        .expects(UUID.fromString(relationshipId), bearerToken, *)
+        .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(UUID.fromString(relationshipId), *, *)
         .once()
         .returns(Future.successful(operatorRelationship))
 
@@ -140,8 +160,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "succeed" in {
 
       (mockPartyManagementService
-        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String)(_: Seq[(String, String)]))
-        .expects(personId, Seq.empty, bearerToken, *)
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(personId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(relationships.copy(items = Seq.empty)))
 
@@ -158,7 +178,14 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-
+      val service: ClientApiServiceImpl            = ClientApiServiceImpl(
+        mockAuthorizationManagementService,
+        mockAgreementManagementService,
+        mockCatalogManagementService,
+        PartyManagementServiceImpl(PartyManagementInvoker(), PartyApi())(PartyManagementApiKeyValue()),
+        mockPurposeManagementService,
+        mockUserRegistryManagementService
+      )(ExecutionContext.global)
       Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationship.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
@@ -170,8 +197,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       val userRelationships = relationships.copy(items = Seq(relationship.copy(id = relationshipId)))
 
       (mockPartyManagementService
-        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String)(_: Seq[(String, String)]))
-        .expects(personId, Seq.empty, bearerToken, *)
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(personId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(userRelationships))
 
@@ -184,8 +211,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
     "fail if client does not exist" in {
 
       (mockPartyManagementService
-        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: String)(_: Seq[(String, String)]))
-        .expects(personId, Seq.empty, bearerToken, *)
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(personId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(relationships.copy(items = Seq.empty)))
 
@@ -216,8 +243,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
 
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
-        .expects(operatorRelationship.id, bearerToken, *)
+        .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(operatorRelationship.id, *, *)
         .once()
         .returns(Future.successful(operatorRelationship))
 
@@ -230,9 +257,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       val expected = Seq(
         Operator(
           relationshipId = UUID.fromString(relationshipId),
-          taxCode = user.externalId,
-          name = user.name,
-          surname = user.surname,
+          taxCode = user.fiscalCode.get,
+          name = user.name.get.value,
+          surname = user.familyName.get.value,
           role = relationshipRoleToApi(operatorRelationship.role),
           product = relationshipProductToApi(operatorRelationship.product),
           state = relationshipStateToApi(operatorRelationship.state)
@@ -248,7 +275,14 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-
+      val service: ClientApiServiceImpl            = ClientApiServiceImpl(
+        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        mockAgreementManagementService,
+        mockCatalogManagementService,
+        mockPartyManagementService,
+        mockPurposeManagementService,
+        mockUserRegistryManagementService
+      )(ExecutionContext.global)
       Get() ~> service.getClientOperators(client.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
@@ -276,8 +310,8 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
 
       (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: String)(_: Seq[(String, String)]))
-        .expects(relationship.id, bearerToken, *)
+        .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(relationship.id, *, *)
         .once()
         .returns(Future.successful(relationship))
 
@@ -290,9 +324,9 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
       val expected =
         Operator(
           relationshipId = UUID.fromString(relationshipId),
-          taxCode = user.externalId,
-          name = user.name,
-          surname = user.surname,
+          taxCode = user.fiscalCode.get,
+          name = user.name.get.value,
+          surname = user.familyName.get.value,
           role = relationshipRoleToApi(relationship.role),
           product = relationshipProductToApi(relationship.product),
           state = relationshipStateToApi(relationship.state).getOrElse(
@@ -308,7 +342,14 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-
+      val service: ClientApiServiceImpl            = ClientApiServiceImpl(
+        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        mockAgreementManagementService,
+        mockCatalogManagementService,
+        mockPartyManagementService,
+        mockPurposeManagementService,
+        mockUserRegistryManagementService
+      )(ExecutionContext.global)
       Get() ~> service.getClientOperatorRelationshipById(client.id.toString, relationship.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }

@@ -43,7 +43,7 @@
     {
       "route": "deleteClientKeyById",
       "verb": "DELETE",
-      "roles": ["admin", "security", "m2m"]
+      "roles": ["admin", "security"]
     },
     {
       "route": "createKeys",
