@@ -1,22 +1,20 @@
 package it.pagopa.interop.authorizationprocess.server.impl
 
-import com.typesafe.scalalogging.Logger
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
-
 import akka.management.scaladsl.AkkaManagement
-
+import buildinfo.BuildInfo
 import cats.syntax.all._
-import it.pagopa.interop.commons.utils.{CORSSupport}
+import com.typesafe.scalalogging.Logger
 import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
 import it.pagopa.interop.authorizationprocess.server.Controller
+import it.pagopa.interop.commons.logging.renderBuildInfo
+import it.pagopa.interop.commons.utils.CORSSupport
 import kamon.Kamon
 
-import akka.actor.typed.ActorSystem
 import scala.concurrent.ExecutionContext
-import buildinfo.BuildInfo
-import it.pagopa.interop.commons.logging.renderBuildInfo
-import akka.actor.typed.scaladsl.Behaviors
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 
 object Main extends App with CORSSupport with Dependencies {
 
@@ -36,9 +34,12 @@ object Main extends App with CORSSupport with Dependencies {
 
       val serverBinding = for {
         jwtReader <- getJwtValidator()
-        controller = new Controller(clientApi(jwtReader), operatorApi(jwtReader), validationExceptionToRoute.some)(
-          actorSystem.classicSystem
-        )
+        controller = new Controller(
+          clientApi(jwtReader),
+          healthApi,
+          operatorApi(jwtReader),
+          validationExceptionToRoute.some
+        )(actorSystem.classicSystem)
         binding <- Http()(actorSystem.classicSystem)
           .newServerAt("0.0.0.0", ApplicationConfiguration.serverPort)
           .bind(corsHandler(controller.routes))
