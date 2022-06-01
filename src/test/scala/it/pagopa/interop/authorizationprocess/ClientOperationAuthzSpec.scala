@@ -69,7 +69,7 @@ class ClientOperationAuthzSpec
   }
 
   "Client operation authorization spec" should {
-    "authorized roles for delete Client" in {
+    "accept authorized roles for delete Client" in {
       @nowarn
       val routeName = nameOf[ClientApiServiceImpl](_.deleteClient(???)(???, ???))
       val endpoint  = AuthorizedRoutes.endpoints(routeName)
@@ -91,7 +91,7 @@ class ClientOperationAuthzSpec
       )
     }
 
-    "authorized roles for createConsumerClient" in {
+    "accept authorized roles for createConsumerClient" in {
       @nowarn
       val routeName = nameOf[ClientApiServiceImpl](_.createConsumerClient(???)(???, ???, ???))
       val endpoint  = AuthorizedRoutes.endpoints(routeName)
@@ -114,7 +114,7 @@ class ClientOperationAuthzSpec
         service.createConsumerClient(clientSeed)
       )
     }
-    "authorized roles for createApiClient" in {
+    "accept authorized roles for createApiClient" in {
       @nowarn
       val routeName = nameOf[ClientApiServiceImpl](_.createApiClient(???)(???, ???, ???))
       val endpoint  = AuthorizedRoutes.endpoints(routeName)
@@ -134,7 +134,7 @@ class ClientOperationAuthzSpec
       )
     }
 
-    "authorized roles for getClient" in {
+    "accept authorized roles for getClient" in {
       @nowarn
       val routeName = nameOf[ClientApiServiceImpl](_.getClient(???)(???, ???, ???))
       val endpoint  = AuthorizedRoutes.endpoints(routeName)
@@ -155,7 +155,7 @@ class ClientOperationAuthzSpec
         service.getClient(client.id.toString)
       )
     }
-    "authorized roles for listClients" in {
+    "accept authorized roles for listClients" in {
       @nowarn
       val routeName =
         nameOf[ClientApiServiceImpl](_.listClients(???, ???, ???, ???, ???)(???, ???, ???))
@@ -177,7 +177,7 @@ class ClientOperationAuthzSpec
         service.listClients(None, None, "test", None, None)
       )
     }
-    "authorized roles for clientOperatorRelationshipBinding" in {
+    "accept authorized roles for clientOperatorRelationshipBinding" in {
       @nowarn
       val routeName =
         nameOf[ClientApiServiceImpl](_.clientOperatorRelationshipBinding(???, ???)(???, ???, ???))
@@ -199,7 +199,7 @@ class ClientOperationAuthzSpec
         service.clientOperatorRelationshipBinding("inter", "op")
       )
     }
-    "authorized roles for removeClientOperatorRelationship" in {
+    "accept authorized roles for removeClientOperatorRelationship" in {
       @nowarn
       val routeName =
         nameOf[ClientApiServiceImpl](_.removeClientOperatorRelationship(???, ???)(???, ???))
@@ -221,7 +221,7 @@ class ClientOperationAuthzSpec
         service.removeClientOperatorRelationship("inter", "op")
       )
     }
-    "authorized roles for getClientKeyById" in {
+    "accept authorized roles for getClientKeyById" in {
       @nowarn
       val routeName =
         nameOf[ClientApiServiceImpl](_.getClientKeyById(???, ???)(???, ???, ???))
@@ -243,7 +243,7 @@ class ClientOperationAuthzSpec
         service.getClientKeyById("inter", "op")
       )
     }
-    "authorized roles for deleteClientKeyById" in {
+    "accept authorized roles for deleteClientKeyById" in {
       @nowarn
       val routeName =
         nameOf[ClientApiServiceImpl](_.deleteClientKeyById(???, ???)(???, ???))
@@ -265,7 +265,7 @@ class ClientOperationAuthzSpec
         service.deleteClientKeyById("inter", "op")
       )
     }
-    "authorized roles for createKeys" in {
+    "accept authorized roles for createKeys" in {
       @nowarn
       val routeName =
         nameOf[ClientApiServiceImpl](_.createKeys(???, ???)(???, ???, ???))
@@ -287,7 +287,7 @@ class ClientOperationAuthzSpec
         service.createKeys("inter", Seq.empty)
       )
     }
-    "authorized roles for getClientKeys" in {
+    "accept authorized roles for getClientKeys" in {
       @nowarn
       val routeName =
         nameOf[ClientApiServiceImpl](_.getClientKeys(???)(???, ???, ???))
@@ -301,7 +301,7 @@ class ClientOperationAuthzSpec
       implicit val invalidCtx = endpoint.contextsWithInvalidRole
       invalidRoleCheck(invalidCtx.toMap.get(USER_ROLES).toString, endpoint.asRequest, service.getClientKeys("interop"))
     }
-    "authorized roles for getClientOperators" in {
+    "accept authorized roles for getClientOperators" in {
       @nowarn
       val routeName =
         nameOf[ClientApiServiceImpl](_.getClientOperators(???)(???, ???, ???))
@@ -319,7 +319,7 @@ class ClientOperationAuthzSpec
         service.getClientOperators("interop")
       )
     }
-    "authorized roles for getClientOperatorRelationshipById" in {
+    "accept authorized roles for getClientOperatorRelationshipById" in {
       @nowarn
       val routeName =
         nameOf[ClientApiServiceImpl](_.getClientOperatorRelationshipById(???, ???)(???, ???, ???))
@@ -341,7 +341,7 @@ class ClientOperationAuthzSpec
         service.getClientOperatorRelationshipById("interop", "test")
       )
     }
-    "authorized roles for addClientPurpose" in {
+    "accept authorized roles for addClientPurpose" in {
       @nowarn
       val routeName =
         nameOf[ClientApiServiceImpl](_.addClientPurpose(???, ???)(???, ???))
@@ -365,7 +365,7 @@ class ClientOperationAuthzSpec
         service.addClientPurpose("interop", details)
       )
     }
-    "authorized roles for removeClientPurpose" in {
+    "accept authorized roles for removeClientPurpose" in {
       @nowarn
       val routeName =
         nameOf[ClientApiServiceImpl](_.removeClientPurpose(???, ???)(???, ???))
@@ -387,7 +387,7 @@ class ClientOperationAuthzSpec
         service.removeClientPurpose("interop", "test")
       )
     }
-    "authorized roles for getEncodedClientKeyById" in {
+    "accept authorized roles for getEncodedClientKeyById" in {
       @nowarn
       val routeName =
         nameOf[ClientApiServiceImpl](_.getEncodedClientKeyById(???, ???)(???, ???, ???))
