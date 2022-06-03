@@ -4,6 +4,7 @@ import akka.actor.typed.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.complete
 import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.directives.SecurityDirectives
 import com.atlassian.oai.validator.report.ValidationReport
 import com.nimbusds.jose.proc.SecurityContext
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
@@ -16,11 +17,13 @@ import it.pagopa.interop.authorizationmanagement.client.api.{
 import it.pagopa.interop.authorizationprocess.api.impl.{
   ClientApiMarshallerImpl,
   ClientApiServiceImpl,
+  HealthApiMarshallerImpl,
+  HealthServiceApiImpl,
   OperatorApiMarshallerImpl,
   OperatorApiServiceImpl,
   problemOf
 }
-import it.pagopa.interop.authorizationprocess.api.{ClientApi, OperatorApi}
+import it.pagopa.interop.authorizationprocess.api.{ClientApi, HealthApi, OperatorApi}
 import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.service.impl._
@@ -28,9 +31,9 @@ import it.pagopa.interop.catalogmanagement.client.api.{EServiceApi => CatalogMan
 import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
-import it.pagopa.interop.commons.utils.OpenapiUtils
 import it.pagopa.interop.commons.utils.TypeConversions.TryOps
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.ValidationRequestError
+import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
 import it.pagopa.interop.purposemanagement.client.api.{PurposeApi => PurposeManagementApi}
 import it.pagopa.interop.selfcare.partymanagement.client.api.{PartyApi => PartyManagementApi}
 import it.pagopa.interop.selfcare.userregistry.client.api.{UserApi => UserRegistryManagementApi}
@@ -131,4 +134,9 @@ trait Dependencies {
       }
     )
 
+  val healthApi: HealthApi = new HealthApi(
+    new HealthServiceApiImpl(),
+    HealthApiMarshallerImpl,
+    SecurityDirectives.authenticateOAuth2("SecurityRealm", AkkaUtils.PassThroughAuthenticator)
+  )
 }
