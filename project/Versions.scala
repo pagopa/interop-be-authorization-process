@@ -11,7 +11,7 @@ object Versions {
   lazy val kamonVersion     = "2.5.1"
   lazy val logbackVersion   = "1.2.11"
   lazy val mustacheVersion  = "0.9.10"
-  lazy val nimbusVersion    = "9.21"
+  lazy val nimbusVersion    = "9.23"
   lazy val scalaMockVersion = "5.2.0"
   lazy val scalatestVersion = "3.2.11"
 }
