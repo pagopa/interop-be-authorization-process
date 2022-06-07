@@ -1,40 +1,21 @@
-package it.pagopa.interop.authorizationprocess
+package it.pagopa.interop.authorizationprocess.authz
 
-import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
-import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.github.dwickern.macros.NameOf.nameOf
-import it.pagopa.interop.authorizationprocess.api.impl.{
-  ClientApiServiceImpl,
-  clientFormat,
-  clientKeysFormat,
-  clientsFormat,
-  encodedClientKeyFormat,
-  operatorFormat,
-  problemFormat,
-  readClientKeyFormat,
-  readClientKeysFormat
-}
+import it.pagopa.interop.authorizationprocess.api.impl.ClientApiMarshallerImpl._
+import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.model.{ClientSeed, PurposeAdditionDetails}
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.util.FakeDependencies._
-import it.pagopa.interop.authorizationprocess.util.{AuthorizedRoutes, SpecUtils}
+import it.pagopa.interop.authorizationprocess.util.{AuthorizedRoutes, AuthzScalatestRouteTest}
 import it.pagopa.interop.commons.utils.USER_ROLES
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import spray.json.DefaultJsonProtocol.immSeqFormat
 
 import java.util.UUID
 import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext
 
-class ClientOperationAuthzSpec
-    extends AnyWordSpecLike
-    with MockFactory
-    with SpecUtils
-    with ScalatestRouteTest
-    with Matchers {
+class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with AuthzScalatestRouteTest {
 
   val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeCatalogManagementService: CatalogManagementService             = new FakeCatalogManagementService()
@@ -52,22 +33,6 @@ class ClientOperationAuthzSpec
     fakeUserRegistryManagementService
   )(ExecutionContext.global)
 
-  // when request occurs, check that it does not return neither 401 nor 403
-  def validRoleCheck(role: String, request: => HttpRequest, r: => Route) =
-    request ~> r ~> check {
-      status should not be StatusCodes.Unauthorized
-      status should not be StatusCodes.Forbidden
-      info(s"role $role is properly authorized")
-    }
-
-  // when request occurs, check that it forbids invalid role
-  def invalidRoleCheck(role: String, request: => HttpRequest, r: => Route) = {
-    request ~> r ~> check {
-      status shouldBe StatusCodes.Forbidden
-      info(s"role $role is properly forbidden since it is invalid")
-    }
-  }
-
   "Client operation authorization spec" should {
     "accept authorized roles for delete Client" in {
       @nowarn
@@ -77,20 +42,12 @@ class ClientOperationAuthzSpec
       // for each role of this route, it checks if it is properly authorized
       endpoint.rolesInContexts.foreach(contexts => {
         implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.deleteClient(client.id.toString)
-        )
+        validRoleCheck(contexts.toMap.get(USER_ROLES).toString, endpoint.asRequest, service.deleteClient("fake"))
       })
 
       // given a fake role, check that its invocation is forbidden
       implicit val invalidCtx = endpoint.contextsWithInvalidRole
-      invalidRoleCheck(
-        invalidCtx.toMap.get(USER_ROLES).toString,
-        endpoint.asRequest,
-        service.deleteClient(client.id.toString)
-      )
+      invalidRoleCheck(invalidCtx.toMap.get(USER_ROLES).toString, endpoint.asRequest, service.deleteClient("fake"))
     }
 
     "accept authorized roles for createConsumerClient" in {
@@ -143,19 +100,11 @@ class ClientOperationAuthzSpec
 
       endpoint.rolesInContexts.foreach(contexts => {
         implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.getClient(client.id.toString)
-        )
+        validRoleCheck(contexts.toMap.get(USER_ROLES).toString, endpoint.asRequest, service.getClient("fake"))
       })
 
       implicit val invalidCtx = endpoint.contextsWithInvalidRole
-      invalidRoleCheck(
-        invalidCtx.toMap.get(USER_ROLES).toString,
-        endpoint.asRequest,
-        service.getClient(client.id.toString)
-      )
+      invalidRoleCheck(invalidCtx.toMap.get(USER_ROLES).toString, endpoint.asRequest, service.getClient("fake"))
     }
     "accept authorized roles for listClients" in {
       @nowarn
