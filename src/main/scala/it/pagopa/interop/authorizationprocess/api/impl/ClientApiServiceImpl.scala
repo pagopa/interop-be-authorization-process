@@ -235,7 +235,7 @@ final case class ClientApiServiceImpl(
               )(contexts)
             )
 
-      clients <- managementClients.traverse(getClient)
+      clients <- Future.traverse(managementClients)(getClient)
     } yield clients
 
     onComplete(result) {
@@ -481,7 +481,9 @@ final case class ClientApiServiceImpl(
     val result = for {
       clientUuid       <- clientId.toFutureUUID
       client           <- authorizationManagementService.getClient(clientUuid)(contexts)
-      relationshipsIds <- keysSeeds.traverse(seed => securityOperatorRelationship(client.consumerId, seed.operatorId))
+      relationshipsIds <- Future.traverse(keysSeeds)(seed =>
+        securityOperatorRelationship(client.consumerId, seed.operatorId)
+      )
       seeds            <- keysSeeds
         .zip(relationshipsIds)
         .traverse {
@@ -531,7 +533,7 @@ final case class ClientApiServiceImpl(
     val result = for {
       clientUuid   <- clientId.toFutureUUID
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)(contexts)
-      keys         <- keysResponse.keys.traverse(k =>
+      keys         <- Future.traverse(keysResponse.keys)(k =>
         operatorFromRelationship(k.relationshipId).map(operator =>
           AuthorizationManagementService.readKeyToApi(k, operator)
         )
@@ -776,8 +778,10 @@ final case class ClientApiServiceImpl(
     for {
       consumer              <- partyManagementService.getInstitution(client.consumerId)
       operators             <- operatorsFromClient(client)
-      purposesAndAgreements <- client.purposes.traverse(purpose => getLatestAgreement(purpose).map((purpose, _)))
-      purposesDetails       <- purposesAndAgreements.traverse(t => (enrichPurpose _).tupled(t))
+      purposesAndAgreements <- Future.traverse(client.purposes)(purpose =>
+        getLatestAgreement(purpose).map((purpose, _))
+      )
+      purposesDetails       <- Future.traverse(purposesAndAgreements) { case (p, a) => enrichPurpose(p, a) }
     } yield clientToApi(client, consumer, purposesDetails, operators)
   }
 
@@ -830,8 +834,7 @@ final case class ClientApiServiceImpl(
 
   private[this] def operatorsFromClient(client: AuthorizationManagementDependency.Client)(implicit
     contexts: Seq[(String, String)]
-  ): Future[Seq[Operator]] =
-    client.relationships.toSeq.traverse(operatorFromRelationship)
+  ): Future[Seq[Operator]] = Future.traverse(client.relationships.toList)(operatorFromRelationship)
 
   private[this] def hasClientRelationship(
     client: authorizationmanagement.client.model.Client,
