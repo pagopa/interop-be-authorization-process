@@ -37,6 +37,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         states = AuthorizationManagementDependency.ClientStatesChainSeed(
           eservice = AuthorizationManagementDependency.ClientEServiceDetailsSeed(
             eserviceId = eService.id,
+            descriptorId = activeDescriptor.id,
             state = AuthorizationManagementDependency.ClientComponentState.ACTIVE,
             audience = eService.descriptors.head.audience,
             voucherLifespan = eService.descriptors.head.voucherLifespan
@@ -44,10 +45,12 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
           agreement = AuthorizationManagementDependency.ClientAgreementDetailsSeed(
             eserviceId = agreement.eserviceId,
             consumerId = agreement.consumerId,
+            agreementId = agreement.id,
             state = AuthorizationManagementDependency.ClientComponentState.INACTIVE
           ),
           purpose = AuthorizationManagementDependency.ClientPurposeDetailsSeed(
             purposeId = purpose.id,
+            versionId = purposeVersion.id,
             state = AuthorizationManagementDependency.ClientComponentState.ACTIVE
           )
         )

@@ -661,12 +661,13 @@ final case class ClientApiServiceImpl(
       case _ => AuthorizationManagementDependency.ClientComponentState.INACTIVE
     }
 
-    def purposeToComponentState(
-      purpose: PurposeManagementDependency.Purpose
-    ): AuthorizationManagementDependency.ClientComponentState =
-      if (purpose.versions.exists(_.state == PurposeManagementDependency.PurposeVersionState.ACTIVE))
+    def purposeVersionToComponentState(
+      purposeVersion: PurposeManagementDependency.PurposeVersion
+    ): AuthorizationManagementDependency.ClientComponentState = purposeVersion.state match {
+      case PurposeManagementDependency.PurposeVersionState.ACTIVE =>
         AuthorizationManagementDependency.ClientComponentState.ACTIVE
-      else AuthorizationManagementDependency.ClientComponentState.INACTIVE
+      case _ => AuthorizationManagementDependency.ClientComponentState.INACTIVE
+    }
 
     val result: Future[Unit] = for {
       clientUuid <- clientId.toFutureUUID
@@ -680,9 +681,14 @@ final case class ClientApiServiceImpl(
       descriptor <- eService.descriptors
         .find(_.id == agreement.descriptorId)
         .toFuture(ClientPurposeAddDescriptorNotFound(purpose.eserviceId.toString, agreement.descriptorId.toString))
+      version    <- purpose.versions
+        .filter(_.state != PurposeManagementDependency.PurposeVersionState.DRAFT)
+        .maxByOption(_.createdAt)
+        .toFuture(ClientPurposeAddPurposeVersionNotFound(purpose.id.toString))
       states = AuthorizationManagementDependency.ClientStatesChainSeed(
         eservice = AuthorizationManagementDependency.ClientEServiceDetailsSeed(
           eserviceId = eService.id,
+          descriptorId = descriptor.id,
           state = descriptorToComponentState(descriptor),
           audience = descriptor.audience,
           voucherLifespan = descriptor.voucherLifespan
@@ -691,11 +697,13 @@ final case class ClientApiServiceImpl(
           .ClientAgreementDetailsSeed(
             eserviceId = agreement.eserviceId,
             consumerId = agreement.consumerId,
+            agreementId = agreement.id,
             state = agreementToComponentState(agreement)
           ),
         purpose = AuthorizationManagementDependency.ClientPurposeDetailsSeed(
           purposeId = purpose.id,
-          state = purposeToComponentState(purpose)
+          versionId = version.id,
+          state = purposeVersionToComponentState(version)
         )
       )
       seed   = AuthorizationManagementDependency.PurposeSeed(details.purposeId, states)
@@ -733,10 +741,10 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(_)                                                  => addClientPurpose204
       case Failure(ex: PurposeManagementApiError[_]) if ex.code == 404 =>
-        logger.error(s"Error removing purpose ${purposeId} from client $clientId", ex)
+        logger.error(s"Error removing purpose $purposeId from client $clientId", ex)
         createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Purpose id $purposeId")))
       case Failure(ex)                                                 =>
-        logger.error(s"Error removing purpose ${purposeId} from client $clientId", ex)
+        logger.error(s"Error removing purpose $purposeId from client $clientId", ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientPurposeRemoveError(clientId, purposeId)))
     }
   }
