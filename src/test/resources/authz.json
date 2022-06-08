@@ -63,7 +63,7 @@
     {
       "route": "getClientOperatorRelationshipById",
       "verb": "GET",
-      "roles": ["admin", "security"]
+      "roles": ["admin", "security", "m2m"]
     },
     {
       "route": "addClientPurpose",
