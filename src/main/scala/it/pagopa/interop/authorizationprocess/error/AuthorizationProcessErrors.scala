@@ -91,4 +91,6 @@ object AuthorizationProcessErrors {
 
   final case class MissingUserInfo(userId: UUID) extends ComponentError("0050", s"Missing ${userId.toString} user info")
 
+  final case class ClientPurposeAddPurposeVersionNotFound(purposeId: String)
+      extends ComponentError("0051", s"No suitable version found for purpose $purposeId")
 }
