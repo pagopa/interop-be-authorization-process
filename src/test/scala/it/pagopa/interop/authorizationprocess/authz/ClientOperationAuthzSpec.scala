@@ -6,7 +6,6 @@ import it.pagopa.interop.authorizationprocess.model.{ClientSeed, PurposeAddition
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.util.FakeDependencies._
 import it.pagopa.interop.authorizationprocess.util.{AuthorizedRoutes, AuthzScalatestRouteTest}
-import it.pagopa.interop.commons.utils.USER_ROLES
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -34,322 +33,97 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
   "Client operation authorization spec" should {
     "accept authorized roles for delete Client" in {
       val endpoint = AuthorizedRoutes.endpoints("deleteClient")
-
-      // for each role of this route, it checks if it is properly authorized
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(contexts.toMap.get(USER_ROLES).toString, endpoint.asRequest, service.deleteClient("fake"))
-      })
-
-      // given a fake role, check that its invocation is forbidden
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(invalidCtx.toMap.get(USER_ROLES).toString, endpoint.asRequest, service.deleteClient("fake"))
-      })
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.deleteClient("test") })
     }
 
     "accept authorized roles for createConsumerClient" in {
-      val endpoint = AuthorizedRoutes.endpoints("createConsumerClient")
-
+      val endpoint   = AuthorizedRoutes.endpoints("createConsumerClient")
       val clientSeed = ClientSeed(consumerId = UUID.randomUUID(), name = "pippo")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.createConsumerClient(clientSeed)
-        )
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.createConsumerClient(clientSeed)
-        )
-      })
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.createConsumerClient(clientSeed) })
     }
     "accept authorized roles for createApiClient" in {
-      val endpoint = AuthorizedRoutes.endpoints("createApiClient")
-
+      val endpoint   = AuthorizedRoutes.endpoints("createApiClient")
       val clientSeed = ClientSeed(consumerId = UUID.randomUUID(), name = "pippo")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(contexts.toMap.get(USER_ROLES).toString, endpoint.asRequest, service.createApiClient(clientSeed))
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.createApiClient(clientSeed)
-        )
-      })
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.createApiClient(clientSeed) })
     }
 
     "accept authorized roles for getClient" in {
       val endpoint = AuthorizedRoutes.endpoints("getClient")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(contexts.toMap.get(USER_ROLES).toString, endpoint.asRequest, service.getClient("fake"))
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(invalidCtx.toMap.get(USER_ROLES).toString, endpoint.asRequest, service.getClient("fake"))
-      })
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClient("fake") })
     }
     "accept authorized roles for listClients" in {
       val endpoint = AuthorizedRoutes.endpoints("listClients")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.listClients(None, None, "test", None, None)
-        )
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.listClients(None, None, "test", None, None)
-        )
-      })
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.listClients(None, None, "test", None, None) }
+      )
     }
     "accept authorized roles for clientOperatorRelationshipBinding" in {
       val endpoint = AuthorizedRoutes.endpoints("clientOperatorRelationshipBinding")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.clientOperatorRelationshipBinding("yada", "yada")
-        )
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.clientOperatorRelationshipBinding("inter", "op")
-        )
-      })
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.clientOperatorRelationshipBinding("yada", "yada") }
+      )
     }
     "accept authorized roles for removeClientOperatorRelationship" in {
       val endpoint = AuthorizedRoutes.endpoints("removeClientOperatorRelationship")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.removeClientOperatorRelationship("yada", "yada")
-        )
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.removeClientOperatorRelationship("inter", "op")
-        )
-      })
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.removeClientOperatorRelationship("yada", "yada") }
+      )
     }
     "accept authorized roles for getClientKeyById" in {
       val endpoint = AuthorizedRoutes.endpoints("getClientKeyById")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.getClientKeyById("yada", "yada")
-        )
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.getClientKeyById("inter", "op")
-        )
-      })
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClientKeyById("yada", "yada") })
     }
     "accept authorized roles for deleteClientKeyById" in {
       val endpoint = AuthorizedRoutes.endpoints("deleteClientKeyById")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.deleteClientKeyById("yada", "yada")
-        )
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.deleteClientKeyById("inter", "op")
-        )
-      })
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.deleteClientKeyById("yada", "yada") }
+      )
     }
+
     "accept authorized roles for createKeys" in {
       val endpoint = AuthorizedRoutes.endpoints("createKeys")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.createKeys("yada", Seq.empty)
-        )
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.createKeys("inter", Seq.empty)
-        )
-      })
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.createKeys("yada", Seq.empty) })
     }
     "accept authorized roles for getClientKeys" in {
       val endpoint = AuthorizedRoutes.endpoints("getClientKeys")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(contexts.toMap.get(USER_ROLES).toString, endpoint.asRequest, service.getClientKeys("yada"))
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.getClientKeys("interop")
-        )
-      })
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClientKeys("yada") })
     }
     "accept authorized roles for getClientOperators" in {
       val endpoint = AuthorizedRoutes.endpoints("getClientOperators")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(contexts.toMap.get(USER_ROLES).toString, endpoint.asRequest, service.getClientOperators("yada"))
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.getClientOperators("interop")
-        )
-      })
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClientOperators("yada") })
     }
     "accept authorized roles for getClientOperatorRelationshipById" in {
       val endpoint = AuthorizedRoutes.endpoints("getClientOperatorRelationshipById")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.getClientOperatorRelationshipById("yada", "yada")
-        )
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.getClientOperatorRelationshipById("interop", "test")
-        )
-      })
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.getClientOperatorRelationshipById("yada", "yada") }
+      )
     }
     "accept authorized roles for addClientPurpose" in {
       val endpoint = AuthorizedRoutes.endpoints("addClientPurpose")
-
-      val details = PurposeAdditionDetails(UUID.randomUUID())
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.addClientPurpose("yada", details)
-        )
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.addClientPurpose("interop", details)
-        )
-      })
+      val details  = PurposeAdditionDetails(UUID.randomUUID())
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.addClientPurpose("yada", details) }
+      )
     }
     "accept authorized roles for removeClientPurpose" in {
       val endpoint = AuthorizedRoutes.endpoints("removeClientPurpose")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.removeClientPurpose("yada", "test")
-        )
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.removeClientPurpose("interop", "test")
-        )
-      })
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.removeClientPurpose("yada", "test") }
+      )
     }
     "accept authorized roles for getEncodedClientKeyById" in {
       val endpoint = AuthorizedRoutes.endpoints("getEncodedClientKeyById")
-
-      endpoint.rolesInContexts.foreach(contexts => {
-        implicit val ctx = contexts
-        validRoleCheck(
-          contexts.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.getEncodedClientKeyById("yada", "test")
-        )
-      })
-
-      endpoint.invalidRoles.foreach(contexts => {
-        implicit val invalidCtx = contexts
-        invalidRoleCheck(
-          invalidCtx.toMap.get(USER_ROLES).toString,
-          endpoint.asRequest,
-          service.getEncodedClientKeyById("interop", "test")
-        )
-      })
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.getEncodedClientKeyById("yada", "test") }
+      )
     }
-
   }
 }

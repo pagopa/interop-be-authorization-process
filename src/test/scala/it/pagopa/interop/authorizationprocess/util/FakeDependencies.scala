@@ -124,6 +124,7 @@ object FakeDependencies {
           id = UUID.randomUUID(),
           eservice = ClientEServiceDetails(
             eserviceId = UUID.randomUUID(),
+            descriptorId = UUID.randomUUID(),
             state = ClientComponentState.ACTIVE,
             audience = Seq.empty,
             voucherLifespan = 1000
@@ -131,9 +132,14 @@ object FakeDependencies {
           agreement = ClientAgreementDetails(
             eserviceId = UUID.randomUUID(),
             consumerId = UUID.randomUUID(),
+            agreementId = UUID.randomUUID(),
             state = ClientComponentState.ACTIVE
           ),
-          purpose = ClientPurposeDetails(purposeId = UUID.randomUUID(), state = ClientComponentState.ACTIVE)
+          purpose = ClientPurposeDetails(
+            purposeId = UUID.randomUUID(),
+            versionId = UUID.randomUUID(),
+            state = ClientComponentState.ACTIVE
+          )
         )
       )
     )
