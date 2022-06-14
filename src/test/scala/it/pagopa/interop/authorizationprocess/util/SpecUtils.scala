@@ -11,6 +11,7 @@ import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiMarshallerImpl,
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
+import it.pagopa.interop.commons.utils.USER_ROLES
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
 import it.pagopa.interop.selfcare.userregistry.client.model.{
@@ -24,6 +25,13 @@ import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
+
+trait SpecUtilsWithImplicit extends SpecUtils {
+  self: MockFactory =>
+
+  implicit val contexts: Seq[(String, String)] =
+    Seq("bearer" -> bearerToken, "uid" -> personId.toString, USER_ROLES -> "admin")
+}
 
 trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
@@ -301,8 +309,6 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val clientApiMarshaller: ClientApiMarshallerImpl.type = ClientApiMarshallerImpl
 
   val operatorApiMarshaller: OperatorApiMarshallerImpl.type = OperatorApiMarshallerImpl
-
-  implicit val contexts: Seq[(String, String)] = Seq("bearer" -> bearerToken, "uid" -> personId.toString)
 
   implicit def fromResponseUnmarshallerClientRequest: FromEntityUnmarshaller[Client] =
     sprayJsonUnmarshaller[Client]

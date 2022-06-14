@@ -9,7 +9,7 @@ import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
 import it.pagopa.interop.authorizationprocess.service.{AuthorizationManagementInvoker, PartyManagementService}
-import it.pagopa.interop.authorizationprocess.util.{CustomMatchers, SpecUtils}
+import it.pagopa.interop.authorizationprocess.util.{CustomMatchers, SpecUtilsWithImplicit}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -21,7 +21,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class KeyOperationSpec
     extends AnyWordSpecLike
     with MockFactory
-    with SpecUtils
+    with SpecUtilsWithImplicit
     with ScalatestRouteTest
     with CustomMatchers {
   import clientApiMarshaller._
@@ -114,7 +114,7 @@ class KeyOperationSpec
       )(ExecutionContext.global)
       val kid                                      = "some-kid"
       Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 
@@ -180,7 +180,7 @@ class KeyOperationSpec
         mockUserRegistryManagementService
       )(ExecutionContext.global)
       Get() ~> service.getClientKeys(client.id.toString) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 
@@ -239,7 +239,7 @@ class KeyOperationSpec
         mockUserRegistryManagementService
       )(ExecutionContext.global)
       Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 

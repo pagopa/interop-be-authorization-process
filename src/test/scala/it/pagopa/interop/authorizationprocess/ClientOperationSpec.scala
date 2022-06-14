@@ -13,7 +13,7 @@ import it.pagopa.interop.authorizationprocess.service.{
   CatalogManagementService,
   PartyManagementService
 }
-import it.pagopa.interop.authorizationprocess.util.SpecUtils
+import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
 import it.pagopa.interop.selfcare.partymanagement.client.model.Relationships
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
@@ -22,7 +22,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
+class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsWithImplicit with ScalatestRouteTest {
 
   import clientApiMarshaller._
 
@@ -87,10 +87,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         mockUserRegistryManagementService
       )(ExecutionContext.global)
       Get() ~> service.createConsumerClient(clientSeed) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
-
   }
 
   "Client retrieve" should {

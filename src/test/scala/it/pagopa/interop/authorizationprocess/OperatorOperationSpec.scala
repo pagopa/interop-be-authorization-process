@@ -23,7 +23,7 @@ import it.pagopa.interop.authorizationprocess.service.{
   PartyManagementInvoker,
   PartyManagementService
 }
-import it.pagopa.interop.authorizationprocess.util.SpecUtils
+import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
 import it.pagopa.interop.selfcare.partymanagement.client.api.PartyApi
 import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
 import org.scalamock.scalatest.MockFactory
@@ -33,7 +33,11 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtils with ScalatestRouteTest {
+class OperatorOperationSpec
+    extends AnyWordSpecLike
+    with MockFactory
+    with SpecUtilsWithImplicit
+    with ScalatestRouteTest {
   import clientApiMarshaller._
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
@@ -111,7 +115,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         mockUserRegistryManagementService
       )(ExecutionContext.global)
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, seed) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 
@@ -183,7 +187,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         mockUserRegistryManagementService
       )(ExecutionContext.global)
       Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationship.id.toString) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 
@@ -280,7 +284,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         mockUserRegistryManagementService
       )(ExecutionContext.global)
       Get() ~> service.getClientOperators(client.id.toString) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 
@@ -347,7 +351,7 @@ class OperatorOperationSpec extends AnyWordSpecLike with MockFactory with SpecUt
         mockUserRegistryManagementService
       )(ExecutionContext.global)
       Get() ~> service.getClientOperatorRelationshipById(client.id.toString, relationship.id.toString) ~> check {
-        status shouldEqual StatusCodes.Unauthorized
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 
