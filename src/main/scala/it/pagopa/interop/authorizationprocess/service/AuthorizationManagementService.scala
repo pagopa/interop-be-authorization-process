@@ -77,7 +77,7 @@ object AuthorizationManagementService {
     ReadClientKey(
       name = clientKey.name,
       createdAt = clientKey.createdAt,
-      operator = OperatorDetails(operator.relationshipId, operator.name, operator.surname),
+      operator = OperatorDetails(operator.relationshipId, operator.name, operator.familyName),
       key = toApiKey(key)
     )
   }

@@ -92,7 +92,7 @@ class KeyOperationSpec
         operator = OperatorDetails(
           relationshipId = relationship.id,
           name = user.name.get.value,
-          surname = user.familyName.get.value
+          familyName = user.familyName.get.value
         )
       )
 
@@ -159,7 +159,7 @@ class KeyOperationSpec
         operator = OperatorDetails(
           relationshipId = relationship.id,
           name = user.name.get.value,
-          surname = user.familyName.get.value
+          familyName = user.familyName.get.value
         )
       )
 

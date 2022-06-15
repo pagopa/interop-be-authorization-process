@@ -259,7 +259,7 @@ class OperatorOperationSpec
           relationshipId = UUID.fromString(relationshipId),
           taxCode = user.fiscalCode.get,
           name = user.name.get.value,
-          surname = user.familyName.get.value,
+          familyName = user.familyName.get.value,
           role = relationshipRoleToApi(operatorRelationship.role),
           product = relationshipProductToApi(operatorRelationship.product),
           state = relationshipStateToApi(operatorRelationship.state)
@@ -326,7 +326,7 @@ class OperatorOperationSpec
           relationshipId = UUID.fromString(relationshipId),
           taxCode = user.fiscalCode.get,
           name = user.name.get.value,
-          surname = user.familyName.get.value,
+          familyName = user.familyName.get.value,
           role = relationshipRoleToApi(relationship.role),
           product = relationshipProductToApi(relationship.product),
           state = relationshipStateToApi(relationship.state).getOrElse(

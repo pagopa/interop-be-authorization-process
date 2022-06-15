@@ -801,12 +801,12 @@ components:
           format: uuid
         name:
           type: string
-        surname:
+        familyName:
           type: string
       required:
         - relationshipId
         - name
-        - surname
+        - familyName
     Operator:
       description: Models a Client Operator
       type: object
@@ -818,7 +818,7 @@ components:
           type: string
         name:
           type: string
-        surname:
+        familyName:
           type: string
         role:
           $ref: '#/components/schemas/OperatorRole'
@@ -830,7 +830,7 @@ components:
         - relationshipId
         - taxCode
         - name
-        - surname
+        - familyName
         - email
         - role
         - product
