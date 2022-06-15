@@ -831,7 +831,11 @@ final case class ClientApiServiceImpl(
     for {
       relationships <-
         partyManagementService
-          .getRelationships(consumerId, operatorId, Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR))
+          .getRelationships(
+            consumerId,
+            operatorId,
+            Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
+          )
           .map(Some(_))
           // TODO This is dangerous because every error is treated as "missing party with given tax code"
           //  but currently there is no precise way to identify the error

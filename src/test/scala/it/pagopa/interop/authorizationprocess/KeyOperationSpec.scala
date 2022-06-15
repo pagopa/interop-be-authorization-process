@@ -210,7 +210,13 @@ class KeyOperationSpec
 
       (mockPartyManagementService
         .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
-        .expects(client.consumerId, user.id, Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR), *, *)
+        .expects(
+          client.consumerId,
+          user.id,
+          Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
+          *,
+          *
+        )
         .once()
         .returns(Future.successful(relationships))
 
