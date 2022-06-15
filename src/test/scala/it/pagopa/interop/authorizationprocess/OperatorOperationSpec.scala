@@ -191,10 +191,46 @@ class OperatorOperationSpec
       }
     }
 
-    "fail if user removes own relationship" in {
+    "succeed if an admin user removes own relationship" in {
 
       val relationshipId    = UUID.randomUUID()
-      val userRelationships = relationships.copy(items = Seq(relationship.copy(id = relationshipId)))
+      val userRelationships = relationships.copy(items =
+        Seq(
+          relationship.copy(
+            id = relationshipId,
+            product = relationship.product.copy(role = PartyManagementService.PRODUCT_ROLE_ADMIN)
+          )
+        )
+      )
+
+      (mockPartyManagementService
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(personId, Seq.empty, *, *)
+        .once()
+        .returns(Future.successful(userRelationships))
+
+      (mockAuthorizationManagementService
+        .removeClientRelationship(_: UUID, _: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, relationshipId, *)
+        .once()
+        .returns(Future.unit)
+
+      Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationshipId.toString) ~> check {
+        status shouldEqual StatusCodes.NoContent
+      }
+    }
+
+    "fail if a security user removes own relationship" in {
+
+      val relationshipId    = UUID.randomUUID()
+      val userRelationships = relationships.copy(items =
+        Seq(
+          relationship.copy(
+            id = relationshipId,
+            product = relationship.product.copy(role = PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR)
+          )
+        )
+      )
 
       (mockPartyManagementService
         .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
