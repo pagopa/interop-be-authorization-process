@@ -861,13 +861,13 @@ final case class ClientApiServiceImpl(
       relationship <- partyManagementService.getRelationshipById(relationshipId)
       user         <- userRegistryManagementService.getUserById(relationship.from)
       userInfo     <- extractUserInfo(user)
-      (name, surname, taxCode) = userInfo
+      (name, familyName, taxCode) = userInfo
       operatorState <- relationshipStateToApi(relationship.state).toFuture
     } yield Operator(
       relationshipId = relationship.id,
       taxCode = taxCode,
       name = name,
-      surname = surname,
+      familyName = familyName,
       role = relationshipRoleToApi(relationship.role),
       product = relationshipProductToApi(relationship.product),
       state = operatorState
