@@ -370,7 +370,7 @@ final case class ClientApiServiceImpl(
       requesterRelationships <- partyManagementService.getRelationshipsByPersonId(userUUID, Seq.empty)
       _                      <- Future
         .failed(UserNotAllowedToRemoveOwnRelationship(clientId, relationshipId))
-        .whenA(requesterRelationships.items.exists(_.id == relationshipUUID))
+        .whenA(isNotRemovable(relationshipUUID)(requesterRelationships))
       _ <- authorizationManagementService.removeClientRelationship(clientUUID, relationshipUUID)(contexts)
     } yield ()
 
@@ -400,6 +400,13 @@ final case class ClientApiServiceImpl(
         logger.error(s"Removing binding between client $clientId with relationship $relationshipId", ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, OperatorRemovalError))
     }
+  }
+
+  private def isNotRemovable(relationshipId: UUID): Relationships => Boolean = relationships => {
+    relationships.items.exists(relationship =>
+      relationship.id == relationshipId &&
+        relationship.product.role != PartyManagementService.PRODUCT_ROLE_ADMIN
+    )
   }
 
   /** Code: 200, Message: returns the corresponding key, DataType: Key
