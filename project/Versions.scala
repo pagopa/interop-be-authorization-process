@@ -7,8 +7,8 @@ object Versions {
   lazy val bouncycastleVersion      = "1.70"
   lazy val catsVersion              = "2.8.0"
   lazy val jacksonVersion   = "2.11.4" // This cannot be updated yet because akka-serialization use 2.11.x version
-  lazy val json4sVersion    = "4.0.4"
   lazy val kamonVersion     = "2.5.4"
+  lazy val json4sVersion    = "4.0.5"
   lazy val logbackVersion   = "1.2.11"
   lazy val mustacheVersion  = "0.9.10"
   lazy val nimbusVersion    = "9.23"
