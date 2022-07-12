@@ -13,8 +13,9 @@ import it.pagopa.interop.commons.logging.renderBuildInfo
 import it.pagopa.interop.commons.utils.CORSSupport
 import kamon.Kamon
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.util.{Failure, Success}
+import akka.actor.typed.DispatcherSelector
 
 object Main extends App with CORSSupport with Dependencies {
 
@@ -26,6 +27,8 @@ object Main extends App with CORSSupport with Dependencies {
     Behaviors.setup[Nothing] { context =>
       implicit val actorSystem: ActorSystem[_]        = context.system
       implicit val executionContext: ExecutionContext = actorSystem.executionContext
+      val selector: DispatcherSelector                = DispatcherSelector.fromConfig("futures-dispatcher")
+      val blockingEc: ExecutionContextExecutor        = actorSystem.dispatchers.lookup(selector)
 
       Kamon.init()
       AkkaManagement.get(actorSystem.classicSystem).start()
@@ -35,9 +38,9 @@ object Main extends App with CORSSupport with Dependencies {
       val serverBinding = for {
         jwtReader <- getJwtValidator()
         controller = new Controller(
-          clientApi(jwtReader),
+          clientApi(jwtReader, blockingEc),
           healthApi,
-          operatorApi(jwtReader),
+          operatorApi(jwtReader, blockingEc),
           validationExceptionToRoute.some
         )(actorSystem.classicSystem)
         binding <- Http()(actorSystem.classicSystem)
