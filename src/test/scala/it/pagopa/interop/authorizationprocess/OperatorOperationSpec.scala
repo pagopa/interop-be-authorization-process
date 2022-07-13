@@ -107,7 +107,12 @@ class OperatorOperationSpec
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val seed                                     = relationshipId
       val service: ClientApiServiceImpl            = ClientApiServiceImpl(
-        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        AuthorizationManagementServiceImpl(
+          AuthorizationManagementInvoker(ExecutionContext.global),
+          ClientApi(),
+          KeyApi(),
+          PurposeApi()
+        ),
         mockAgreementManagementService,
         mockCatalogManagementService,
         mockPartyManagementService,
@@ -312,7 +317,12 @@ class OperatorOperationSpec
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val service: ClientApiServiceImpl            = ClientApiServiceImpl(
-        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        AuthorizationManagementServiceImpl(
+          AuthorizationManagementInvoker(ExecutionContext.global),
+          ClientApi(),
+          KeyApi(),
+          PurposeApi()
+        ),
         mockAgreementManagementService,
         mockCatalogManagementService,
         mockPartyManagementService,
@@ -379,7 +389,12 @@ class OperatorOperationSpec
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val service: ClientApiServiceImpl            = ClientApiServiceImpl(
-        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        AuthorizationManagementServiceImpl(
+          AuthorizationManagementInvoker(ExecutionContext.global),
+          ClientApi(),
+          KeyApi(),
+          PurposeApi()
+        ),
         mockAgreementManagementService,
         mockCatalogManagementService,
         mockPartyManagementService,

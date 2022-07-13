@@ -105,7 +105,12 @@ class KeyOperationSpec
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val service: ClientApiServiceImpl            = ClientApiServiceImpl(
-        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        AuthorizationManagementServiceImpl(
+          AuthorizationManagementInvoker(ExecutionContext.global),
+          ClientApi(),
+          KeyApi(),
+          PurposeApi()
+        ),
         mockAgreementManagementService,
         mockCatalogManagementService,
         mockPartyManagementService,
@@ -172,7 +177,12 @@ class KeyOperationSpec
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val service: ClientApiServiceImpl            = ClientApiServiceImpl(
-        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        AuthorizationManagementServiceImpl(
+          AuthorizationManagementInvoker(ExecutionContext.global),
+          ClientApi(),
+          KeyApi(),
+          PurposeApi()
+        ),
         mockAgreementManagementService,
         mockCatalogManagementService,
         mockPartyManagementService,
@@ -237,7 +247,12 @@ class KeyOperationSpec
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val service: ClientApiServiceImpl            = ClientApiServiceImpl(
-        AuthorizationManagementServiceImpl(AuthorizationManagementInvoker(), ClientApi(), KeyApi(), PurposeApi()),
+        AuthorizationManagementServiceImpl(
+          AuthorizationManagementInvoker(ExecutionContext.global),
+          ClientApi(),
+          KeyApi(),
+          PurposeApi()
+        ),
         mockAgreementManagementService,
         mockCatalogManagementService,
         mockPartyManagementService,

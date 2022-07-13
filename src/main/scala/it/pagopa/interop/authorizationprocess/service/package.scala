@@ -8,7 +8,7 @@ import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
 import it.pagopa.interop.selfcare.partymanagement
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContextExecutor
 
 package object service {
   type CatalogManagementInvoker       = catalogmanagement.client.invoker.ApiInvoker
@@ -28,13 +28,13 @@ package object service {
   }
 
   object AgreementManagementInvoker {
-    def apply()(implicit actorSystem: ActorSystem): AgreementManagementInvoker =
-      agreementmanagement.client.invoker.ApiInvoker(agreementmanagement.client.api.EnumsSerializers.all)
+    def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): AgreementManagementInvoker =
+      agreementmanagement.client.invoker.ApiInvoker(agreementmanagement.client.api.EnumsSerializers.all, blockingEc)
   }
 
   object CatalogManagementInvoker {
-    def apply()(implicit actorSystem: ActorSystem): CatalogManagementInvoker =
-      catalogmanagement.client.invoker.ApiInvoker(catalogmanagement.client.api.EnumsSerializers.all)
+    def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): CatalogManagementInvoker =
+      catalogmanagement.client.invoker.ApiInvoker(catalogmanagement.client.api.EnumsSerializers.all, blockingEc)
   }
 
   object PartyManagementInvoker {
@@ -43,13 +43,14 @@ package object service {
   }
 
   object PurposeManagementInvoker {
-    def apply()(implicit actorSystem: ActorSystem): PurposeManagementInvoker =
-      purposemanagement.client.invoker.ApiInvoker(purposemanagement.client.api.EnumsSerializers.all)
+    def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): PurposeManagementInvoker =
+      purposemanagement.client.invoker.ApiInvoker(purposemanagement.client.api.EnumsSerializers.all, blockingEc)
   }
 
   object AuthorizationManagementInvoker {
-    def apply()(implicit actorSystem: ActorSystem, blockingEc: ExecutionContext): AuthorizationManagementInvoker =
-      authorizationmanagement.client.invoker.ApiInvoker(authorizationmanagement.client.api.EnumsSerializers.all)
+    def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): AuthorizationManagementInvoker =
+      authorizationmanagement.client.invoker
+        .ApiInvoker(authorizationmanagement.client.api.EnumsSerializers.all, blockingEc)
   }
 
   object UserRegistryManagementInvoker {
