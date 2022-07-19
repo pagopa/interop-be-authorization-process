@@ -11,21 +11,15 @@ import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
 import it.pagopa.interop.authorizationprocess.server.Controller
 import it.pagopa.interop.commons.logging.renderBuildInfo
 import it.pagopa.interop.commons.utils.CORSSupport
-import kamon.Kamon
-
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.util.{Failure, Success}
 import akka.actor.typed.DispatcherSelector
 
 object Main extends App with CORSSupport with Dependencies {
 
-  Kamon.init()
-
   val logger: Logger = Logger(this.getClass)
 
-  System.setProperty("kanela.show-banner", "false")
-
-  val system: ActorSystem[Nothing] = ActorSystem[Nothing](
+  ActorSystem[Nothing](
     Behaviors.setup[Nothing] { context =>
       implicit val actorSystem: ActorSystem[_]        = context.system
       implicit val executionContext: ExecutionContext = actorSystem.executionContext
@@ -61,7 +55,4 @@ object Main extends App with CORSSupport with Dependencies {
     },
     BuildInfo.name
   )
-
-  system.whenTerminated.onComplete { case _ => Kamon.stop() }(scala.concurrent.ExecutionContext.global)
-
 }
