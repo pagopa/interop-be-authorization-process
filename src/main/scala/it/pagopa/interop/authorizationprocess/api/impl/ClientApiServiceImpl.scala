@@ -715,7 +715,7 @@ final case class ClientApiServiceImpl(
           state = purposeVersionToComponentState(version)
         )
       )
-      seed   = AuthorizationManagementDependency.PurposeSeed(details.purposeId, states)
+      seed   = AuthorizationManagementDependency.PurposeSeed(states)
       _ <- authorizationManagementService.addClientPurpose(clientUuid, seed)(contexts)
     } yield ()
 
@@ -785,7 +785,7 @@ final case class ClientApiServiceImpl(
         CatalogManagementDependency.EServiceDescriptor
       )
     ] = for {
-      purpose    <- purposeManagementService.getPurpose(clientPurpose.purposeId)
+      purpose    <- purposeManagementService.getPurpose(clientPurpose.states.purpose.purposeId)
       eService   <- catalogManagementService.getEService(agreement.eserviceId)
       descriptor <- eService.descriptors
         .find(_.id == agreement.descriptorId)

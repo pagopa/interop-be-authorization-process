@@ -32,9 +32,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
   "Purpose add to Client" should {
     "succeed" in {
-      val purposeSeed = AuthorizationManagementDependency.PurposeSeed(
-        purposeId = purpose.id,
-        states = AuthorizationManagementDependency.ClientStatesChainSeed(
+      val purposeSeed = AuthorizationManagementDependency.PurposeSeed(states =
+        AuthorizationManagementDependency.ClientStatesChainSeed(
           eservice = AuthorizationManagementDependency.ClientEServiceDetailsSeed(
             eserviceId = eService.id,
             descriptorId = activeDescriptor.id,

@@ -150,7 +150,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val limit: Option[Int]             = Some(10)
       val relationshipUuid: Option[UUID] = Some(relationship.id)
       val consumerUuid: Option[UUID]     = Some(client.consumerId)
-      val purposeUuid: Option[UUID]      = Some(clientPurpose.purposeId)
+      val purposeUuid: Option[UUID]      = Some(clientPurpose.states.purpose.purposeId)
 
       (mockPartyManagementService
         .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
@@ -172,7 +172,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(clientPurpose.purposeId, *)
+        .expects(clientPurpose.states.purpose.purposeId, *)
         .once()
         .returns(Future.successful(purpose.copy(eserviceId = eService.id, consumerId = consumer.id)))
 
@@ -236,7 +236,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         offset,
         limit,
         client.consumerId.toString,
-        Some(clientPurpose.purposeId.toString),
+        Some(clientPurpose.states.purpose.purposeId.toString),
         Some("CONSUMER")
       ) ~> check {
         status shouldEqual StatusCodes.OK

@@ -118,9 +118,8 @@ object FakeDependencies {
     override def addClientPurpose(clientId: UUID, purposeSeed: PurposeSeed)(implicit
       contexts: Seq[(String, String)]
     ): Future[Purpose] = Future.successful(
-      Purpose(
-        purposeId = UUID.randomUUID(),
-        states = ClientStatesChain(
+      Purpose(states =
+        ClientStatesChain(
           id = UUID.randomUUID(),
           eservice = ClientEServiceDetails(
             eserviceId = UUID.randomUUID(),

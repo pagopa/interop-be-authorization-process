@@ -164,9 +164,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   )
 
   val clientPurpose: AuthorizationManagementDependency.Purpose =
-    AuthorizationManagementDependency.Purpose(
-      purposeId = UUID.randomUUID(),
-      states = AuthorizationManagementDependency.ClientStatesChain(
+    AuthorizationManagementDependency.Purpose(states =
+      AuthorizationManagementDependency.ClientStatesChain(
         id = UUID.randomUUID(),
         eservice = AuthorizationManagementDependency.ClientEServiceDetails(
           eserviceId = UUID.randomUUID(),
@@ -275,7 +274,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     client.purposes.foreach { clientPurpose =>
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(clientPurpose.purposeId, contexts)
+        .expects(clientPurpose.states.purpose.purposeId, contexts)
         .once()
         .returns(Future.successful(purpose.copy(eserviceId = eService.id, consumerId = consumer.id)))
 

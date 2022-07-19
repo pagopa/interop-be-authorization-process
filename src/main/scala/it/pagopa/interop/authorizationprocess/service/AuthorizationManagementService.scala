@@ -129,7 +129,7 @@ object AuthorizationManagementService {
 
   def purposeToApi(purpose: Purpose, purposeTitle: String, agreement: Agreement): ApiPurpose =
     ApiPurpose(
-      purposeId = purpose.purposeId,
+      purposeId = purpose.states.purpose.purposeId,
       title = purposeTitle,
       states = clientStatesChainToApi(purpose.states),
       agreement = agreement
