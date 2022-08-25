@@ -126,7 +126,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.PENDING))))
 
       Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
-        status shouldEqual StatusCodes.BadRequest
+        status shouldEqual StatusCodes.NotFound
         responseAs[Problem].errors.head.code shouldEqual "007-0045"
       }
     }
@@ -140,6 +140,45 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
       Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
         status shouldEqual StatusCodes.NotFound
+      }
+    }
+
+    "fail if Purpose has only draft versions" in {
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purpose.id, *)
+        .once()
+        .returns(
+          Future.successful(
+            purpose
+              .copy(versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.DRAFT)))
+          )
+        )
+
+      (mockCatalogManagementService
+        .getEService(_: UUID)(_: Seq[(String, String)]))
+        .expects(eService.id, *)
+        .once()
+        .returns(
+          Future.successful(
+            eService.copy(descriptors =
+              Seq(activeDescriptor.copy(state = CatalogManagementDependency.EServiceDescriptorState.PUBLISHED))
+            )
+          )
+        )
+
+      (mockAgreementManagementService
+        .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
+        .expects(eService.id, consumer.id, *)
+        .once()
+        .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.ACTIVE))))
+
+      // * [PIN-1698] this test should not pass (i.e. the response should be a 204) if we
+      // * decide to let the clients be associated to purposes in draft for UI reasons
+
+      Post() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[Problem].errors.head.code shouldEqual "007-0051"
       }
     }
 

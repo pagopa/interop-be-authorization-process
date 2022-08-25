@@ -726,7 +726,10 @@ final case class ClientApiServiceImpl(
         createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Purpose id ${details.purposeId}")))
       case Failure(ex: ClientPurposeAddAgreementNotFound)              =>
         logger.error(s"Error adding purpose ${details.purposeId} to client $clientId - No valid Agreement found", ex)
-        createKeys400(problemOf(StatusCodes.BadRequest, ex))
+        createKeys404(problemOf(StatusCodes.NotFound, ex))
+      case Failure(ex: ClientPurposeAddPurposeVersionNotFound)         =>
+        logger.error(s"Error adding purpose ${details.purposeId} to client $clientId - No valid Purpose found", ex)
+        createKeys404(problemOf(StatusCodes.NotFound, ex))
       case Failure(ex)                                                 =>
         logger.error(s"Error adding purpose ${details.purposeId} to client $clientId", ex)
         internalServerError(
