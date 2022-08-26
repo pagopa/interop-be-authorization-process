@@ -691,7 +691,6 @@ final case class ClientApiServiceImpl(
         .find(_.id == agreement.descriptorId)
         .toFuture(ClientPurposeAddDescriptorNotFound(purpose.eserviceId.toString, agreement.descriptorId.toString))
       version    <- purpose.versions
-        .filter(_.state != PurposeManagementDependency.PurposeVersionState.DRAFT)
         .maxByOption(_.createdAt)
         .toFuture(ClientPurposeAddPurposeVersionNotFound(purpose.id.toString))
       states = AuthorizationManagementDependency.ClientStatesChainSeed(
