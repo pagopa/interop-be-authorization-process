@@ -143,7 +143,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
       }
     }
 
-    "fail if Purpose has only draft versions" in {
+    "succeed even if Purpose has only draft versions" in {
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
         .expects(purpose.id, *)
@@ -173,12 +173,14 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         .once()
         .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.ACTIVE))))
 
-      // * [PIN-1698] this test should not pass (i.e. the response should be a 204) if we
-      // * decide to let the clients be associated to purposes in draft for UI reasons
+      (mockAuthorizationManagementService
+        .addClientPurpose(_: UUID, _: AuthorizationManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
+        .expects(client.id, *, *)
+        .once()
+        .returns(Future.successful(clientPurpose))
 
       Post() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
-        status shouldEqual StatusCodes.NotFound
-        responseAs[Problem].errors.head.code shouldEqual "007-0051"
+        status shouldEqual StatusCodes.NoContent
       }
     }
 
