@@ -19,10 +19,11 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipStateToApi
 }
 import it.pagopa.interop.authorizationprocess.service._
+import it.pagopa.interop.commons.utils.ORGANIZATION_ID_CLAIM
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, SECURITY_ROLE}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.AkkaUtils.getUidFuture
+import it.pagopa.interop.commons.utils.AkkaUtils._
 import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{
   MissingBearer,
@@ -54,23 +55,18 @@ final case class ClientApiServiceImpl(
 
   def internalServerError(responseProblem: Problem)(implicit
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route =
-    complete((500, responseProblem))
+  ): Route = complete((500, responseProblem))
 
-  /** Code: 201, Message: Client created, DataType: Client
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 404, Message: Not Found, DataType: Problem
-    * Code: 500, Message: Internal Server Error, DataType: Problem
-    */
   override def createConsumerClient(clientSeed: ClientSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = authorize(ADMIN_ROLE) {
-    logger.info("Creating CONSUMER client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
     val result = for {
+      organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      _ = logger.info("Creating CONSUMER client {} for and consumer {}", clientSeed.name, organizationId)
       client    <- authorizationManagementService.createClient(
-        clientSeed.consumerId,
+        organizationId,
         clientSeed.name,
         clientSeed.description,
         authorizationmanagement.client.model.ClientKind.CONSUMER
@@ -81,23 +77,13 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(client)        => createConsumerClient201(client)
       case Failure(MissingUserId) =>
-        logger.error(
-          "Error in creating client {} for consumer {}",
-          clientSeed.name,
-          clientSeed.consumerId,
-          MissingUserId
-        )
+        logger.error("Error in creating client {}", clientSeed.name, MissingUserId)
         createConsumerClient401(problemOf(StatusCodes.Unauthorized, MissingUserId))
       case Failure(MissingBearer) =>
-        logger.error(
-          "Error in creating client {} for consumer {}",
-          clientSeed.name,
-          clientSeed.consumerId,
-          MissingBearer
-        )
+        logger.error("Error in creating client {}", clientSeed.name, MissingBearer)
         createConsumerClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex)            =>
-        logger.error(s"Error in creating CONSUMER client ${clientSeed.name} for consumer ${clientSeed.consumerId}", ex)
+        logger.error(s"Error in creating CONSUMER client ${clientSeed.name}", ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientCreationError))
     }
   }
@@ -107,10 +93,11 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = authorize(ADMIN_ROLE) {
-    logger.info("Creating API client {} for and consumer {}", clientSeed.name, clientSeed.consumerId)
     val result = for {
+      organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      _ = logger.info("Creating API client {} for and consumer {}", clientSeed.name, organizationId)
       client    <- authorizationManagementService.createClient(
-        clientSeed.consumerId,
+        organizationId,
         clientSeed.name,
         clientSeed.description,
         authorizationmanagement.client.model.ClientKind.API
@@ -121,32 +108,17 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       case Success(client)        => createApiClient201(client)
       case Failure(MissingUserId) =>
-        logger.error(
-          "Error in creating API client {} for consumer {}",
-          clientSeed.name,
-          clientSeed.consumerId,
-          MissingUserId
-        )
+        logger.error("Error in creating API client {}", clientSeed.name, MissingUserId)
         createApiClient401(problemOf(StatusCodes.Unauthorized, MissingUserId))
       case Failure(MissingBearer) =>
-        logger.error(
-          "Error in creating API client {} for consumer {}",
-          clientSeed.name,
-          clientSeed.consumerId,
-          MissingBearer
-        )
+        logger.error("Error in creating API client {}", clientSeed.name, MissingBearer)
         createApiClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
       case Failure(ex)            =>
-        logger.error(s"Error in creating client ${clientSeed.name} for consumer ${clientSeed.consumerId}", ex)
+        logger.error(s"Error in creating client ${clientSeed.name}", ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientCreationError))
     }
   }
 
-  /** Code: 200, Message: Client retrieved, DataType: Client
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 404, Message: Client not found, DataType: Problem
-    * Code: 500, Message: Internal server error, DataType: Problem
-    */
   override def getClient(clientId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],

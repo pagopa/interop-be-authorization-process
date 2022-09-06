@@ -737,15 +737,11 @@ components:
       description: Client creation request body
       type: object
       properties:
-        consumerId:
-          type: string
-          format: uuid
         name:
           type: string
         description:
           type: string
       required:
-        - consumerId
         - name
     Client:
       description: Models Client details
