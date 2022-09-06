@@ -476,11 +476,6 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  /** Code: 201, Message: Keys created, DataType: Keys
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 404, Message: Client id not found, DataType: Problem
-    * Code: 500, Message: Internal Server Error, DataType: Problem
-    */
   override def createKeys(clientId: String, keysSeeds: Seq[KeySeed])(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
@@ -488,21 +483,12 @@ final case class ClientApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE) {
     logger.info("Creating keys for client {}", clientId)
     val result = for {
-      clientUuid       <- clientId.toFutureUUID
-      client           <- authorizationManagementService.getClient(clientUuid)(contexts)
-      relationshipsIds <- Future.traverse(keysSeeds)(seed =>
-        securityOperatorRelationship(client.consumerId, seed.operatorId)
-      )
-      seeds            <- keysSeeds
-        .zip(relationshipsIds)
-        .traverse {
-          case (seed, Some(relationship)) =>
-            Right(AuthorizationManagementService.toDependencyKeySeed(seed, relationship.id))
-          case (seed, None)               =>
-            Left(SecurityOperatorRelationshipNotFound(client.consumerId, seed.operatorId))
-        }
-        .toFuture
-      keysResponse     <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
+      userId         <- getUidFuture(contexts) >>= (_.toFutureUUID)
+      clientUuid     <- clientId.toFutureUUID
+      client         <- authorizationManagementService.getClient(clientUuid)(contexts)
+      relationshipId <- securityOperatorRelationship(client.consumerId, userId).map(_.id)
+      seeds = keysSeeds.map(AuthorizationManagementService.toDependencyKeySeed(_, relationshipId))
+      keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
@@ -840,26 +826,16 @@ final case class ClientApiServiceImpl(
     } yield relationship
   }
 
-  private[this] def securityOperatorRelationship(consumerId: UUID, operatorId: UUID)(implicit
+  private[this] def securityOperatorRelationship(consumerId: UUID, userId: UUID)(implicit
     contexts: Seq[(String, String)]
-  ): Future[Option[PartyManagementDependency.Relationship]] =
-    for {
-      relationships <-
-        partyManagementService
-          .getRelationships(
-            consumerId,
-            operatorId,
-            Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
-          )
-          .map(Some(_))
-          // TODO This is dangerous because every error is treated as "missing party with given tax code"
-          //  but currently there is no precise way to identify the error
-          .recoverWith(_ => Future.successful(None))
-      activeRelationships = relationships.toSeq.flatMap(
-        _.items.filter(_.state == PartyManagementDependency.RelationshipState.ACTIVE)
-      )
-      securityOperatorRel = activeRelationships.headOption // Only one expected
-    } yield securityOperatorRel
+  ): Future[PartyManagementDependency.Relationship] = partyManagementService
+    .getRelationships(
+      consumerId,
+      userId,
+      Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
+    )
+    .map(_.items.toList.filter(_.state == PartyManagementDependency.RelationshipState.ACTIVE))
+    .flatMap(_.headOption.toFuture(SecurityOperatorRelationshipNotFound(consumerId, userId)))
 
   private[this] def operatorsFromClient(client: AuthorizationManagementDependency.Client)(implicit
     contexts: Seq[(String, String)]

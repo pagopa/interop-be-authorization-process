@@ -992,10 +992,6 @@ components:
       description: 'Models the seed for a public key to be persisted'
       type: object
       properties:
-        operatorId:
-          type: string
-          format: uuid
-          description: 'Represents the identifier of the platform security operator that is uploading the key'
         key:
           type: string
           description: 'Base64 UTF-8 encoding of a public key in PEM format'
@@ -1008,7 +1004,6 @@ components:
           type: string
           description: 'Name given to the current key.'
       required:
-        - operatorId
         - key
         - use
         - alg

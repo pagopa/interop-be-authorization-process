@@ -17,6 +17,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors
 
 class KeyOperationSpec
     extends AnyWordSpecLike
@@ -209,8 +210,7 @@ class KeyOperationSpec
 
   "Create client keys" should {
     "succeed" in {
-      val keySeeds: Seq[KeySeed] =
-        Seq(KeySeed(operatorId = user.id, key = "key", use = KeyUse.SIG, alg = "123", name = "test"))
+      val keySeeds: Seq[KeySeed] = Seq(KeySeed(key = "key", use = KeyUse.SIG, alg = "123", name = "test"))
 
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: Seq[(String, String)]))
@@ -261,6 +261,33 @@ class KeyOperationSpec
       )(ExecutionContext.global)
       Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.Forbidden
+      }
+    }
+
+    "fail if the uid in the header is not of the right operator/admin of that consumer" in {
+      val keySeeds: Seq[KeySeed] = Seq(KeySeed(key = "key", use = KeyUse.SIG, alg = "123", name = "test"))
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
+        .once()
+        .returns(Future.successful(client))
+
+      (mockPartyManagementService
+        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(
+          client.consumerId,
+          personId, // * This is the id present in the contexts
+          Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
+          *,
+          *
+        )
+        .once()
+        .returns(Future.failed(AuthorizationProcessErrors.SecurityOperatorRelationshipNotFound(consumerId, personId)))
+
+      Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        entityAs[Problem].errors.head.code shouldBe "007-0011"
       }
     }
 
