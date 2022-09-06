@@ -21,6 +21,7 @@ import it.pagopa.interop.authorizationprocess.api.impl.{
   HealthServiceApiImpl,
   OperatorApiMarshallerImpl,
   OperatorApiServiceImpl,
+  entityMarshallerProblem,
   problemOf
 }
 import it.pagopa.interop.authorizationprocess.api.{ClientApi, HealthApi, OperatorApi}
@@ -32,15 +33,13 @@ import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
 import it.pagopa.interop.commons.utils.TypeConversions.TryOps
-import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.ValidationRequestError
 import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
 import it.pagopa.interop.purposemanagement.client.api.{PurposeApi => PurposeManagementApi}
 import it.pagopa.interop.selfcare.partymanagement.client.api.{PartyApi => PartyManagementApi}
 import it.pagopa.interop.selfcare.userregistry.client.api.{UserApi => UserRegistryManagementApi}
 import it.pagopa.interop.selfcare.userregistry.client.invoker.ApiKeyValue
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 trait Dependencies {
 
@@ -102,8 +101,8 @@ trait Dependencies {
 
   val validationExceptionToRoute: ValidationReport => Route = report => {
     val error =
-      problemOf(StatusCodes.BadRequest, ValidationRequestError(OpenapiUtils.errorFromRequestValidationReport(report)))
-    complete(error.status, error)(ClientApiMarshallerImpl.toEntityMarshallerProblem)
+      problemOf(StatusCodes.BadRequest, OpenapiUtils.errorFromRequestValidationReport(report))
+    complete(error.status, error)(entityMarshallerProblem)
   }
 
   def clientApi(jwtReader: JWTReader, blockingEc: ExecutionContextExecutor)(implicit

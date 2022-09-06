@@ -8,7 +8,7 @@ import it.pagopa.interop.authorizationprocess.model._
 
 case object ClientApiMarshallerImpl extends ClientApiMarshaller with SprayJsonSupport {
 
-  override implicit def toEntityMarshallerProblem: ToEntityMarshaller[Problem] = sprayJsonMarshaller[Problem]
+  override implicit def toEntityMarshallerProblem: ToEntityMarshaller[Problem] = entityMarshallerProblem
 
   override implicit def fromEntityUnmarshallerClientSeed: FromEntityUnmarshaller[ClientSeed] =
     sprayJsonUnmarshaller[ClientSeed]
