@@ -93,4 +93,7 @@ object AuthorizationProcessErrors {
 
   final case class ClientPurposeAddPurposeVersionNotFound(purposeId: String)
       extends ComponentError("0051", s"No suitable version found for purpose $purposeId")
+
+  final case class InvalidOrganization(resource: String, organizationId: String)
+      extends ComponentError("0052", s"The resource $resource doesn't belong to the organization $organizationId")
 }

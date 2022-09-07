@@ -103,9 +103,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .getClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(client.copy(consumerId = organizationId)))
 
-      mockClientComposition(withOperators = false)
+      mockClientComposition(withOperators = false, client.copy(consumerId = organizationId))
 
       val expectedAgreement: Agreement = Agreement(
         id = agreement.id,
@@ -128,6 +128,22 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       Get() ~> service.getClient(client.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Client] shouldEqual expected
+      }
+    }
+
+    "fail if the organization in the token is not the same in the client" in {
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
+      Get() ~> service
+        .getClient(client.id.toString)(contexts, toEntityMarshallerProblem, toEntityMarshallerClient) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        entityAs[
+          Problem
+        ].errors.head.detail shouldBe s"The resource client ${client.id} doesn't belong to the organization $consumerId"
       }
     }
 

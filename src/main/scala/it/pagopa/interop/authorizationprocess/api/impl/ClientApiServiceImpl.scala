@@ -62,9 +62,10 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = authorize(ADMIN_ROLE) {
+    logger.info("Creating CONSUMER client {}", clientSeed.name)
     val result = for {
       organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
-      _ = logger.info("Creating CONSUMER client {} for and consumer {}", clientSeed.name, organizationId)
+      _ = logger.info("Creating CONSUMER client {} for consumer {}", clientSeed.name, organizationId)
       client    <- authorizationManagementService.createClient(
         organizationId,
         clientSeed.name,
@@ -93,6 +94,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = authorize(ADMIN_ROLE) {
+    logger.info("Creating API client {}", clientSeed.name)
     val result = for {
       organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
       _ = logger.info("Creating API client {} for and consumer {}", clientSeed.name, organizationId)
@@ -126,9 +128,14 @@ final case class ClientApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
     logger.info("Getting client {}", clientId)
     val result = for {
-      clientUuid <- clientId.toFutureUUID
-      client     <- authorizationManagementService.getClient(clientUuid)(contexts)
-      apiClient  <- getClient(client)
+      clientUuid     <- clientId.toFutureUUID
+      organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      client         <- authorizationManagementService
+        .getClient(clientUuid)(contexts)
+        .ensureOr(client => InvalidOrganization(s"client $clientId", client.consumerId.toString()))(
+          _.consumerId == organizationId
+        )
+      apiClient      <- getClient(client)
     } yield apiClient
 
     onComplete(result) {
@@ -139,6 +146,9 @@ final case class ClientApiServiceImpl(
       case Failure(MissingBearer)                                            =>
         logger.error(s"Error in getting client $clientId", MissingBearer)
         getClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
+      case Failure(ex: InvalidOrganization)                                  =>
+        logger.error(s"Error in getting client $clientId", ex)
+        getClient403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error in getting client $clientId", ex)
         getClient404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId")))
@@ -730,13 +740,14 @@ final case class ClientApiServiceImpl(
     def getLatestAgreement(
       purpose: AuthorizationManagementDependency.Purpose
     ): Future[AgreementManagementDependency.Agreement] = {
-      val eServiceId = purpose.states.eservice.eserviceId
-      agreementManagementService
-        .getAgreements(eServiceId, client.consumerId)
-        .flatMap(
-          _.sortBy(_.createdAt).lastOption
-            .toFuture(AgreementNotFound(eServiceId.toString, client.consumerId.toString))
-        )
+      val eServiceId: UUID = purpose.states.eservice.eserviceId
+      for {
+        agreements <- agreementManagementService.getAgreements(eServiceId, client.consumerId)
+        client     <- agreements
+          .sortBy(_.createdAt)
+          .lastOption
+          .toFuture(AgreementNotFound(eServiceId.toString, client.consumerId.toString))
+      } yield client
     }
 
     def enrichPurpose(
@@ -800,14 +811,18 @@ final case class ClientApiServiceImpl(
 
   private[this] def securityOperatorRelationship(consumerId: UUID, userId: UUID)(implicit
     contexts: Seq[(String, String)]
-  ): Future[PartyManagementDependency.Relationship] = partyManagementService
-    .getRelationships(
-      consumerId,
-      userId,
-      Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
+  ): Future[PartyManagementDependency.Relationship] = for {
+    relationships <- partyManagementService
+      .getRelationships(
+        consumerId,
+        userId,
+        Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
+      )
+    activeRelationShips = relationships.items.toList.filter(
+      _.state == PartyManagementDependency.RelationshipState.ACTIVE
     )
-    .map(_.items.toList.filter(_.state == PartyManagementDependency.RelationshipState.ACTIVE))
-    .flatMap(_.headOption.toFuture(SecurityOperatorRelationshipNotFound(consumerId, userId)))
+    relationShip <- activeRelationShips.headOption.toFuture(SecurityOperatorRelationshipNotFound(consumerId, userId))
+  } yield relationShip
 
   private[this] def operatorsFromClient(client: AuthorizationManagementDependency.Client)(implicit
     contexts: Seq[(String, String)]
