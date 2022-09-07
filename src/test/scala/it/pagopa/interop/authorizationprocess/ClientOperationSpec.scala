@@ -42,7 +42,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           _: Seq[(String, String)]
         ))
         .expects(
-          institution.id,
+          consumerId,
           clientSeed.name,
           clientSeed.description,
           authorizationmanagement.client.model.ClientKind.CONSUMER,
@@ -132,18 +132,20 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
 
     "fail if the organization in the token is not the same in the client" in {
+      val anotherConsumerId = UUID.randomUUID()
+
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
-        .returns(Future.successful(client.copy(consumerId = UUID.randomUUID())))
+        .returns(Future.successful(client.copy(consumerId = anotherConsumerId)))
 
       Get() ~> service
         .getClient(client.id.toString)(contexts, toEntityMarshallerProblem, toEntityMarshallerClient) ~> check {
         status shouldEqual StatusCodes.Forbidden
         entityAs[
           Problem
-        ].errors.head.detail shouldBe s"The resource client ${client.id} doesn't belong to the organization $consumerId"
+        ].errors.head.detail shouldBe s"The resource client ${client.id} doesn't belong to the organization $anotherConsumerId"
       }
     }
 
@@ -264,6 +266,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
   "Client delete" should {
     "succeed" in {
       (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
+      (mockAuthorizationManagementService
         .deleteClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
@@ -275,6 +283,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
 
     "fail if client does not exist" in {
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
       (mockAuthorizationManagementService
         .deleteClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)

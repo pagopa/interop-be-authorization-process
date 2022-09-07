@@ -68,6 +68,13 @@ class KeyOperationSpec
   "Retrieve key" should {
     "succeed" in {
       val kid = "some-kid"
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
       (mockAuthorizationManagementService
         .getKey(_: UUID, _: String)(_: Seq[(String, String)]))
         .expects(client.id, kid, *)
@@ -127,6 +134,12 @@ class KeyOperationSpec
     "fail if client or key do not exist" in {
       val kid = "some-kid"
       (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
+      (mockAuthorizationManagementService
         .getKey(_: UUID, _: String)(_: Seq[(String, String)]))
         .expects(*, *, *)
         .once()
@@ -140,6 +153,12 @@ class KeyOperationSpec
 
   "Retrieve all client keys" should {
     "succeed" in {
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
       (mockAuthorizationManagementService
         .getClientKeys(_: UUID)(_: Seq[(String, String)]))
         .expects(client.id, *)
@@ -196,6 +215,12 @@ class KeyOperationSpec
     }
 
     "fail if client or key do not exist" in {
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
       (mockAuthorizationManagementService
         .getClientKeys(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
@@ -307,6 +332,13 @@ class KeyOperationSpec
   "Delete key" should {
     "succeed" in {
       val kid = "some-kid"
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
       (mockAuthorizationManagementService
         .deleteKey(_: UUID, _: String)(_: Seq[(String, String)]))
         .expects(client.id, kid, *)
@@ -320,6 +352,13 @@ class KeyOperationSpec
 
     "fail if client or key do not exist" in {
       val kid = "some-kid"
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
       (mockAuthorizationManagementService
         .deleteKey(_: UUID, _: String)(_: Seq[(String, String)]))
         .expects(*, *, *)
