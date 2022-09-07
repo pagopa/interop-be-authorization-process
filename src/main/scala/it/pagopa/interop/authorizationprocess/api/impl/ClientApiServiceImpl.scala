@@ -158,10 +158,6 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  /** Code: 200, Message: Request succeed, DataType: Clients
-    * Code: 400, Message: Bad Request, DataType: Problem
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    */
   override def listClients(
     offset: Option[Int],
     limit: Option[Int],
@@ -189,10 +185,7 @@ final case class ClientApiServiceImpl(
             personId,
             Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
           )
-          .map(
-            _.items
-              .filter(_.state == RelationshipState.ACTIVE)
-          )
+          .map(_.items.filter(_.state == RelationshipState.ACTIVE))
       purposeUuid       <- purposeId.traverse(_.toFutureUUID)
       managementClients <-
         if (relationships.exists(_.product.role == PartyManagementService.PRODUCT_ROLE_ADMIN))
@@ -205,9 +198,8 @@ final case class ClientApiServiceImpl(
             kind = clientKind
           )(contexts)
         else
-          relationships
-            .map(_.id.some)
-            .flatTraverse(relationshipId =>
+          Future
+            .traverse(relationships.map(_.id.some))(relationshipId =>
               authorizationManagementService.listClients(
                 offset = offset,
                 limit = limit,
@@ -217,6 +209,7 @@ final case class ClientApiServiceImpl(
                 kind = clientKind
               )(contexts)
             )
+            .map(_.flatten)
 
       clients <- Future.traverse(managementClients)(getClient)
     } yield clients
@@ -250,11 +243,6 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  /** Code: 204, Message: Client deleted
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 404, Message: Client not found, DataType: Problem
-    * Code: 500, Message: Internal server error, DataType: Problem
-    */
   override def deleteClient(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
@@ -262,6 +250,7 @@ final case class ClientApiServiceImpl(
       logger.info("Deleting client {}", clientId)
       val result = for {
         clientUuid <- clientId.toFutureUUID
+        _          <- checkAuthorization(clientUuid)
         _          <- authorizationManagementService.deleteClient(clientUuid)(contexts)
       } yield ()
 
@@ -270,6 +259,9 @@ final case class ClientApiServiceImpl(
         case Failure(MissingBearer)                                            =>
           logger.error(s"Error while deleting client $clientId", MissingBearer)
           deleteClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
+        case Failure(ex: InvalidOrganization)                                  =>
+          logger.error(s"Error in getting client $clientId", ex)
+          deleteClient403(problemOf(StatusCodes.Forbidden, ex))
         case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
           logger.error(s"Error while deleting client $clientId", ex)
           deleteClient404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId")))
@@ -279,11 +271,6 @@ final case class ClientApiServiceImpl(
       }
     }
 
-  /** Code: 201, Message: Operator added, DataType: Client
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 404, Message: Missing Required Information, DataType: Problem
-    * Code: 500, Message: Internal server error, DataType: Problem
-    */
   override def clientOperatorRelationshipBinding(clientId: String, relationshipId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
@@ -293,7 +280,12 @@ final case class ClientApiServiceImpl(
     val result = for {
       clientUUID       <- clientId.toFutureUUID
       relationshipUUID <- relationshipId.toFutureUUID
-      client           <- authorizationManagementService.getClient(clientUUID)(contexts)
+      organizationId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      client           <- authorizationManagementService
+        .getClient(clientUUID)(contexts)
+        .ensureOr(client => InvalidOrganization(s"client $clientId", client.consumerId.toString()))(
+          _.consumerId == organizationId
+        )
       relationship     <- getSecurityRelationship(relationshipUUID)
       updatedClient    <- client.relationships
         .find(_ === relationship.id)
@@ -320,6 +312,9 @@ final case class ClientApiServiceImpl(
       case Failure(ex: OperatorRelationshipAlreadyAssigned)   =>
         logger.error(s"Error while binding client $clientId with relationship $relationshipId", ex)
         clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, ex))
+      case Failure(ex: InvalidOrganization)                   =>
+        logger.error(s"Error in getting client $clientId", ex)
+        clientOperatorRelationshipBinding403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error while binding client $clientId with relationship $relationshipId", ex)
         clientOperatorRelationshipBinding404(
@@ -334,11 +329,6 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  /** Code: 204, Message: Operator removed
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 404, Message: Client or operator not found, DataType: Problem
-    * Code: 500, Message: Internal server error, DataType: Problem
-    */
   override def removeClientOperatorRelationship(clientId: String, relationshipId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -348,6 +338,7 @@ final case class ClientApiServiceImpl(
       userId                 <- getUidFuture(contexts)
       userUUID               <- userId.toFutureUUID
       clientUUID             <- clientId.toFutureUUID
+      _                      <- checkAuthorization(clientUUID)
       relationshipUUID       <- relationshipId.toFutureUUID
       requesterRelationships <- partyManagementService.getRelationshipsByPersonId(userUUID, Seq.empty)
       _                      <- Future
@@ -370,6 +361,9 @@ final case class ClientApiServiceImpl(
       case Failure(ex: UserNotAllowedToRemoveOwnRelationship)                =>
         logger.error(s"Removing binding between client $clientId with relationship $relationshipId", ex)
         removeClientOperatorRelationship403(problemOf(StatusCodes.Forbidden, ex))
+      case Failure(ex: InvalidOrganization)                                  =>
+        logger.error(s"Error in getting client $clientId", ex)
+        removeClientOperatorRelationship403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Removing binding between client $clientId with relationship $relationshipId", ex)
         removeClientOperatorRelationship404(
@@ -391,11 +385,6 @@ final case class ClientApiServiceImpl(
     )
   }
 
-  /** Code: 200, Message: returns the corresponding key, DataType: Key
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 404, Message: Key not found, DataType: Problem
-    * Code: 500, Message: Internal Server Error, DataType: Problem
-    */
   override def getClientKeyById(clientId: String, keyId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
@@ -404,7 +393,8 @@ final case class ClientApiServiceImpl(
     logger.info("Getting client {} key by id {}", clientId, keyId)
     val result = for {
       clientUuid <- clientId.toFutureUUID
-      key        <- authorizationManagementService.getKey(clientUuid, keyId)(contexts)
+      _          <- checkAuthorization(clientUuid)
+      key        <- authorizationManagementService.getKey(clientUuid, keyId)
       operator   <- operatorFromRelationship(key.relationshipId)
     } yield AuthorizationManagementService.readKeyToApi(key, operator)
 
@@ -416,6 +406,9 @@ final case class ClientApiServiceImpl(
       case Failure(MissingBearer)                                            =>
         logger.error(s"Error while getting client $clientId key by id $keyId", MissingBearer)
         getClientKeyById401(problemOf(StatusCodes.Unauthorized, MissingBearer))
+      case Failure(ex: InvalidOrganization)                                  =>
+        logger.error(s"Error in getting client $clientId", ex)
+        getClientKeyById403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error while getting client $clientId key by id $keyId", ex)
         getClientKeyById404(
@@ -439,6 +432,7 @@ final case class ClientApiServiceImpl(
     logger.info("Deleting client {} key by id {}", clientId, keyId)
     val result = for {
       clientUuid <- clientId.toFutureUUID
+      _          <- checkAuthorization(clientUuid)
       _          <- authorizationManagementService.deleteKey(clientUuid, keyId)(contexts)
     } yield ()
 
@@ -452,6 +446,9 @@ final case class ClientApiServiceImpl(
         deleteClientKeyById404(
           problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId - key id: $keyId"))
         )
+      case Failure(ex: InvalidOrganization)                                  =>
+        logger.error(s"Error in getting client $clientId", ex)
+        deleteClientKeyById403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex)                                                       =>
         logger.error(s"Error while deleting client $clientId key by id $keyId", ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientKeyDeletionError))
@@ -467,7 +464,12 @@ final case class ClientApiServiceImpl(
     val result = for {
       userId         <- getUidFuture(contexts) >>= (_.toFutureUUID)
       clientUuid     <- clientId.toFutureUUID
-      client         <- authorizationManagementService.getClient(clientUuid)(contexts)
+      organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      client         <- authorizationManagementService
+        .getClient(clientUuid)(contexts)
+        .ensureOr(client => InvalidOrganization(s"client $clientId", client.consumerId.toString()))(
+          _.consumerId == organizationId
+        )
       relationshipId <- securityOperatorRelationship(client.consumerId, userId).map(_.id)
       seeds = keysSeeds.map(AuthorizationManagementService.toDependencyKeySeed(_, relationshipId))
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
@@ -487,6 +489,9 @@ final case class ClientApiServiceImpl(
       case Failure(ex: SecurityOperatorRelationshipNotFound)                 =>
         logger.error(s"Error while creating keys for client $clientId", ex)
         createKeys403(problemOf(StatusCodes.Forbidden, ex))
+      case Failure(ex: InvalidOrganization)                                  =>
+        logger.error(s"Error in getting client $clientId", ex)
+        createKeys403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error while creating keys for client $clientId", ex)
         createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId")))
@@ -496,11 +501,6 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  /** Code: 200, Message: returns the corresponding array of keys, DataType: Keys
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 404, Message: Client id not found, DataType: Problem
-    * Code: 500, Message: Internal Server Error, DataType: Problem
-    */
   override def getClientKeys(clientId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKeys: ToEntityMarshaller[ReadClientKeys],
@@ -509,6 +509,7 @@ final case class ClientApiServiceImpl(
     logger.info("Getting keys of client {}", clientId)
     val result = for {
       clientUuid   <- clientId.toFutureUUID
+      _            <- checkAuthorization(clientUuid)
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)(contexts)
       keys         <- Future.traverse(keysResponse.keys)(k =>
         operatorFromRelationship(k.relationshipId).map(operator =>
@@ -525,6 +526,9 @@ final case class ClientApiServiceImpl(
       case Failure(MissingBearer)                                            =>
         logger.error(s"Error while getting keys of client $clientId", MissingBearer)
         getClientKeys401(problemOf(StatusCodes.Unauthorized, MissingBearer))
+      case Failure(ex: InvalidOrganization)                                  =>
+        logger.error(s"Error in getting client $clientId", ex)
+        getClientKeys403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error while getting keys of client $clientId", ex)
         getClientKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId ")))
@@ -545,9 +549,14 @@ final case class ClientApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE) {
     logger.info("Getting operators of client {}", clientId)
     val result = for {
-      clientUuid <- clientId.toFutureUUID
-      client     <- authorizationManagementService.getClient(clientUuid)(contexts)
-      operators  <- operatorsFromClient(client)
+      clientUuid     <- clientId.toFutureUUID
+      organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      client         <- authorizationManagementService
+        .getClient(clientUuid)(contexts)
+        .ensureOr(client => InvalidOrganization(s"client $clientId", client.consumerId.toString()))(
+          _.consumerId == organizationId
+        )
+      operators      <- operatorsFromClient(client)
     } yield operators
 
     onComplete(result) {
@@ -558,6 +567,9 @@ final case class ClientApiServiceImpl(
       case Failure(MissingBearer)                                            =>
         logger.error(s"Error while getting operators of client $clientId", MissingBearer)
         getClientOperators401(problemOf(StatusCodes.Unauthorized, MissingBearer))
+      case Failure(ex: InvalidOrganization)                                  =>
+        logger.error(s"Error in getting client $clientId", ex)
+        getClientOperators403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: AuthorizationManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error while getting operators of client $clientId", ex)
         getClientOperators404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId ")))
@@ -579,8 +591,13 @@ final case class ClientApiServiceImpl(
     logger.info("Getting operators of client {} by relationship {}", clientId, relationshipId)
     val result = for {
       clientUUID       <- clientId.toFutureUUID
+      organizationId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
       relationshipUUID <- relationshipId.toFutureUUID
-      client           <- authorizationManagementService.getClient(clientUUID)(contexts)
+      client           <- authorizationManagementService
+        .getClient(clientUUID)(contexts)
+        .ensureOr(client => InvalidOrganization(s"client $clientId", client.consumerId.toString()))(
+          _.consumerId == organizationId
+        )
       _                <- hasClientRelationship(client, relationshipUUID)
       operator         <- operatorFromRelationship(relationshipUUID)
     } yield operator
@@ -607,6 +624,9 @@ final case class ClientApiServiceImpl(
             ResourceNotFoundError(s"Client id $clientId - relationship id: $relationshipId")
           )
         )
+      case Failure(ex: InvalidOrganization)                                  =>
+        logger.error(s"Error in getting client $clientId", ex)
+        getClientOperatorRelationshipById403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: SecurityOperatorRelationshipNotFound)                 =>
         logger.error(s"Error while getting operators of client $clientId by relationship $relationshipId", ex)
         getClientOperatorRelationshipById404(problemOf(StatusCodes.NotFound, ex))
@@ -719,12 +739,16 @@ final case class ClientApiServiceImpl(
 
     val result: Future[Unit] = for {
       clientUuid  <- clientId.toFutureUUID
+      _           <- checkAuthorization(clientUuid)
       purposeUuid <- purposeId.toFutureUUID
       _           <- authorizationManagementService.removeClientPurpose(clientUuid, purposeUuid)(contexts)
     } yield ()
 
     onComplete(result) {
       case Success(_)                                                  => addClientPurpose204
+      case Failure(ex: InvalidOrganization)                            =>
+        logger.error(s"Error in getting client $clientId", ex)
+        createKeys403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex: PurposeManagementApiError[_]) if ex.code == 404 =>
         logger.error(s"Error removing purpose $purposeId from client $clientId", ex)
         createKeys404(problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Purpose id $purposeId")))
@@ -903,11 +927,16 @@ final case class ClientApiServiceImpl(
     )
   }
 
-  /** Code: 200, Message: returns the corresponding base 64 encoded key, DataType: EncodedClientKey
-    * Code: 401, Message: Unauthorized, DataType: Problem
-    * Code: 404, Message: Key not found, DataType: Problem
-    * Code: 500, Message: Internal Server Error, DataType: Problem
-    */
+  private[this] def checkAuthorization(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] =
+    for {
+      organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      _              <- authorizationManagementService
+        .getClient(clientId)(contexts)
+        .ensureOr(client => InvalidOrganization(s"client $clientId", client.consumerId.toString()))(
+          _.consumerId == organizationId
+        )
+    } yield ()
+
   override def getEncodedClientKeyById(clientId: String, keyId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerEncodedClientKey: ToEntityMarshaller[EncodedClientKey],
@@ -916,6 +945,7 @@ final case class ClientApiServiceImpl(
     logger.info("Getting encoded client {} key by key id {}", clientId, keyId)
     val result = for {
       clientUuid <- clientId.toFutureUUID
+      _          <- checkAuthorization(clientUuid)
       encodedKey <- authorizationManagementService.getEncodedClientKey(clientUuid, keyId)(contexts)
     } yield EncodedClientKey(key = encodedKey.key)
 
@@ -926,6 +956,9 @@ final case class ClientApiServiceImpl(
         getClientKeyById404(
           problemOf(StatusCodes.NotFound, ResourceNotFoundError(s"Client id $clientId - key id: $keyId"))
         )
+      case Failure(ex: InvalidOrganization)                                  =>
+        logger.error(s"Error in getting client $clientId", ex)
+        getClientKeyById403(problemOf(StatusCodes.Forbidden, ex))
       case Failure(ex)                                                       =>
         logger.error(s"Error while getting encoded client $clientId key by key id $keyId", ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, EncodedClientKeyRetrievalError))

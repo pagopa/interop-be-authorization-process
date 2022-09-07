@@ -215,6 +215,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '404':
           description: Client not found
           content:
@@ -248,6 +254,12 @@ paths:
                 $ref: '#/components/schemas/Operators'
         '401':
           description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
           content:
             application/problem+json:
               schema:
@@ -291,6 +303,12 @@ paths:
                 $ref: '#/components/schemas/Operator'
         '401':
           description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
           content:
             application/problem+json:
               schema:
@@ -354,6 +372,12 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '401':
           description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
           content:
             application/problem+json:
               schema:
@@ -448,6 +472,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '404':
           description: Client id not found
           content:
@@ -491,6 +521,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '404':
           description: Key not found
           content:
@@ -522,6 +558,12 @@ paths:
           description: the corresponding key has been deleted.
         '401':
           description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
           content:
             application/problem+json:
               schema:
@@ -565,6 +607,12 @@ paths:
                 $ref: '#/components/schemas/EncodedClientKey'
         '401':
           description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
           content:
             application/problem+json:
               schema:

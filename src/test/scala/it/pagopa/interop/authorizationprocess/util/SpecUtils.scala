@@ -34,7 +34,7 @@ trait SpecUtilsWithImplicit extends SpecUtils {
       "bearer"         -> bearerToken,
       "uid"            -> personId.toString,
       USER_ROLES       -> "admin",
-      "organizationId" -> organizationId.toString
+      "organizationId" -> consumerId.toString
     )
 }
 

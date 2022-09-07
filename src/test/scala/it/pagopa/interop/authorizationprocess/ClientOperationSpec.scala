@@ -103,9 +103,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .getClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
-        .returns(Future.successful(client.copy(consumerId = organizationId)))
+        .returns(Future.successful(client))
 
-      mockClientComposition(withOperators = false, client.copy(consumerId = organizationId))
+      mockClientComposition(withOperators = false, client)
 
       val expectedAgreement: Agreement = Agreement(
         id = agreement.id,
@@ -136,7 +136,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .getClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(client.copy(consumerId = UUID.randomUUID())))
 
       Get() ~> service
         .getClient(client.id.toString)(contexts, toEntityMarshallerProblem, toEntityMarshallerClient) ~> check {
