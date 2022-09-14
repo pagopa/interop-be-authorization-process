@@ -28,7 +28,8 @@ final case class AgreementManagementServiceImpl(invoker: AgreementManagementInvo
         xCorrelationId = correlationId,
         xForwardedFor = ip,
         eserviceId = Some(eServiceId.toString),
-        consumerId = Some(consumerId.toString)
+        consumerId = Some(consumerId.toString),
+        states = List.empty
       )(BearerToken(bearerToken))
       result <- invoker.invoke[Seq[Agreement]](request, "Retrieving Agreements")
     } yield result

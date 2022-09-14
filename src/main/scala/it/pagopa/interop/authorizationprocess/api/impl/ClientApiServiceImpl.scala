@@ -654,6 +654,12 @@ final case class ClientApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE) {
     logger.info("Adding Purpose {} to Client {}", details.purposeId, clientId)
 
+    val validAgreementsStates: Set[AgreementManagementDependency.AgreementState] =
+      Set[AgreementManagementDependency.AgreementState](
+        AgreementManagementDependency.AgreementState.ACTIVE,
+        AgreementManagementDependency.AgreementState.SUSPENDED
+      )
+
     def descriptorToComponentState(
       descriptor: CatalogManagementDependency.EServiceDescriptor
     ): AuthorizationManagementDependency.ClientComponentState = descriptor.state match {
@@ -684,7 +690,7 @@ final case class ClientApiServiceImpl(
       eService   <- catalogManagementService.getEService(purpose.eserviceId)
       agreements <- agreementManagementService.getAgreements(purpose.eserviceId, purpose.consumerId)
       agreement  <- agreements
-        .filter(_.state != AgreementManagementDependency.AgreementState.PENDING)
+        .filter(agreement => validAgreementsStates.contains(agreement.state))
         .maxByOption(_.createdAt)
         .toFuture(ClientPurposeAddAgreementNotFound(purpose.eserviceId.toString, purpose.consumerId.toString))
       descriptor <- eService.descriptors

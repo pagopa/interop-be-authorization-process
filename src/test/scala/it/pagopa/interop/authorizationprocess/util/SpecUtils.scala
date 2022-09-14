@@ -100,16 +100,25 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     descriptors = Seq(activeDescriptor)
   )
 
-  val agreement: AgreementManagerAgreement = AgreementManagerAgreement(
-    id = agreementId,
-    eserviceId = eServiceId,
-    descriptorId = activeDescriptor.id,
-    producerId = organizationId,
-    consumerId = consumerId,
-    state = AgreementManagementDependency.AgreementState.ACTIVE,
-    verifiedAttributes = Seq.empty,
-    createdAt = timestamp
-  )
+  val agreement: AgreementManagerAgreement =
+    AgreementManagerAgreement(
+      id = agreementId,
+      eserviceId = eServiceId,
+      descriptorId = activeDescriptor.id,
+      producerId = organizationId,
+      consumerId = consumerId,
+      state = AgreementManagementDependency.AgreementState.ACTIVE,
+      verifiedAttributes = List.empty,
+      certifiedAttributes = List.empty,
+      declaredAttributes = List.empty,
+      suspendedByConsumer = None,
+      suspendedByProducer = None,
+      suspendedByPlatform = None,
+      consumerDocuments = List.empty,
+      createdAt = timestamp,
+      updatedAt = None,
+      consumerNotes = None
+    )
 
   val institution: PartyManagementDependency.Institution = PartyManagementDependency.Institution(
     description = "Organization description",
