@@ -140,12 +140,16 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(client.copy(consumerId = anotherConsumerId)))
 
+      (mockCatalogManagementService
+        .getEService(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(eService))
+
       Get() ~> service
         .getClient(client.id.toString)(contexts, toEntityMarshallerProblem, toEntityMarshallerClient) ~> check {
         status shouldEqual StatusCodes.Forbidden
-        entityAs[
-          Problem
-        ].errors.head.detail shouldBe s"The resource client ${client.id} doesn't belong to the organization $anotherConsumerId"
+        entityAs[Problem].errors.head.code shouldBe "007-0052"
       }
     }
 

@@ -127,15 +127,14 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
     logger.info("Getting client {}", clientId)
-    val result = for {
+    val result: Future[Client] = for {
       clientUuid     <- clientId.toFutureUUID
       organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
-      client         <- authorizationManagementService
-        .getClient(clientUuid)(contexts)
-        .ensureOr(client => InvalidOrganization(s"client $clientId", client.consumerId.toString()))(
-          _.consumerId == organizationId
-        )
-      apiClient      <- getClient(client)
+      client         <- authorizationManagementService.getClient(clientUuid)(contexts)
+      apiClient      <- isConsumerOrProducer(organizationId, client).ifM(
+        getClient(client),
+        InvalidOrganization(clientId, organizationId.toString()).raiseError[Future, Client]
+      )
     } yield apiClient
 
     onComplete(result) {
@@ -887,6 +886,17 @@ final case class ClientApiServiceImpl(
     } yield (name.value, familyName.value, fiscalCode)
 
     userInfo.toFuture(MissingUserInfo(user.id))
+  }
+
+  def isConsumerOrProducer(organizationId: UUID, client: ManagementClient)(implicit
+    ec: ExecutionContext,
+    contexts: Seq[(String, String)]
+  ): Future[Boolean] = {
+    def isProducer(): Future[Boolean] = Future
+      .traverse(client.purposes.map(_.states.eservice.eserviceId))(catalogManagementService.getEService)
+      .map(eservices => eservices.map(_.producerId).contains(organizationId))
+
+    (client.consumerId == organizationId).pure[Future].ifM(true.pure[Future], isProducer())
   }
 
   private[this] def clientToApi(
