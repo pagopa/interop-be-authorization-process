@@ -3,6 +3,7 @@ package it.pagopa.interop.authorizationprocess.service.impl
 import it.pagopa.interop.agreementmanagement.client.api.AgreementApi
 import it.pagopa.interop.agreementmanagement.client.invoker.BearerToken
 import it.pagopa.interop.agreementmanagement.client.model.Agreement
+import it.pagopa.interop.commons.utils.withHeaders
 import it.pagopa.interop.authorizationprocess.service.{AgreementManagementInvoker, AgreementManagementService}
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}

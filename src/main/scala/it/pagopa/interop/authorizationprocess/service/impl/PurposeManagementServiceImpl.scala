@@ -7,6 +7,7 @@ import it.pagopa.interop.purposemanagement.client.invoker.BearerToken
 import it.pagopa.interop.purposemanagement.client.model.Purpose
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
+import it.pagopa.interop.commons.utils.withHeaders
 
 import java.util.UUID
 import scala.concurrent.Future
