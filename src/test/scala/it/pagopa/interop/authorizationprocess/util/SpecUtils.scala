@@ -30,7 +30,12 @@ trait SpecUtilsWithImplicit extends SpecUtils {
   self: MockFactory =>
 
   implicit val contexts: Seq[(String, String)] =
-    Seq("bearer" -> bearerToken, "uid" -> personId.toString, USER_ROLES -> "admin")
+    Seq(
+      "bearer"         -> bearerToken,
+      "uid"            -> personId.toString,
+      USER_ROLES       -> "admin",
+      "organizationId" -> consumerId.toString
+    )
 }
 
 trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
@@ -54,7 +59,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val personId: UUID         = UUID.randomUUID()
   val taxCode: String        = "taxCode"
   val institutionId: String  = "some-external-id1"
-  val clientSeed: ClientSeed = ClientSeed(organizationId, "client name", Some("client description"))
+  val clientSeed: ClientSeed = ClientSeed("client name", Some("client description"))
   val user: UserResource     = UserResource(
     id = personId,
     fiscalCode = Some(taxCode),

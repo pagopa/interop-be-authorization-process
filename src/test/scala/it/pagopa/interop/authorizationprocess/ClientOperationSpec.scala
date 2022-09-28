@@ -42,7 +42,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           _: Seq[(String, String)]
         ))
         .expects(
-          institution.id,
+          consumerId,
           clientSeed.name,
           clientSeed.description,
           authorizationmanagement.client.model.ClientKind.CONSUMER,
@@ -105,7 +105,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(client))
 
-      mockClientComposition(withOperators = false)
+      mockClientComposition(withOperators = false, client)
 
       val expectedAgreement: Agreement = Agreement(
         id = agreement.id,
@@ -128,6 +128,28 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       Get() ~> service.getClient(client.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Client] shouldEqual expected
+      }
+    }
+
+    "fail if the organization in the token is not the same in the client" in {
+      val anotherConsumerId = UUID.randomUUID()
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client.copy(consumerId = anotherConsumerId)))
+
+      (mockCatalogManagementService
+        .getEService(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(eService))
+
+      Get() ~> service
+        .getClient(client.id.toString)(contexts, toEntityMarshallerProblem, toEntityMarshallerClient) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        entityAs[Problem].errors.head.code shouldBe "007-0052"
       }
     }
 
@@ -248,6 +270,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
   "Client delete" should {
     "succeed" in {
       (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
+      (mockAuthorizationManagementService
         .deleteClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
@@ -259,6 +287,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
 
     "fail if client does not exist" in {
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
       (mockAuthorizationManagementService
         .deleteClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)

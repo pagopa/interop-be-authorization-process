@@ -164,6 +164,12 @@ class OperatorOperationSpec
   "Operator removal" should {
     "succeed" in {
 
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
       (mockPartyManagementService
         .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
         .expects(personId, Seq.empty, *, *)
@@ -198,6 +204,12 @@ class OperatorOperationSpec
 
     "succeed if an admin user removes own relationship" in {
 
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
       val relationshipId    = UUID.randomUUID()
       val userRelationships = relationships.copy(items =
         Seq(
@@ -227,6 +239,12 @@ class OperatorOperationSpec
 
     "fail if a security user removes own relationship" in {
 
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
+
       val relationshipId    = UUID.randomUUID()
       val userRelationships = relationships.copy(items =
         Seq(
@@ -250,6 +268,12 @@ class OperatorOperationSpec
     }
 
     "fail if client does not exist" in {
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client))
 
       (mockPartyManagementService
         .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))

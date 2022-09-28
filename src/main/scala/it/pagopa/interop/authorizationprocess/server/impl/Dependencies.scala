@@ -67,37 +67,33 @@ trait Dependencies {
 
   def authorizationManagementService(
     blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): AuthorizationManagementService =
-    AuthorizationManagementServiceImpl(
-      AuthorizationManagementInvoker(blockingEc)(actorSystem.classicSystem),
-      AuthorizationClientApi(ApplicationConfiguration.getAuthorizationManagementURL),
-      AuthorizationKeyApi(ApplicationConfiguration.getAuthorizationManagementURL),
-      AuthorizationPurposeApi(ApplicationConfiguration.getAuthorizationManagementURL)
-    )
+  )(implicit actorSystem: ActorSystem[_]): AuthorizationManagementService = AuthorizationManagementServiceImpl(
+    AuthorizationManagementInvoker(blockingEc)(actorSystem.classicSystem),
+    AuthorizationClientApi(ApplicationConfiguration.getAuthorizationManagementURL),
+    AuthorizationKeyApi(ApplicationConfiguration.getAuthorizationManagementURL),
+    AuthorizationPurposeApi(ApplicationConfiguration.getAuthorizationManagementURL)
+  )
 
   def agreementManagementService(
     blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): AgreementManagementService =
-    AgreementManagementServiceImpl(
-      AgreementManagementInvoker(blockingEc)(actorSystem.classicSystem),
-      AgreementManagementApi(ApplicationConfiguration.getAgreementManagementURL)
-    )
+  )(implicit actorSystem: ActorSystem[_]): AgreementManagementService = AgreementManagementServiceImpl(
+    AgreementManagementInvoker(blockingEc)(actorSystem.classicSystem),
+    AgreementManagementApi(ApplicationConfiguration.getAgreementManagementURL)
+  )
 
   def catalogManagementService(
     blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): CatalogManagementService =
-    CatalogManagementServiceImpl(
-      CatalogManagementInvoker(blockingEc)(actorSystem.classicSystem),
-      CatalogManagementApi(ApplicationConfiguration.getCatalogManagementURL)
-    )
+  )(implicit actorSystem: ActorSystem[_]): CatalogManagementService = CatalogManagementServiceImpl(
+    CatalogManagementInvoker(blockingEc)(actorSystem.classicSystem),
+    CatalogManagementApi(ApplicationConfiguration.getCatalogManagementURL)
+  )
 
   def purposeManagementService(
     blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): PurposeManagementService =
-    PurposeManagementServiceImpl(
-      PurposeManagementInvoker(blockingEc)(actorSystem.classicSystem),
-      PurposeManagementApi(ApplicationConfiguration.getPurposeManagementURL)
-    )
+  )(implicit actorSystem: ActorSystem[_]): PurposeManagementService = PurposeManagementServiceImpl(
+    PurposeManagementInvoker(blockingEc)(actorSystem.classicSystem),
+    PurposeManagementApi(ApplicationConfiguration.getPurposeManagementURL)
+  )
 
   val validationExceptionToRoute: ValidationReport => Route = report => {
     val error =
@@ -108,29 +104,27 @@ trait Dependencies {
   def clientApi(jwtReader: JWTReader, blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_],
     ec: ExecutionContext
-  ): ClientApi =
-    new ClientApi(
-      ClientApiServiceImpl(
-        authorizationManagementService(blockingEc),
-        agreementManagementService(blockingEc),
-        catalogManagementService(blockingEc),
-        partyManagementService(),
-        purposeManagementService(blockingEc),
-        userRegistryManagementService()
-      ),
-      ClientApiMarshallerImpl,
-      jwtReader.OAuth2JWTValidatorAsContexts
-    )
+  ): ClientApi = new ClientApi(
+    ClientApiServiceImpl(
+      authorizationManagementService(blockingEc),
+      agreementManagementService(blockingEc),
+      catalogManagementService(blockingEc),
+      partyManagementService(),
+      purposeManagementService(blockingEc),
+      userRegistryManagementService()
+    ),
+    ClientApiMarshallerImpl,
+    jwtReader.OAuth2JWTValidatorAsContexts
+  )
 
   def operatorApi(jwtReader: JWTReader, blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_],
     ec: ExecutionContext
-  ): OperatorApi =
-    new OperatorApi(
-      OperatorApiServiceImpl(authorizationManagementService(blockingEc), partyManagementService()),
-      OperatorApiMarshallerImpl,
-      jwtReader.OAuth2JWTValidatorAsContexts
-    )
+  ): OperatorApi = new OperatorApi(
+    OperatorApiServiceImpl(authorizationManagementService(blockingEc), partyManagementService()),
+    OperatorApiMarshallerImpl,
+    jwtReader.OAuth2JWTValidatorAsContexts
+  )
 
   def getJwtValidator(): Future[JWTReader] = JWTConfiguration.jwtReader
     .loadKeyset()

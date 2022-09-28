@@ -181,6 +181,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '404':
           description: Client not found
           content:
@@ -205,6 +211,12 @@ paths:
           description: Client deleted
         '401':
           description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
           content:
             application/problem+json:
               schema:
@@ -242,6 +254,12 @@ paths:
                 $ref: '#/components/schemas/Operators'
         '401':
           description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
           content:
             application/problem+json:
               schema:
@@ -285,6 +303,12 @@ paths:
                 $ref: '#/components/schemas/Operator'
         '401':
           description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
           content:
             application/problem+json:
               schema:
@@ -348,6 +372,12 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '401':
           description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
           content:
             application/problem+json:
               schema:
@@ -442,6 +472,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '404':
           description: Client id not found
           content:
@@ -485,6 +521,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '404':
           description: Key not found
           content:
@@ -516,6 +558,12 @@ paths:
           description: the corresponding key has been deleted.
         '401':
           description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
           content:
             application/problem+json:
               schema:
@@ -559,6 +607,12 @@ paths:
                 $ref: '#/components/schemas/EncodedClientKey'
         '401':
           description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
           content:
             application/problem+json:
               schema:
@@ -737,15 +791,11 @@ components:
       description: Client creation request body
       type: object
       properties:
-        consumerId:
-          type: string
-          format: uuid
         name:
           type: string
         description:
           type: string
       required:
-        - consumerId
         - name
     Client:
       description: Models Client details
@@ -992,10 +1042,6 @@ components:
       description: 'Models the seed for a public key to be persisted'
       type: object
       properties:
-        operatorId:
-          type: string
-          format: uuid
-          description: 'Represents the identifier of the platform security operator that is uploading the key'
         key:
           type: string
           description: 'Base64 UTF-8 encoding of a public key in PEM format'
@@ -1008,7 +1054,6 @@ components:
           type: string
           description: 'Name given to the current key.'
       required:
-        - operatorId
         - key
         - use
         - alg
