@@ -19,11 +19,10 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipStateToApi
 }
 import it.pagopa.interop.authorizationprocess.service._
-import it.pagopa.interop.commons.utils.ORGANIZATION_ID_CLAIM
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, SECURITY_ROLE}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.AkkaUtils._
+import it.pagopa.interop.commons.utils.AkkaUtils.{getOrganizationIdFutureUUID, getUidFutureUUID}
 import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{
   MissingBearer,
@@ -64,7 +63,7 @@ final case class ClientApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE) {
     logger.info("Creating CONSUMER client {}", clientSeed.name)
     val result = for {
-      organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      organizationId <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info("Creating CONSUMER client {} for consumer {}", clientSeed.name, organizationId)
       client    <- authorizationManagementService.createClient(
         organizationId,
@@ -96,7 +95,7 @@ final case class ClientApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE) {
     logger.info("Creating API client {}", clientSeed.name)
     val result = for {
-      organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      organizationId <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info("Creating API client {} for and consumer {}", clientSeed.name, organizationId)
       client    <- authorizationManagementService.createClient(
         organizationId,
@@ -129,7 +128,7 @@ final case class ClientApiServiceImpl(
     logger.info("Getting client {}", clientId)
     val result: Future[Client] = for {
       clientUuid     <- clientId.toFutureUUID
-      organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      organizationId <- getOrganizationIdFutureUUID(contexts)
       client         <- authorizationManagementService.getClient(clientUuid)(contexts)
       apiClient      <- isConsumerOrProducer(organizationId, client).ifM(
         getClient(client),
@@ -174,7 +173,7 @@ final case class ClientApiServiceImpl(
 
     // TODO Improve multiple requests
     val result: Future[Seq[Client]] = for {
-      personId          <- getUidFuture(contexts).flatMap(_.toFutureUUID)
+      personId          <- getUidFutureUUID(contexts)
       consumerUuid      <- consumerId.toFutureUUID
       clientKind        <- kind.traverse(AuthorizationManagementDependency.ClientKind.fromValue).toFuture
       relationships     <-
@@ -279,7 +278,7 @@ final case class ClientApiServiceImpl(
     val result = for {
       clientUUID       <- clientId.toFutureUUID
       relationshipUUID <- relationshipId.toFutureUUID
-      organizationId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      organizationId   <- getOrganizationIdFutureUUID(contexts)
       client           <- authorizationManagementService
         .getClient(clientUUID)(contexts)
         .ensureOr(client => InvalidOrganization(s"client $clientId", client.consumerId.toString()))(
@@ -334,8 +333,7 @@ final case class ClientApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE) {
     logger.info("Removing binding between client {} with relationship {}", clientId, relationshipId)
     val result = for {
-      userId                 <- getUidFuture(contexts)
-      userUUID               <- userId.toFutureUUID
+      userUUID               <- getUidFutureUUID(contexts)
       clientUUID             <- clientId.toFutureUUID
       _                      <- assertIsConsumer(clientUUID)
       relationshipUUID       <- relationshipId.toFutureUUID
@@ -461,9 +459,9 @@ final case class ClientApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE) {
     logger.info("Creating keys for client {}", clientId)
     val result = for {
-      userId         <- getUidFuture(contexts) >>= (_.toFutureUUID)
+      userId         <- getUidFutureUUID(contexts)
       clientUuid     <- clientId.toFutureUUID
-      organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      organizationId <- getOrganizationIdFutureUUID(contexts)
       client         <- authorizationManagementService
         .getClient(clientUuid)(contexts)
         .ensureOr(client => InvalidOrganization(s"client $clientId", client.consumerId.toString()))(
@@ -549,7 +547,7 @@ final case class ClientApiServiceImpl(
     logger.info("Getting operators of client {}", clientId)
     val result = for {
       clientUuid     <- clientId.toFutureUUID
-      organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      organizationId <- getOrganizationIdFutureUUID(contexts)
       client         <- authorizationManagementService
         .getClient(clientUuid)(contexts)
         .ensureOr(client => InvalidOrganization(s"client $clientId", client.consumerId.toString()))(
@@ -590,7 +588,7 @@ final case class ClientApiServiceImpl(
     logger.info("Getting operators of client {} by relationship {}", clientId, relationshipId)
     val result = for {
       clientUUID       <- clientId.toFutureUUID
-      organizationId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      organizationId   <- getOrganizationIdFutureUUID(contexts)
       relationshipUUID <- relationshipId.toFutureUUID
       client           <- authorizationManagementService
         .getClient(clientUUID)(contexts)
@@ -939,7 +937,7 @@ final case class ClientApiServiceImpl(
 
   private[this] def assertIsConsumer(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] =
     for {
-      organizationId <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM).flatMap(_.toFutureUUID)
+      organizationId <- getOrganizationIdFutureUUID(contexts)
       _              <- authorizationManagementService
         .getClient(clientId)(contexts)
         .ensureOr(client => InvalidOrganization(s"client $clientId", client.consumerId.toString()))(

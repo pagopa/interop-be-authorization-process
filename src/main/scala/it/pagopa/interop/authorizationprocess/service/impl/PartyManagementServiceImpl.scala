@@ -10,6 +10,7 @@ import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLo
 import it.pagopa.interop.commons.utils.INTEROP_PRODUCT_NAME
 import it.pagopa.interop.selfcare.partymanagement.client.api.PartyApi
 import it.pagopa.interop.selfcare.partymanagement.client.model._
+import it.pagopa.interop.commons.utils.withUid
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
