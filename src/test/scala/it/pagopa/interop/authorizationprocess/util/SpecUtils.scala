@@ -1,5 +1,6 @@
 package it.pagopa.interop.authorizationprocess.util
 
+import cats.syntax.all._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
@@ -25,6 +26,9 @@ import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
+import it.pagopa.interop.tenantmanagement.client.model.Tenant
+import it.pagopa.interop.tenantmanagement.client.model.ExternalId
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 
 trait SpecUtilsWithImplicit extends SpecUtils {
   self: MockFactory =>
@@ -46,6 +50,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
   val mockPurposeManagementService: PurposeManagementService             = mock[PurposeManagementService]
   val mockUserRegistryManagementService: UserRegistryManagementService   = mock[UserRegistryManagementService]
+  val mockTenantManagementService: TenantManagementService               = mock[TenantManagementService]
 
   val timestamp: OffsetDateTime = OffsetDateTime.now()
 
@@ -267,11 +272,51 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     )
   )
 
+  def mockGetTenant(): Unit = {
+    (mockTenantManagementService
+      .getTenant(_: UUID)(_: Seq[(String, String)]))
+      .expects(client.consumerId, *)
+      .once()
+      .returns(
+        Future.successful(
+          Tenant(
+            id = client.consumerId,
+            selfcareId = client.consumerId.toString().some,
+            externalId = ExternalId("IPA", "value"),
+            features = Nil,
+            attributes = Nil,
+            createdAt = OffsetDateTimeSupplier.get(),
+            updatedAt = None
+          )
+        )
+      )
+
+    ()
+  }
+
   def mockClientComposition(
     withOperators: Boolean,
     client: authorizationmanagement.client.model.Client = client,
     relationship: PartyManagementDependency.Relationship = relationship
   )(implicit contexts: Seq[(String, String)]): Unit = {
+
+    (mockTenantManagementService
+      .getTenant(_: UUID)(_: Seq[(String, String)]))
+      .expects(client.consumerId, *)
+      .once()
+      .returns(
+        Future.successful(
+          Tenant(
+            id = client.consumerId,
+            selfcareId = client.consumerId.toString().some,
+            externalId = ExternalId("IPA", "value"),
+            features = Nil,
+            attributes = Nil,
+            createdAt = OffsetDateTimeSupplier.get(),
+            updatedAt = None
+          )
+        )
+      )
 
     (mockPartyManagementService
       .getInstitution(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))

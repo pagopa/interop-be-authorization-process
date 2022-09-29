@@ -32,7 +32,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     mockCatalogManagementService,
     mockPartyManagementService,
     mockPurposeManagementService,
-    mockUserRegistryManagementService
+    mockUserRegistryManagementService,
+    mockTenantManagementService
   )(ExecutionContext.global)
 
   "Client creation" should {
@@ -89,7 +90,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         mockCatalogManagementService,
         mockPartyManagementService,
         mockPurposeManagementService,
-        mockUserRegistryManagementService
+        mockUserRegistryManagementService,
+        mockTenantManagementService
       )(ExecutionContext.global)
       Get() ~> service.createConsumerClient(clientSeed) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -186,26 +188,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(Relationships(Seq(relationship))))
 
-      (mockAgreementManagementService
-        .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
-        .expects(client.purposes.head.states.eservice.eserviceId, client.consumerId, *)
-        .once()
-        .returns(Future.successful(Seq(agreement)))
-
-      (mockPurposeManagementService
-        .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(clientPurpose.states.purpose.purposeId, *)
-        .once()
-        .returns(Future.successful(purpose.copy(eserviceId = eService.id, consumerId = consumer.id)))
-
-      (mockCatalogManagementService
-        .getEService(_: UUID)(_: Seq[(String, String)]))
-        .expects(agreement.eserviceId, *)
-        .once()
-        .returns(
-          Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(id = agreement.descriptorId))))
-        )
-
       (mockAuthorizationManagementService
         .listClients(
           _: Option[Int],
@@ -227,11 +209,33 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(Seq(client)))
 
+      mockGetTenant()
+
       (mockPartyManagementService
         .getInstitution(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
         .expects(client.consumerId, *, *)
         .once()
         .returns(Future.successful(consumer))
+
+      (mockAgreementManagementService
+        .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
+        .expects(client.purposes.head.states.eservice.eserviceId, client.consumerId, *)
+        .once()
+        .returns(Future.successful(Seq(agreement)))
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(clientPurpose.states.purpose.purposeId, *)
+        .once()
+        .returns(Future.successful(purpose.copy(eserviceId = eService.id, consumerId = consumer.id)))
+
+      (mockCatalogManagementService
+        .getEService(_: UUID)(_: Seq[(String, String)]))
+        .expects(agreement.eserviceId, *)
+        .once()
+        .returns(
+          Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(id = agreement.descriptorId))))
+        )
 
       val expectedAgreement: Agreement = Agreement(
         id = agreement.id,

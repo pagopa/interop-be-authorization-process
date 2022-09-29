@@ -46,7 +46,8 @@ final case class ClientApiServiceImpl(
   catalogManagementService: CatalogManagementService,
   partyManagementService: PartyManagementService,
   purposeManagementService: PurposeManagementService,
-  userRegistryManagementService: UserRegistryManagementService
+  userRegistryManagementService: UserRegistryManagementService,
+  tenantManagementService: TenantManagementService
 )(implicit ec: ExecutionContext)
     extends ClientApiService {
 
@@ -791,7 +792,11 @@ final case class ClientApiServiceImpl(
     } yield (clientPurpose, purpose, agreement, eService, descriptor)
 
     for {
-      consumer              <- partyManagementService.getInstitution(client.consumerId)
+      tenantId              <- tenantManagementService
+        .getTenant(client.consumerId)
+        .flatMap(_.selfcareId.toFuture(ClientRetrievalError))
+      tenantUUID            <- tenantId.toFutureUUID
+      consumer              <- partyManagementService.getInstitution(tenantUUID)
       operators             <- operatorsFromClient(client)
       purposesAndAgreements <- Future.traverse(client.purposes)(purpose =>
         getLatestAgreement(purpose).map((purpose, _))

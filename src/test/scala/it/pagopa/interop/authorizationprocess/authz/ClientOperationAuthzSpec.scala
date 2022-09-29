@@ -20,6 +20,7 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
   val fakePartyManagementService: PartyManagementService                 = new FakePartyManagementService()
   val fakePurposeManagementService: PurposeManagementService             = new FakePurposeManagementService()
   val fakeUserRegistryManagementService: UserRegistryManagementService   = new FakeUserRegistryManagementService()
+  val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
     fakeAuthorizationManagementService,
@@ -27,7 +28,8 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
     fakeCatalogManagementService,
     fakePartyManagementService,
     fakePurposeManagementService,
-    fakeUserRegistryManagementService
+    fakeUserRegistryManagementService,
+    fakeTenantManagementService
   )(ExecutionContext.global)
 
   "Client operation authorization spec" should {
