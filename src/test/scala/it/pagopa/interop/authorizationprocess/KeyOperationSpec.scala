@@ -246,10 +246,12 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(client))
 
+      mockGetTenant()
+
       (mockPartyManagementService
-        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
         .expects(
-          client.consumerId,
+          client.consumerId.toString(),
           user.id,
           Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
           *,
@@ -302,10 +304,12 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(client))
 
+      mockGetTenant()
+
       (mockPartyManagementService
-        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
         .expects(
-          client.consumerId,
+          client.consumerId.toString(),
           personId, // * This is the id present in the contexts
           Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
           *,

@@ -11,9 +11,11 @@ import it.pagopa.interop.commons.utils.INTEROP_PRODUCT_NAME
 import it.pagopa.interop.selfcare.partymanagement.client.api.PartyApi
 import it.pagopa.interop.selfcare.partymanagement.client.model._
 import it.pagopa.interop.commons.utils.withUid
+import it.pagopa.interop.commons.utils.TypeConversions._
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
+import it.pagopa.interop.selfcare.partymanagement.client.invoker.ApiRequest
 
 final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyApi)(implicit
   partyManagementApiKeyValue: PartyManagementApiKeyValue
@@ -23,26 +25,30 @@ final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   override def getInstitution(
-    institutionId: UUID
-  )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Institution] = withUid[Institution] { uid =>
-    val request = api.getInstitutionById(institutionId)(uid)
-    invoker.invoke(request, "Retrieve Institution")
-  }
+    selfcareId: String
+  )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Institution] = withUid[Institution](uid =>
+    selfcareId.toFutureUUID.flatMap { selfcareUUID =>
+      val request: ApiRequest[Institution] = api.getInstitutionById(selfcareUUID)(uid)
+      invoker.invoke(request, "Retrieve Institution")
+    }
+  )
 
-  override def getRelationships(organizationId: UUID, personId: UUID, productRoles: Seq[String])(implicit
+  override def getRelationships(selfcareId: String, personId: UUID, productRoles: Seq[String])(implicit
     contexts: Seq[(String, String)],
     ec: ExecutionContext
-  ): Future[Relationships] = withUid[Relationships] { uid =>
-    val request = api.getRelationships(
-      from = Some(personId),
-      to = Some(organizationId),
-      roles = Seq.empty,
-      states = Seq.empty,
-      products = Seq(INTEROP_PRODUCT_NAME),
-      productRoles = productRoles
-    )(uid)
-    invoker.invoke(request, "Retrieve Relationships")
-  }
+  ): Future[Relationships] = withUid[Relationships](uid =>
+    selfcareId.toFutureUUID.flatMap { selfcareUUID =>
+      val request = api.getRelationships(
+        from = Some(personId),
+        to = Some(selfcareUUID),
+        roles = Seq.empty,
+        states = Seq.empty,
+        products = Seq(INTEROP_PRODUCT_NAME),
+        productRoles = productRoles
+      )(uid)
+      invoker.invoke(request, "Retrieve Relationships")
+    }
+  )
 
   override def getRelationshipsByPersonId(personId: UUID, productRoles: Seq[String])(implicit
     contexts: Seq[(String, String)],

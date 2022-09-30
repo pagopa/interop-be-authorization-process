@@ -14,9 +14,9 @@ import scala.concurrent.{ExecutionContext, Future}
 trait PartyManagementService {
 
   def getInstitution(
-    institutionId: UUID
+    selfcareId: String
   )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Institution]
-  def getRelationships(organizationId: UUID, personId: UUID, productRoles: Seq[String])(implicit
+  def getRelationships(selfcareId: String, personId: UUID, productRoles: Seq[String])(implicit
     contexts: Seq[(String, String)],
     ec: ExecutionContext
   ): Future[Relationships]

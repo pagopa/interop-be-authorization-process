@@ -319,8 +319,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       )
 
     (mockPartyManagementService
-      .getInstitution(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
-      .expects(client.consumerId, *, *)
+      .getInstitution(_: String)(_: Seq[(String, String)], _: ExecutionContext))
+      .expects(client.consumerId.toString(), *, *)
       .once()
       .returns(Future.successful(consumer))
 

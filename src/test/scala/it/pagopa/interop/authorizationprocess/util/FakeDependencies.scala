@@ -152,7 +152,7 @@ object FakeDependencies {
   }
   class FakePartyManagementService         extends PartyManagementService         {
     override def getInstitution(
-      institutionId: UUID
+      institutionId: String
     )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Institution] = Future.successful(
       Institution(
         id = UUID.randomUUID(),
@@ -174,7 +174,7 @@ object FakeDependencies {
       )
     )
 
-    override def getRelationships(organizationId: UUID, personId: UUID, productRoles: Seq[String])(implicit
+    override def getRelationships(organizationId: String, personId: UUID, productRoles: Seq[String])(implicit
       contexts: Seq[(String, String)],
       ec: ExecutionContext
     ): Future[Relationships] = Future.successful(Relationships(Seq.empty))

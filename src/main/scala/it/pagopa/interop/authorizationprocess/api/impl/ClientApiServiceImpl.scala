@@ -76,14 +76,17 @@ final case class ClientApiServiceImpl(
     } yield apiClient
 
     onComplete(result) {
-      case Success(client)        => createConsumerClient201(client)
-      case Failure(MissingUserId) =>
+      case Success(client)            => createConsumerClient201(client)
+      case Failure(MissingUserId)     =>
         logger.error("Error in creating client {}", clientSeed.name, MissingUserId)
         createConsumerClient401(problemOf(StatusCodes.Unauthorized, MissingUserId))
-      case Failure(MissingBearer) =>
+      case Failure(MissingSelfcareId) =>
+        logger.error(s"Error while retrieving selfcareId from tenant", MissingSelfcareId)
+        internalServerError(problemOf(StatusCodes.InternalServerError, MissingSelfcareId))
+      case Failure(MissingBearer)     =>
         logger.error("Error in creating client {}", clientSeed.name, MissingBearer)
         createConsumerClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      case Failure(ex)            =>
+      case Failure(ex)                =>
         logger.error(s"Error in creating CONSUMER client ${clientSeed.name}", ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientCreationError))
     }
@@ -108,14 +111,17 @@ final case class ClientApiServiceImpl(
     } yield apiClient
 
     onComplete(result) {
-      case Success(client)        => createApiClient201(client)
-      case Failure(MissingUserId) =>
+      case Success(client)            => createApiClient201(client)
+      case Failure(MissingUserId)     =>
         logger.error("Error in creating API client {}", clientSeed.name, MissingUserId)
         createApiClient401(problemOf(StatusCodes.Unauthorized, MissingUserId))
-      case Failure(MissingBearer) =>
+      case Failure(MissingSelfcareId) =>
+        logger.error(s"Error while retrieving selfcareId from tenant", MissingSelfcareId)
+        internalServerError(problemOf(StatusCodes.InternalServerError, MissingSelfcareId))
+      case Failure(MissingBearer)     =>
         logger.error("Error in creating API client {}", clientSeed.name, MissingBearer)
         createApiClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
-      case Failure(ex)            =>
+      case Failure(ex)                =>
         logger.error(s"Error in creating client ${clientSeed.name}", ex)
         internalServerError(problemOf(StatusCodes.InternalServerError, ClientCreationError))
     }
@@ -145,6 +151,9 @@ final case class ClientApiServiceImpl(
       case Failure(MissingBearer)                                            =>
         logger.error(s"Error in getting client $clientId", MissingBearer)
         getClient401(problemOf(StatusCodes.Unauthorized, MissingBearer))
+      case Failure(MissingSelfcareId)                                        =>
+        logger.error(s"Error while retrieving selfcareId from tenant", MissingSelfcareId)
+        internalServerError(problemOf(StatusCodes.InternalServerError, MissingSelfcareId))
       case Failure(ex: InvalidOrganization)                                  =>
         logger.error(s"Error in getting client $clientId", ex)
         getClient403(problemOf(StatusCodes.Forbidden, ex))
@@ -174,18 +183,19 @@ final case class ClientApiServiceImpl(
 
     // TODO Improve multiple requests
     val result: Future[Seq[Client]] = for {
-      personId          <- getUidFutureUUID(contexts)
-      consumerUuid      <- consumerId.toFutureUUID
-      clientKind        <- kind.traverse(AuthorizationManagementDependency.ClientKind.fromValue).toFuture
-      relationships     <-
+      personId      <- getUidFutureUUID(contexts)
+      consumerUuid  <- consumerId.toFutureUUID
+      clientKind    <- kind.traverse(AuthorizationManagementDependency.ClientKind.fromValue).toFuture
+      selfcareId    <- tenantManagementService.getTenant(consumerUuid).flatMap(_.selfcareId.toFuture(MissingSelfcareId))
+      relationships <-
         partyManagementService
           .getRelationships(
-            consumerUuid,
+            selfcareId,
             personId,
             Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
           )
           .map(_.items.filter(_.state == RelationshipState.ACTIVE))
-      purposeUuid       <- purposeId.traverse(_.toFutureUUID)
+      purposeUuid   <- purposeId.traverse(_.toFutureUUID)
       managementClients <-
         if (relationships.exists(_.product.role == PartyManagementService.PRODUCT_ROLE_ADMIN))
           authorizationManagementService.listClients(
@@ -233,6 +243,9 @@ final case class ClientApiServiceImpl(
           MissingBearer
         )
         listClients401(problemOf(StatusCodes.Unauthorized, MissingBearer))
+      case Failure(MissingSelfcareId)       =>
+        logger.error(s"Error while retrieving selfcareId from tenant", MissingSelfcareId)
+        internalServerError(problemOf(StatusCodes.InternalServerError, MissingSelfcareId))
       case Failure(ex)                      =>
         logger.error(
           s"Error while listing clients (offset: $offset and limit: $limit) for purposeId $purposeId and consumer $consumerId of kind $kind",
@@ -305,6 +318,9 @@ final case class ClientApiServiceImpl(
       case Failure(ex: UUIDConversionError)                   =>
         logger.error(s"Error while binding client $clientId with relationship $relationshipId", ex)
         clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, ex))
+      case Failure(MissingSelfcareId)                         =>
+        logger.error(s"Error while retrieving selfcareId from tenant", MissingSelfcareId)
+        internalServerError(problemOf(StatusCodes.InternalServerError, MissingSelfcareId))
       case Failure(ex: SecurityOperatorRelationshipNotActive) =>
         logger.error(s"Error while binding client $clientId with relationship $relationshipId", ex)
         clientOperatorRelationshipBinding400(problemOf(StatusCodes.BadRequest, ex))
@@ -481,6 +497,9 @@ final case class ClientApiServiceImpl(
       case Failure(MissingBearer)                                            =>
         logger.error(s"Error while creating keys for client $clientId", MissingBearer)
         createKeys401(problemOf(StatusCodes.Unauthorized, MissingBearer))
+      case Failure(MissingSelfcareId)                                        =>
+        logger.error(s"Error while retrieving selfcareId from tenant", MissingSelfcareId)
+        internalServerError(problemOf(StatusCodes.InternalServerError, MissingSelfcareId))
       case Failure(ex: EnumParameterError)                                   =>
         logger.error(s"Error while creating keys for client $clientId", ex)
         createKeys400(problemOf(StatusCodes.BadRequest, ex))
@@ -792,11 +811,9 @@ final case class ClientApiServiceImpl(
     } yield (clientPurpose, purpose, agreement, eService, descriptor)
 
     for {
-      tenant                <- tenantManagementService
-        .getTenant(client.consumerId)
-      selfcareId            <- tenant.selfcareId.toFuture(ClientRetrievalError)
-      selfcareUUID          <- selfcareId.toFutureUUID
-      consumer              <- partyManagementService.getInstitution(selfcareUUID)
+      tenant                <- tenantManagementService.getTenant(client.consumerId)
+      selfcareId            <- tenant.selfcareId.toFuture(MissingSelfcareId)
+      consumer              <- partyManagementService.getInstitution(selfcareId)
       operators             <- operatorsFromClient(client)
       purposesAndAgreements <- Future.traverse(client.purposes)(purpose =>
         getLatestAgreement(purpose).map((purpose, _))
@@ -838,9 +855,10 @@ final case class ClientApiServiceImpl(
   private[this] def securityOperatorRelationship(consumerId: UUID, userId: UUID)(implicit
     contexts: Seq[(String, String)]
   ): Future[PartyManagementDependency.Relationship] = for {
+    selfcareId    <- tenantManagementService.getTenant(consumerId).flatMap(_.selfcareId.toFuture(MissingSelfcareId))
     relationships <- partyManagementService
       .getRelationships(
-        consumerId,
+        selfcareId,
         userId,
         Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
       )
