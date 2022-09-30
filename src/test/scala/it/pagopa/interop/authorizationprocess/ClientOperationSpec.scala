@@ -181,7 +181,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       (mockPartyManagementService
         .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
         .expects(
-          consumerId.toString(),
+          tenant.selfcareId.get,
           personId,
           Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
           *,
@@ -215,7 +215,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       (mockPartyManagementService
         .getInstitution(_: String)(_: Seq[(String, String)], _: ExecutionContext))
-        .expects(client.consumerId.toString(), *, *)
+        .expects(tenant.selfcareId.get, *, *)
         .once()
         .returns(Future.successful(consumer))
 
@@ -246,18 +246,16 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       )
 
       val expected = Clients(
-        List(
-          Client(
-            id = client.id,
-            consumer = Organization(consumer.originId, consumer.description),
-            name = client.name,
-            purposes =
-              client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
-            description = client.description,
-            operators = Some(Seq.empty),
-            kind = ClientKind.CONSUMER
-          )
-        )
+        Client(
+          id = client.id,
+          consumer = Organization(consumer.originId, consumer.description),
+          name = client.name,
+          purposes =
+            client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
+          description = client.description,
+          operators = Some(Seq.empty),
+          kind = ClientKind.CONSUMER
+        ) :: Nil
       )
 
       Get() ~> service.listClients(

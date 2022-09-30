@@ -110,25 +110,24 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     descriptors = Seq(activeDescriptor)
   )
 
-  val agreement: AgreementManagerAgreement =
-    AgreementManagerAgreement(
-      id = agreementId,
-      eserviceId = eServiceId,
-      descriptorId = activeDescriptor.id,
-      producerId = organizationId,
-      consumerId = consumerId,
-      state = AgreementManagementDependency.AgreementState.ACTIVE,
-      verifiedAttributes = List.empty,
-      certifiedAttributes = List.empty,
-      declaredAttributes = List.empty,
-      suspendedByConsumer = None,
-      suspendedByProducer = None,
-      suspendedByPlatform = None,
-      consumerDocuments = List.empty,
-      createdAt = timestamp,
-      updatedAt = None,
-      consumerNotes = None
-    )
+  val agreement: AgreementManagerAgreement = AgreementManagerAgreement(
+    id = agreementId,
+    eserviceId = eServiceId,
+    descriptorId = activeDescriptor.id,
+    producerId = organizationId,
+    consumerId = consumerId,
+    state = AgreementManagementDependency.AgreementState.ACTIVE,
+    verifiedAttributes = List.empty,
+    certifiedAttributes = List.empty,
+    declaredAttributes = List.empty,
+    suspendedByConsumer = None,
+    suspendedByProducer = None,
+    suspendedByPlatform = None,
+    consumerDocuments = List.empty,
+    createdAt = timestamp,
+    updatedAt = None,
+    consumerNotes = None
+  )
 
   val institution: PartyManagementDependency.Institution = PartyManagementDependency.Institution(
     description = "Organization description",
@@ -168,7 +167,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     dailyCalls = 10,
     riskAnalysis = None
   )
-  val purpose: PurposeManagementDependency.Purpose               = PurposeManagementDependency.Purpose(
+
+  val purpose: PurposeManagementDependency.Purpose = PurposeManagementDependency.Purpose(
     id = UUID.randomUUID(),
     eserviceId = eService.id,
     consumerId = consumer.id,
@@ -182,52 +182,49 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     updatedAt = None
   )
 
-  val clientPurpose: AuthorizationManagementDependency.Purpose =
-    AuthorizationManagementDependency.Purpose(states =
-      AuthorizationManagementDependency.ClientStatesChain(
-        id = UUID.randomUUID(),
-        eservice = AuthorizationManagementDependency.ClientEServiceDetails(
-          eserviceId = UUID.randomUUID(),
-          descriptorId = UUID.randomUUID(),
-          state = AuthorizationManagementDependency.ClientComponentState.ACTIVE,
-          audience = Seq("audience"),
-          voucherLifespan = 10
-        ),
-        agreement = AuthorizationManagementDependency.ClientAgreementDetails(
-          eserviceId = UUID.randomUUID(),
-          consumerId = UUID.randomUUID(),
-          agreementId = UUID.randomUUID(),
-          state = AuthorizationManagementDependency.ClientComponentState.ACTIVE
-        ),
-        purpose = AuthorizationManagementDependency.ClientPurposeDetails(
-          purposeId = UUID.randomUUID(),
-          versionId = UUID.randomUUID(),
-          state = AuthorizationManagementDependency.ClientComponentState.ACTIVE
-        )
+  val clientPurpose: AuthorizationManagementDependency.Purpose = AuthorizationManagementDependency.Purpose(states =
+    AuthorizationManagementDependency.ClientStatesChain(
+      id = UUID.randomUUID(),
+      eservice = AuthorizationManagementDependency.ClientEServiceDetails(
+        eserviceId = UUID.randomUUID(),
+        descriptorId = UUID.randomUUID(),
+        state = AuthorizationManagementDependency.ClientComponentState.ACTIVE,
+        audience = Seq("audience"),
+        voucherLifespan = 10
+      ),
+      agreement = AuthorizationManagementDependency.ClientAgreementDetails(
+        eserviceId = UUID.randomUUID(),
+        consumerId = UUID.randomUUID(),
+        agreementId = UUID.randomUUID(),
+        state = AuthorizationManagementDependency.ClientComponentState.ACTIVE
+      ),
+      purpose = AuthorizationManagementDependency.ClientPurposeDetails(
+        purposeId = UUID.randomUUID(),
+        versionId = UUID.randomUUID(),
+        state = AuthorizationManagementDependency.ClientComponentState.ACTIVE
       )
     )
+  )
 
-  val client: AuthorizationManagementDependency.Client =
-    AuthorizationManagementDependency.Client(
-      id = UUID.randomUUID(),
-      consumerId = consumerId,
-      name = clientSeed.name,
-      purposes = Seq(clientPurpose),
-      description = clientSeed.description,
-      relationships = Set.empty,
-      kind = AuthorizationManagementDependency.ClientKind.CONSUMER
-    )
+  val client: AuthorizationManagementDependency.Client = AuthorizationManagementDependency.Client(
+    id = UUID.randomUUID(),
+    consumerId = consumerId,
+    name = clientSeed.name,
+    purposes = Seq(clientPurpose),
+    description = clientSeed.description,
+    relationships = Set.empty,
+    kind = AuthorizationManagementDependency.ClientKind.CONSUMER
+  )
 
-  val operator: Operator =
-    Operator(
-      relationshipId = UUID.fromString(relationshipId),
-      taxCode = user.fiscalCode.get,
-      name = user.name.get.value,
-      familyName = user.familyName.get.value,
-      role = OperatorRole.OPERATOR,
-      product = RelationshipProduct("Interop", "aPlatformRole", timestamp),
-      state = OperatorState.ACTIVE
-    )
+  val operator: Operator = Operator(
+    relationshipId = UUID.fromString(relationshipId),
+    taxCode = user.fiscalCode.get,
+    name = user.name.get.value,
+    familyName = user.familyName.get.value,
+    role = OperatorRole.OPERATOR,
+    product = RelationshipProduct("Interop", "aPlatformRole", timestamp),
+    state = OperatorState.ACTIVE
+  )
 
   val relationship: PartyManagementDependency.Relationship = PartyManagementDependency.Relationship(
     id = UUID.fromString(relationshipId),
@@ -272,27 +269,21 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     )
   )
 
-  def mockGetTenant(): Unit = {
-    (mockTenantManagementService
-      .getTenant(_: UUID)(_: Seq[(String, String)]))
-      .expects(client.consumerId, *)
-      .once()
-      .returns(
-        Future.successful(
-          Tenant(
-            id = client.consumerId,
-            selfcareId = client.consumerId.toString().some,
-            externalId = ExternalId("IPA", "value"),
-            features = Nil,
-            attributes = Nil,
-            createdAt = OffsetDateTimeSupplier.get(),
-            updatedAt = None
-          )
-        )
-      )
+  val tenant = Tenant(
+    id = client.consumerId,
+    selfcareId = UUID.randomUUID.toString().some,
+    externalId = ExternalId("IPA", "value"),
+    features = Nil,
+    attributes = Nil,
+    createdAt = OffsetDateTimeSupplier.get(),
+    updatedAt = None
+  )
 
-    ()
-  }
+  def mockGetTenant(): Unit = (mockTenantManagementService
+    .getTenant(_: UUID)(_: Seq[(String, String)]))
+    .expects(client.consumerId, *)
+    .once()
+    .returns(Future.successful(tenant)): Unit
 
   def mockClientComposition(
     withOperators: Boolean,
@@ -304,23 +295,11 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       .getTenant(_: UUID)(_: Seq[(String, String)]))
       .expects(client.consumerId, *)
       .once()
-      .returns(
-        Future.successful(
-          Tenant(
-            id = client.consumerId,
-            selfcareId = client.consumerId.toString().some,
-            externalId = ExternalId("IPA", "value"),
-            features = Nil,
-            attributes = Nil,
-            createdAt = OffsetDateTimeSupplier.get(),
-            updatedAt = None
-          )
-        )
-      )
+      .returns(Future.successful(tenant))
 
     (mockPartyManagementService
       .getInstitution(_: String)(_: Seq[(String, String)], _: ExecutionContext))
-      .expects(client.consumerId.toString(), *, *)
+      .expects(tenant.selfcareId.get, *, *)
       .once()
       .returns(Future.successful(consumer))
 
