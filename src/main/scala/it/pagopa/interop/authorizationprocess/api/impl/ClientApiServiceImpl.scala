@@ -792,11 +792,11 @@ final case class ClientApiServiceImpl(
     } yield (clientPurpose, purpose, agreement, eService, descriptor)
 
     for {
-      tenantId              <- tenantManagementService
+      tenant                <- tenantManagementService
         .getTenant(client.consumerId)
-        .flatMap(_.selfcareId.toFuture(ClientRetrievalError))
-      tenantUUID            <- tenantId.toFutureUUID
-      consumer              <- partyManagementService.getInstitution(tenantUUID)
+      selfcareId            <- tenant.selfcareId.toFuture(ClientRetrievalError)
+      selfcareUUID          <- selfcareId.toFutureUUID
+      consumer              <- partyManagementService.getInstitution(selfcareUUID)
       operators             <- operatorsFromClient(client)
       purposesAndAgreements <- Future.traverse(client.purposes)(purpose =>
         getLatestAgreement(purpose).map((purpose, _))
