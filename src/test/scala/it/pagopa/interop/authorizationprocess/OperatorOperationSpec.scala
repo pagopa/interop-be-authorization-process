@@ -46,7 +46,8 @@ class OperatorOperationSpec
     mockCatalogManagementService,
     mockPartyManagementService,
     mockPurposeManagementService,
-    mockUserRegistryManagementService
+    mockUserRegistryManagementService,
+    mockTenantManagementService
   )(ExecutionContext.global)
 
   "Operator addition" should {
@@ -117,7 +118,8 @@ class OperatorOperationSpec
         mockCatalogManagementService,
         mockPartyManagementService,
         mockPurposeManagementService,
-        mockUserRegistryManagementService
+        mockUserRegistryManagementService,
+        mockTenantManagementService
       )(ExecutionContext.global)
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, seed) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -195,7 +197,8 @@ class OperatorOperationSpec
         mockCatalogManagementService,
         PartyManagementServiceImpl(PartyManagementInvoker(), PartyApi())(PartyManagementApiKeyValue()),
         mockPurposeManagementService,
-        mockUserRegistryManagementService
+        mockUserRegistryManagementService,
+        mockTenantManagementService
       )(ExecutionContext.global)
       Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationship.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -351,7 +354,8 @@ class OperatorOperationSpec
         mockCatalogManagementService,
         mockPartyManagementService,
         mockPurposeManagementService,
-        mockUserRegistryManagementService
+        mockUserRegistryManagementService,
+        mockTenantManagementService
       )(ExecutionContext.global)
       Get() ~> service.getClientOperators(client.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -423,7 +427,8 @@ class OperatorOperationSpec
         mockCatalogManagementService,
         mockPartyManagementService,
         mockPurposeManagementService,
-        mockUserRegistryManagementService
+        mockUserRegistryManagementService,
+        mockTenantManagementService
       )(ExecutionContext.global)
       Get() ~> service.getClientOperatorRelationshipById(client.id.toString, relationship.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden

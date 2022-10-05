@@ -8,10 +8,13 @@ import it.pagopa.interop.purposemanagement.client.model
 import it.pagopa.interop.purposemanagement.client.model.PurposeVersion
 import it.pagopa.interop.selfcare.partymanagement.client.model._
 import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
-
+import cats.syntax.all._
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
+import it.pagopa.interop.tenantmanagement.client.model.Tenant
+import it.pagopa.interop.tenantmanagement.client.model.ExternalId
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 
 /**
  * Holds fake implementation of dependencies for tests not requiring neither mocks or stubs
@@ -149,7 +152,7 @@ object FakeDependencies {
   }
   class FakePartyManagementService         extends PartyManagementService         {
     override def getInstitution(
-      institutionId: UUID
+      institutionId: String
     )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Institution] = Future.successful(
       Institution(
         id = UUID.randomUUID(),
@@ -171,7 +174,7 @@ object FakeDependencies {
       )
     )
 
-    override def getRelationships(organizationId: UUID, personId: UUID, productRoles: Seq[String])(implicit
+    override def getRelationships(organizationId: String, personId: UUID, productRoles: Seq[String])(implicit
       contexts: Seq[(String, String)],
       ec: ExecutionContext
     ): Future[Relationships] = Future.successful(Relationships(Seq.empty))
@@ -212,5 +215,19 @@ object FakeDependencies {
   class FakeUserRegistryManagementService  extends UserRegistryManagementService  {
     override def getUserById(id: UUID)(implicit contexts: Seq[(String, String)]): Future[UserResource] =
       Future.successful(UserResource(id = UUID.randomUUID()))
+  }
+  class FakeTenantManagementService        extends TenantManagementService        {
+    override def getTenant(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[Tenant] =
+      Future.successful(
+        Tenant(
+          id = tenantId,
+          selfcareId = UUID.randomUUID().toString.some,
+          externalId = ExternalId("IPA", "foo"),
+          features = Nil,
+          attributes = Nil,
+          createdAt = OffsetDateTimeSupplier.get(),
+          updatedAt = None
+        )
+      )
   }
 }

@@ -13,6 +13,7 @@ object ApplicationConfiguration {
   val getCatalogManagementURL: String       = config.getString("authorization-process.services.catalog-management")
   val getPartyManagementURL: String         = config.getString("authorization-process.services.party-management")
   val getPurposeManagementURL: String       = config.getString("authorization-process.services.purpose-management")
+  val getTenantManagementURL: String        = config.getString("authorization-process.services.tenant-management")
   val getUserRegistryManagementURL: String  =
     config.getString("authorization-process.services.user-registry-management")
 
