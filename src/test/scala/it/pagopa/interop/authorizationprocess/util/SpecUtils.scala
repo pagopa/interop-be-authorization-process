@@ -97,7 +97,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     audience = Seq.empty,
     voucherLifespan = 10,
     dailyCallsPerConsumer = 1000,
-    dailyCallsTotal = 20
+    dailyCallsTotal = 20,
+    agreementApprovalPolicy = CatalogManagementDependency.AgreementApprovalPolicy.AUTOMATIC
   )
 
   val eService: CatalogManagementDependency.EService = CatalogManagementDependency.EService(
