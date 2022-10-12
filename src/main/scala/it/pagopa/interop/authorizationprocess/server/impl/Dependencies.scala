@@ -101,6 +101,11 @@ trait Dependencies {
     complete(error.status, error)(entityMarshallerProblem)
   }
 
+  def tenantManagement(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): TenantManagementService =
+    new TenantManagementServiceImpl(ApplicationConfiguration.getTenantManagementURL, blockingEc)
+
   def clientApi(jwtReader: JWTReader, blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_],
     ec: ExecutionContext
@@ -111,7 +116,8 @@ trait Dependencies {
       catalogManagementService(blockingEc),
       partyManagementService(),
       purposeManagementService(blockingEc),
-      userRegistryManagementService()
+      userRegistryManagementService(),
+      tenantManagement(blockingEc)
     ),
     ClientApiMarshallerImpl,
     jwtReader.OAuth2JWTValidatorAsContexts

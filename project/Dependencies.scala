@@ -34,6 +34,8 @@ object Dependencies {
       namespace %% "interop-be-catalog-management-client" % catalogManagementVersion
     lazy val partyManagement =
       namespace %% "interop-selfcare-party-management-client" % partyManagementVersion
+    lazy val tenantManagement =
+      namespace %% "interop-be-tenant-management-client" % tenantManagementVersion
     lazy val purposeManagement =
       namespace %% "interop-be-purpose-management-client" % purposeManagementVersion
     lazy val userRegistryManagement =
@@ -132,6 +134,7 @@ object Dependencies {
       pagopa.authorizationManagement % Compile,
       pagopa.partyManagement         % Compile,
       pagopa.purposeManagement       % Compile,
+      pagopa.tenantManagement        % Compile,
       pagopa.userRegistryManagement  % Compile,
       scalpb.core                    % "protobuf",
       akka.httpTestkit               % Test,

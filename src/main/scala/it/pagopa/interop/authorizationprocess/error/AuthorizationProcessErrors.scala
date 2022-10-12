@@ -96,4 +96,6 @@ object AuthorizationProcessErrors {
 
   final case class InvalidOrganization(resource: String, organizationId: String)
       extends ComponentError("0052", s"The resource $resource doesn't belong to the organization $organizationId")
+
+  final case object MissingSelfcareId extends ComponentError("0053", "SelfcareId in tenant not found")
 }

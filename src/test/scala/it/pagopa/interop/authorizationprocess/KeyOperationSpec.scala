@@ -33,7 +33,8 @@ class KeyOperationSpec
     mockCatalogManagementService,
     mockPartyManagementService,
     mockPurposeManagementService,
-    mockUserRegistryManagementService
+    mockUserRegistryManagementService,
+    mockTenantManagementService
   )(ExecutionContext.global)
 
   val apiClientKey: ClientKey = ClientKey(
@@ -123,7 +124,8 @@ class KeyOperationSpec
         mockCatalogManagementService,
         mockPartyManagementService,
         mockPurposeManagementService,
-        mockUserRegistryManagementService
+        mockUserRegistryManagementService,
+        mockTenantManagementService
       )(ExecutionContext.global)
       val kid                                      = "some-kid"
       Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
@@ -207,7 +209,8 @@ class KeyOperationSpec
         mockCatalogManagementService,
         mockPartyManagementService,
         mockPurposeManagementService,
-        mockUserRegistryManagementService
+        mockUserRegistryManagementService,
+        mockTenantManagementService
       )(ExecutionContext.global)
       Get() ~> service.getClientKeys(client.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -243,10 +246,12 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(client))
 
+      mockGetTenant()
+
       (mockPartyManagementService
-        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
         .expects(
-          client.consumerId,
+          tenant.selfcareId.get,
           user.id,
           Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
           *,
@@ -282,7 +287,8 @@ class KeyOperationSpec
         mockCatalogManagementService,
         mockPartyManagementService,
         mockPurposeManagementService,
-        mockUserRegistryManagementService
+        mockUserRegistryManagementService,
+        mockTenantManagementService
       )(ExecutionContext.global)
       Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -298,10 +304,12 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(client))
 
+      mockGetTenant()
+
       (mockPartyManagementService
-        .getRelationships(_: UUID, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
         .expects(
-          client.consumerId,
+          tenant.selfcareId.get,
           personId, // * This is the id present in the contexts
           Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
           *,
