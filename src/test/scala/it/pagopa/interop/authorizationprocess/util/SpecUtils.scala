@@ -4,7 +4,7 @@ import cats.syntax.all._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
-import it.pagopa.interop.agreementmanagement.client.model.{Agreement => AgreementManagerAgreement}
+import it.pagopa.interop.agreementmanagement.client.model.{Stamps, Agreement => AgreementManagerAgreement}
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
@@ -127,7 +127,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     consumerDocuments = List.empty,
     createdAt = timestamp,
     updatedAt = None,
-    consumerNotes = None
+    consumerNotes = None,
+    stamps = Stamps()
   )
 
   val institution: PartyManagementDependency.Institution = PartyManagementDependency.Institution(
