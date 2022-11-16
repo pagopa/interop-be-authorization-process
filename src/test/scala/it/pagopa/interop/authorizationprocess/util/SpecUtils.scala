@@ -278,7 +278,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     features = Nil,
     attributes = Nil,
     createdAt = OffsetDateTimeSupplier.get(),
-    updatedAt = None
+    updatedAt = None,
+    mails = Nil,
+    name = "test_name"
   )
 
   def mockGetTenant(): Unit = (mockTenantManagementService
