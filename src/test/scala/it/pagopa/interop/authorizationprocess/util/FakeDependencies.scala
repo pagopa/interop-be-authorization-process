@@ -151,28 +151,6 @@ object FakeDependencies {
     ): Future[Unit] = Future.successful(())
   }
   class FakePartyManagementService         extends PartyManagementService         {
-    override def getInstitution(
-      institutionId: String
-    )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Institution] = Future.successful(
-      Institution(
-        id = UUID.randomUUID(),
-        /* external institution id */
-        externalId = "fake",
-        /* origin institution id (e.g iPA code) */
-        originId = "fake",
-        description = "fake",
-        digitalAddress = "fake",
-        address = "fake",
-        zipCode = "fake",
-        /* institution tax code */
-        taxCode = "fake",
-        /* The origin form which the institution has been retrieved */
-        origin = "fake",
-        /* institution type */
-        institutionType = "fake",
-        attributes = Seq.empty
-      )
-    )
 
     override def getRelationships(organizationId: String, personId: UUID, productRoles: Seq[String])(implicit
       contexts: Seq[(String, String)],
@@ -198,7 +176,7 @@ object FakeDependencies {
       )
     )
   }
-  class FakePurposeManagementService       extends PurposeManagementService       {
+  class FakePurposeManagementService      extends PurposeManagementService      {
     override def getPurpose(purposeId: UUID)(implicit contexts: Seq[(String, String)]): Future[model.Purpose] =
       Future.successful(
         model.Purpose(
@@ -212,11 +190,11 @@ object FakeDependencies {
         )
       )
   }
-  class FakeUserRegistryManagementService  extends UserRegistryManagementService  {
+  class FakeUserRegistryManagementService extends UserRegistryManagementService {
     override def getUserById(id: UUID)(implicit contexts: Seq[(String, String)]): Future[UserResource] =
       Future.successful(UserResource(id = UUID.randomUUID()))
   }
-  class FakeTenantManagementService        extends TenantManagementService        {
+  class FakeTenantManagementService       extends TenantManagementService       {
     override def getTenant(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[Tenant] =
       Future.successful(
         Tenant(

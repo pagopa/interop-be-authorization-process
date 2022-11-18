@@ -62,7 +62,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       val expected = Client(
         id = client.id,
-        consumer = Organization(consumer.originId, consumer.description),
+        consumer = Organization(consumer.externalId.value, consumer.name),
         name = client.name,
         purposes =
           client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
@@ -118,7 +118,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expected =
         Client(
           id = client.id,
-          consumer = Organization(consumer.originId, consumer.description),
+          consumer = Organization(consumer.externalId.value, consumer.name),
           name = client.name,
           purposes =
             client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
@@ -181,7 +181,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       (mockPartyManagementService
         .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
         .expects(
-          tenant.selfcareId.get,
+          consumer.selfcareId.get,
           personId,
           Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
           *,
@@ -213,12 +213,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       mockGetTenant()
 
-      (mockPartyManagementService
-        .getInstitution(_: String)(_: Seq[(String, String)], _: ExecutionContext))
-        .expects(tenant.selfcareId.get, *, *)
-        .once()
-        .returns(Future.successful(consumer))
-
       (mockAgreementManagementService
         .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
         .expects(client.purposes.head.states.eservice.eserviceId, client.consumerId, *)
@@ -248,7 +242,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val expected = Clients(
         Client(
           id = client.id,
-          consumer = Organization(consumer.originId, consumer.description),
+          consumer = Organization(consumer.externalId.value, consumer.name),
           name = client.name,
           purposes =
             client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),

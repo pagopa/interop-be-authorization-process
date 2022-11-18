@@ -34,6 +34,7 @@ import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDep
 import it.pagopa.interop.selfcare._
 import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
+import it.pagopa.interop.tenantmanagement.client.{model => TenantManagementDependency}
 import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
 
 import java.util.UUID
@@ -811,9 +812,7 @@ final case class ClientApiServiceImpl(
     } yield (clientPurpose, purpose, agreement, eService, descriptor)
 
     for {
-      tenant                <- tenantManagementService.getTenant(client.consumerId)
-      selfcareId            <- tenant.selfcareId.toFuture(MissingSelfcareId)
-      consumer              <- partyManagementService.getInstitution(selfcareId)
+      consumer              <- tenantManagementService.getTenant(client.consumerId)
       operators             <- operatorsFromClient(client)
       purposesAndAgreements <- Future.traverse(client.purposes)(purpose =>
         getLatestAgreement(purpose).map((purpose, _))
@@ -922,7 +921,7 @@ final case class ClientApiServiceImpl(
 
   private[this] def clientToApi(
     client: AuthorizationManagementDependency.Client,
-    consumer: PartyManagementDependency.Institution,
+    consumer: TenantManagementDependency.Tenant,
     purposesDetails: Seq[
       (
         AuthorizationManagementDependency.Purpose,
@@ -949,7 +948,7 @@ final case class ClientApiServiceImpl(
 
     Client(
       id = client.id,
-      consumer = PartyManagementService.institutionToApi(consumer),
+      consumer = TenantManagementService.tenantToApi(consumer),
       name = client.name,
       purposes = purposesDetails.map(t => (purposeToApi _).tupled(t)),
       description = client.description,
