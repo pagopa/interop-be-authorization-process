@@ -85,7 +85,7 @@ class OperatorOperationSpec
 
       val expected = Client(
         id = client.id,
-        consumer = Organization(consumer.originId, consumer.description),
+        consumer = Organization(consumer.externalId.value, consumer.name),
         name = client.name,
         purposes =
           client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),

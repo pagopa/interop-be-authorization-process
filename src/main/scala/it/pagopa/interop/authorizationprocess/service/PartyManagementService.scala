@@ -3,7 +3,6 @@ package it.pagopa.interop.authorizationprocess.service
 import it.pagopa.interop.authorizationprocess.model.{
   OperatorRole => ApiOperatorRole,
   OperatorState => ApiOperatorState,
-  Organization => ApiOrganization,
   RelationshipProduct => ApiOperatorRelationshipProduct
 }
 import it.pagopa.interop.selfcare.partymanagement.client.model._
@@ -12,10 +11,6 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 trait PartyManagementService {
-
-  def getInstitution(
-    selfcareId: String
-  )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Institution]
   def getRelationships(selfcareId: String, personId: UUID, productRoles: Seq[String])(implicit
     contexts: Seq[(String, String)],
     ec: ExecutionContext
@@ -33,9 +28,6 @@ object PartyManagementService {
 
   final val PRODUCT_ROLE_SECURITY_OPERATOR = "security"
   final val PRODUCT_ROLE_ADMIN             = "admin"
-
-  def institutionToApi(institution: Institution): ApiOrganization =
-    ApiOrganization(institution.originId, institution.description)
 
   def relationshipStateToApi(state: RelationshipState): Either[Throwable, ApiOperatorState] =
     state match {

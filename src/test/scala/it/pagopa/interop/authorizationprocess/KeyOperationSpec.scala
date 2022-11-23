@@ -251,7 +251,7 @@ class KeyOperationSpec
       (mockPartyManagementService
         .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
         .expects(
-          tenant.selfcareId.get,
+          consumer.selfcareId.get,
           user.id,
           Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
           *,
@@ -309,7 +309,7 @@ class KeyOperationSpec
       (mockPartyManagementService
         .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
         .expects(
-          tenant.selfcareId.get,
+          consumer.selfcareId.get,
           personId, // * This is the id present in the contexts
           Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
           *,

@@ -131,34 +131,6 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     stamps = Stamps()
   )
 
-  val institution: PartyManagementDependency.Institution = PartyManagementDependency.Institution(
-    description = "Organization description",
-    digitalAddress = "or2@test.pec.pagopa.it",
-    originId = organizationId.toString,
-    externalId = organizationId.toString,
-    origin = organizationId.toString,
-    id = organizationId,
-    attributes = Seq.empty,
-    taxCode = "123",
-    address = "address",
-    zipCode = "00000",
-    institutionType = "PUBLIC"
-  )
-
-  val consumer: PartyManagementDependency.Institution = PartyManagementDependency.Institution(
-    description = "Organization description",
-    digitalAddress = "org2@test.pec.pagopa.it",
-    originId = "some-external-id2",
-    externalId = "some-external-id2",
-    origin = "some-external-id2",
-    id = organizationId,
-    attributes = Seq.empty,
-    taxCode = "123",
-    address = "address",
-    zipCode = "00000",
-    institutionType = "PUBLIC"
-  )
-
   val purposeVersion: PurposeManagementDependency.PurposeVersion = PurposeManagementDependency.PurposeVersion(
     id = UUID.randomUUID(),
     state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
@@ -168,20 +140,6 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     expectedApprovalDate = None,
     dailyCalls = 10,
     riskAnalysis = None
-  )
-
-  val purpose: PurposeManagementDependency.Purpose = PurposeManagementDependency.Purpose(
-    id = UUID.randomUUID(),
-    eserviceId = eService.id,
-    consumerId = consumer.id,
-    versions = Seq.empty,
-    suspendedByConsumer = None,
-    suspendedByProducer = None,
-    title = "Purpose!",
-    description = "Purpose?",
-    riskAnalysisForm = None,
-    createdAt = timestamp,
-    updatedAt = None
   )
 
   val clientPurpose: AuthorizationManagementDependency.Purpose = AuthorizationManagementDependency.Purpose(states =
@@ -218,6 +176,32 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     kind = AuthorizationManagementDependency.ClientKind.CONSUMER
   )
 
+  val consumer: Tenant = Tenant(
+    id = client.consumerId,
+    selfcareId = UUID.randomUUID.toString().some,
+    externalId = ExternalId("IPA", "value"),
+    features = Nil,
+    attributes = Nil,
+    createdAt = OffsetDateTimeSupplier.get(),
+    updatedAt = None,
+    mails = Nil,
+    name = "test_name"
+  )
+
+  val purpose: PurposeManagementDependency.Purpose = PurposeManagementDependency.Purpose(
+    id = UUID.randomUUID(),
+    eserviceId = eService.id,
+    consumerId = consumer.id,
+    versions = Seq.empty,
+    suspendedByConsumer = None,
+    suspendedByProducer = None,
+    title = "Purpose!",
+    description = "Purpose?",
+    riskAnalysisForm = None,
+    createdAt = timestamp,
+    updatedAt = None
+  )
+
   val operator: Operator = Operator(
     relationshipId = UUID.fromString(relationshipId),
     taxCode = user.fiscalCode.get,
@@ -231,7 +215,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val relationship: PartyManagementDependency.Relationship = PartyManagementDependency.Relationship(
     id = UUID.fromString(relationshipId),
     from = user.id,
-    to = institution.id,
+    to = organizationId,
     role = PartyManagementDependency.PartyRole.OPERATOR,
     product = PartyManagementDependency.RelationshipProduct("Interop", "aPlatformRole", timestamp),
     state = PartyManagementDependency.RelationshipState.ACTIVE,
@@ -271,21 +255,11 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     )
   )
 
-  val tenant = Tenant(
-    id = client.consumerId,
-    selfcareId = UUID.randomUUID.toString().some,
-    externalId = ExternalId("IPA", "value"),
-    features = Nil,
-    attributes = Nil,
-    createdAt = OffsetDateTimeSupplier.get(),
-    updatedAt = None
-  )
-
   def mockGetTenant(): Unit = (mockTenantManagementService
     .getTenant(_: UUID)(_: Seq[(String, String)]))
     .expects(client.consumerId, *)
     .once()
-    .returns(Future.successful(tenant)): Unit
+    .returns(Future.successful(consumer)): Unit
 
   def mockClientComposition(
     withOperators: Boolean,
@@ -296,12 +270,6 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     (mockTenantManagementService
       .getTenant(_: UUID)(_: Seq[(String, String)]))
       .expects(client.consumerId, *)
-      .once()
-      .returns(Future.successful(tenant))
-
-    (mockPartyManagementService
-      .getInstitution(_: String)(_: Seq[(String, String)], _: ExecutionContext))
-      .expects(tenant.selfcareId.get, *, *)
       .once()
       .returns(Future.successful(consumer))
 
