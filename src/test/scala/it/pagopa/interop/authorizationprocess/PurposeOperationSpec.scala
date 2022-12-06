@@ -127,8 +127,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.PENDING))))
 
       Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
-        status shouldEqual StatusCodes.NotFound
-        responseAs[Problem].errors.head.code shouldEqual "007-0045"
+        status shouldEqual StatusCodes.BadRequest
+        responseAs[Problem].errors.head.code shouldEqual "007-0005"
       }
     }
 
@@ -140,7 +140,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         .returns(Future.failed(purposemanagement.client.invoker.ApiError(404, "message", None)))
 
       Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
-        status shouldEqual StatusCodes.NotFound
+        status shouldEqual StatusCodes.InternalServerError
       }
     }
 

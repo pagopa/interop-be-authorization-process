@@ -41,8 +41,8 @@ object Dependencies {
     lazy val userRegistryManagement =
       namespace %% "interop-selfcare-user-registry-client" % userRegistryManagementVersion
 
-    lazy val commons = namespace %% "interop-commons-utils" % commonsVersion
-    lazy val jwt     = namespace %% "interop-commons-jwt"   % commonsVersion
+    lazy val commonsUtils = namespace %% "interop-commons-utils" % commonsVersion
+    lazy val commonsJwt   = namespace %% "interop-commons-jwt"   % commonsVersion
   }
 
   private[this] object nimbus {
@@ -128,9 +128,9 @@ object Dependencies {
       mustache.mustache              % Compile,
       nimbus.joseJwt                 % Compile,
       pagopa.agreementManagement     % Compile,
-      pagopa.commons                 % Compile,
+      pagopa.commonsUtils            % Compile,
       pagopa.catalogManagement       % Compile,
-      pagopa.jwt                     % Compile,
+      pagopa.commonsJwt              % Compile,
       pagopa.authorizationManagement % Compile,
       pagopa.partyManagement         % Compile,
       pagopa.purposeManagement       % Compile,
@@ -144,7 +144,7 @@ object Dependencies {
       scalamock.core                 % Test
     )
     lazy val client: Seq[ModuleID]    =
-      Seq(akka.stream, akka.http, akka.httpJson4s, akka.slf4j, json4s.jackson, json4s.ext, pagopa.commons).map(
+      Seq(akka.stream, akka.http, akka.httpJson4s, akka.slf4j, json4s.jackson, json4s.ext, pagopa.commonsUtils).map(
         _ % Compile
       )
   }

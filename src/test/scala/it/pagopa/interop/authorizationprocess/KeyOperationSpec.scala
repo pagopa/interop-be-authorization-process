@@ -2,10 +2,11 @@ package it.pagopa.interop.authorizationprocess
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationmanagement.client.model.{KeysResponse, KeySeed => KeyMgmtSeed}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{ClientKeyNotFound, ClientNotFound}
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
 import it.pagopa.interop.authorizationprocess.service.{AuthorizationManagementInvoker, PartyManagementService}
@@ -17,7 +18,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors
 
 class KeyOperationSpec
     extends AnyWordSpecLike
@@ -145,7 +145,7 @@ class KeyOperationSpec
         .getKey(_: UUID, _: String)(_: Seq[(String, String)]))
         .expects(*, *, *)
         .once()
-        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(ClientKeyNotFound(client.id, kid)))
 
       Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -228,7 +228,7 @@ class KeyOperationSpec
         .getClientKeys(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
-        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(ClientNotFound(client.id)))
 
       Get() ~> service.getClientKeys(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -320,7 +320,7 @@ class KeyOperationSpec
 
       Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.Forbidden
-        entityAs[Problem].errors.head.code shouldBe "007-0011"
+        entityAs[Problem].errors.head.code shouldBe "007-0003"
       }
     }
 
@@ -329,7 +329,7 @@ class KeyOperationSpec
         .getClient(_: UUID)(_: Seq[(String, String)]))
         .expects(client.id, *)
         .once()
-        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "Some message", None)))
+        .returns(Future.failed(ClientNotFound(client.id)))
 
       Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -371,7 +371,7 @@ class KeyOperationSpec
         .deleteKey(_: UUID, _: String)(_: Seq[(String, String)]))
         .expects(*, *, *)
         .once()
-        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(ClientKeyNotFound(client.id, kid)))
 
       Get() ~> service.deleteClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.NotFound

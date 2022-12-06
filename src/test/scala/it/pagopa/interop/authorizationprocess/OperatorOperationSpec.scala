@@ -2,9 +2,9 @@ package it.pagopa.interop.authorizationprocess
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.ClientNotFound
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipProductToApi,
@@ -15,14 +15,7 @@ import it.pagopa.interop.authorizationprocess.service.impl.{
   AuthorizationManagementServiceImpl,
   PartyManagementServiceImpl
 }
-import it.pagopa.interop.authorizationprocess.service.{
-  AuthorizationManagementInvoker,
-  AuthorizationManagementService,
-  CatalogManagementService,
-  PartyManagementApiKeyValue,
-  PartyManagementInvoker,
-  PartyManagementService
-}
+import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
 import it.pagopa.interop.selfcare.partymanagement.client.api.PartyApi
 import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
@@ -131,7 +124,7 @@ class OperatorOperationSpec
         .getClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
-        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "Some message", None)))
+        .returns(Future.failed(ClientNotFound(client.id)))
 
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, relationshipId) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -266,7 +259,7 @@ class OperatorOperationSpec
 
       Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationshipId.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0047"
+        responseAs[Problem].errors.head.code shouldEqual "007-0004"
       }
     }
 
@@ -367,7 +360,7 @@ class OperatorOperationSpec
         .getClient(_: UUID)(_: Seq[(String, String)]))
         .expects(client.id, *)
         .once()
-        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "Some message", None)))
+        .returns(Future.failed(ClientNotFound(client.id)))
 
       Get() ~> service.getClientOperators(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -440,7 +433,7 @@ class OperatorOperationSpec
         .getClient(_: UUID)(_: Seq[(String, String)]))
         .expects(client.id, *)
         .once()
-        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "Some message", None)))
+        .returns(Future.failed(ClientNotFound(client.id)))
 
       Get() ~> service.getClientOperatorRelationshipById(client.id.toString, relationship.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
