@@ -24,7 +24,7 @@ import it.pagopa.interop.authorizationprocess.api.impl.{
 }
 import it.pagopa.interop.authorizationprocess.api.{ClientApi, HealthApi, OperatorApi}
 import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
-import it.pagopa.interop.authorizationprocess.error.serviceCode
+import it.pagopa.interop.authorizationprocess.api.impl.serviceCode
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.service.impl._
 import it.pagopa.interop.catalogmanagement.client.api.{EServiceApi => CatalogManagementApi}

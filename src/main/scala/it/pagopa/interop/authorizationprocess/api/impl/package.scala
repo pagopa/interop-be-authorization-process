@@ -4,6 +4,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.commons.utils.SprayCommonFormats.{offsetDateTimeFormat, uuidFormat}
+import it.pagopa.interop.commons.utils.errors.ServiceCode
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 package object impl extends SprayJsonSupport with DefaultJsonProtocol {
@@ -39,4 +40,7 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val clientsFormat: RootJsonFormat[Clients] = jsonFormat1(Clients)
 
   final val entityMarshallerProblem: ToEntityMarshaller[Problem] = sprayJsonMarshaller[Problem]
+
+  implicit val serviceCode: ServiceCode = ServiceCode("007")
+
 }

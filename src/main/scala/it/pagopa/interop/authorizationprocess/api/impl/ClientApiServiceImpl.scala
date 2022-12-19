@@ -9,9 +9,8 @@ import it.pagopa.interop._
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.api.ClientApiService
+import it.pagopa.interop.authorizationprocess.api.impl.ClientApiHandlers._
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
-import it.pagopa.interop.authorizationprocess.error.ClientApiHandlers._
-import it.pagopa.interop.authorizationprocess.error._
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipProductToApi,
@@ -33,7 +32,6 @@ import it.pagopa.interop.tenantmanagement.client.{model => TenantManagementDepen
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Success
 
 final case class ClientApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
@@ -61,7 +59,7 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Creating CONSUMER client with name ${clientSeed.name}"
     logger.info(operationLabel)
 
-    val result = for {
+    val result: Future[Client] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Creating CONSUMER client ${clientSeed.name} for consumer $organizationId")
       client    <- authorizationManagementService.createClient(
@@ -74,9 +72,7 @@ final case class ClientApiServiceImpl(
     } yield apiClient
 
     onComplete(result) {
-      handleConsumerClientCreationError(operationLabel) orElse { case Success(client) =>
-        createConsumerClient201(client)
-      }
+      createConsumerClientResponse[Client](operationLabel)(createConsumerClient201)
     }
   }
 
@@ -88,7 +84,7 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Creating API client with name ${clientSeed.name}"
     logger.info(operationLabel)
 
-    val result = for {
+    val result: Future[Client] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Creating API client ${clientSeed.name} for and consumer $organizationId")
       client    <- authorizationManagementService.createClient(
@@ -101,7 +97,7 @@ final case class ClientApiServiceImpl(
     } yield apiClient
 
     onComplete(result) {
-      handleApiClientCreationError(operationLabel) orElse { case Success(client) => createApiClient201(client) }
+      createApiClientResponse[Client](operationLabel)(createApiClient201)
     }
   }
 
@@ -124,7 +120,7 @@ final case class ClientApiServiceImpl(
     } yield apiClient
 
     onComplete(result) {
-      handleClientRetrieveError(operationLabel) orElse { case Success(client) => getClient200(client) }
+      getClientResponse[Client](operationLabel)(getClient200)
     }
   }
 
@@ -144,7 +140,7 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     // TODO Improve multiple requests
-    val result: Future[Seq[Client]] = for {
+    val result: Future[Clients] = for {
       personId      <- getUidFutureUUID(contexts)
       consumerUuid  <- consumerId.toFutureUUID
       clientKind    <- kind.traverse(AuthorizationManagementDependency.ClientKind.fromValue).toFuture
@@ -183,10 +179,10 @@ final case class ClientApiServiceImpl(
             .map(_.flatten)
 
       clients <- Future.traverse(managementClients)(getClient)
-    } yield clients
+    } yield Clients(clients)
 
     onComplete(result) {
-      handleClientListingError(operationLabel) orElse { case Success(clients) => listClients200(Clients(clients)) }
+      listClientsResponse[Clients](operationLabel)(listClients200)
     }
   }
 
@@ -204,7 +200,7 @@ final case class ClientApiServiceImpl(
       } yield ()
 
       onComplete(result) {
-        handleClientDeleteError(operationLabel) orElse { case Success(_) => deleteClient204 }
+        deleteClientResponse[Unit](operationLabel)(_ => deleteClient204)
       }
     }
 
@@ -216,7 +212,7 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Binding client $clientId with relationship $relationshipId"
     logger.info(operationLabel)
 
-    val result = for {
+    val result: Future[Client] = for {
       clientUUID       <- clientId.toFutureUUID
       relationshipUUID <- relationshipId.toFutureUUID
       organizationId   <- getOrganizationIdFutureUUID(contexts)
@@ -233,9 +229,7 @@ final case class ClientApiServiceImpl(
     } yield apiClient
 
     onComplete(result) {
-      handleClientOperatorRelationshipBindingError(operationLabel) orElse { case Success(client) =>
-        clientOperatorRelationshipBinding201(client)
-      }
+      clientOperatorRelationshipBindingResponse[Client](operationLabel)(clientOperatorRelationshipBinding201)
     }
   }
 
@@ -246,7 +240,7 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Removing binding between $clientId with relationship $relationshipId"
     logger.info(operationLabel)
 
-    val result = for {
+    val result: Future[Unit] = for {
       userUUID               <- getUidFutureUUID(contexts)
       clientUUID             <- clientId.toFutureUUID
       _                      <- assertIsConsumer(clientUUID)
@@ -259,9 +253,7 @@ final case class ClientApiServiceImpl(
     } yield ()
 
     onComplete(result) {
-      handleClientOperatorRelationshipDeleteError(operationLabel) orElse { case Success(_) =>
-        removeClientOperatorRelationship204
-      }
+      removeClientOperatorRelationshipResponse[Unit](operationLabel)(_ => removeClientOperatorRelationship204)
     }
   }
 
@@ -280,7 +272,7 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Getting Key $keyId of Client $clientId"
     logger.info(operationLabel)
 
-    val result = for {
+    val result: Future[ReadClientKey] = for {
       clientUuid <- clientId.toFutureUUID
       _          <- assertIsConsumer(clientUuid)
       key        <- authorizationManagementService.getKey(clientUuid, keyId)
@@ -288,7 +280,7 @@ final case class ClientApiServiceImpl(
     } yield AuthorizationManagementService.readKeyToApi(key, operator)
 
     onComplete(result) {
-      handleClientKeyRetrieveError(operationLabel) orElse { case Success(readKey) => getClientKeyById200(readKey) }
+      getClientKeyByIdResponse[ReadClientKey](operationLabel)(getClientKeyById200)
     }
   }
 
@@ -299,14 +291,14 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Deleting Key $keyId of Client $clientId"
     logger.info(operationLabel)
 
-    val result = for {
+    val result: Future[Unit] = for {
       clientUuid <- clientId.toFutureUUID
       _          <- assertIsConsumer(clientUuid)
       _          <- authorizationManagementService.deleteKey(clientUuid, keyId)(contexts)
     } yield ()
 
     onComplete(result) {
-      handleClientKeyDeleteError(operationLabel) orElse { case Success(_) => deleteClientKeyById204 }
+      deleteClientKeyByIdResponse[Unit](operationLabel)(_ => deleteClientKeyById204)
     }
   }
 
@@ -318,7 +310,7 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Creating keys for client $clientId"
     logger.info(operationLabel)
 
-    val result = for {
+    val result: Future[ClientKeys] = for {
       userId         <- getUidFutureUUID(contexts)
       clientUuid     <- clientId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
@@ -331,7 +323,7 @@ final case class ClientApiServiceImpl(
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
-      handleClientKeyCreationError(operationLabel) orElse { case Success(keys) => createKeys201(keys) }
+      createKeysResponse[ClientKeys](operationLabel)(createKeys201)
     }
   }
 
@@ -343,7 +335,7 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Retrieving keys for client $clientId"
     logger.info(operationLabel)
 
-    val result = for {
+    val result: Future[ReadClientKeys] = for {
       clientUuid   <- clientId.toFutureUUID
       _            <- assertIsConsumer(clientUuid)
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)(contexts)
@@ -355,7 +347,7 @@ final case class ClientApiServiceImpl(
     } yield ReadClientKeys(keys)
 
     onComplete(result) {
-      handleClientKeysRetrieveError(operationLabel) orElse { case Success(keys) => getClientKeys200(keys) }
+      getClientKeysResponse[ReadClientKeys](operationLabel)(getClientKeys200)
     }
   }
 
@@ -367,7 +359,7 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Retrieving operators of client $clientId"
     logger.info(operationLabel)
 
-    val result = for {
+    val result: Future[Seq[Operator]] = for {
       clientUuid     <- clientId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
       client         <- authorizationManagementService
@@ -377,7 +369,7 @@ final case class ClientApiServiceImpl(
     } yield operators
 
     onComplete(result) {
-      handleClientOperatorsRetrieveError(operationLabel) orElse { case Success(keys) => getClientOperators200(keys) }
+      getClientOperatorsResponse[Seq[Operator]](operationLabel)(getClientOperators200)
     }
   }
 
@@ -389,7 +381,7 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Retrieving operator of client $clientId by relationship $relationshipId"
     logger.info(operationLabel)
 
-    val result = for {
+    val result: Future[Operator] = for {
       clientUUID       <- clientId.toFutureUUID
       organizationId   <- getOrganizationIdFutureUUID(contexts)
       relationshipUUID <- relationshipId.toFutureUUID
@@ -401,9 +393,7 @@ final case class ClientApiServiceImpl(
     } yield operator
 
     onComplete(result) {
-      handleClientOperatorByRelationshipRetrieveError(operationLabel) orElse { case Success(operator) =>
-        getClientOperatorRelationshipById200(operator)
-      }
+      getClientOperatorRelationshipByIdResponse[Operator](operationLabel)(getClientOperatorRelationshipById200)
     }
   }
 
@@ -485,7 +475,7 @@ final case class ClientApiServiceImpl(
     } yield ()
 
     onComplete(result) {
-      handleClientPurposeAdditionError(operationLabel) orElse { case Success(_) => addClientPurpose204 }
+      addClientPurposeResponse[Unit](operationLabel)(_ => addClientPurpose204)
     }
   }
 
@@ -504,7 +494,7 @@ final case class ClientApiServiceImpl(
     } yield ()
 
     onComplete(result) {
-      handleClientPurposeRemoveError(operationLabel) orElse { case Success(_) => addClientPurpose204 }
+      removeClientPurposeResponse[Unit](operationLabel)(_ => addClientPurpose204)
     }
   }
 
@@ -707,14 +697,14 @@ final case class ClientApiServiceImpl(
     val operationLabel = s"Retrieving encoded Key $keyId of Client $clientId"
     logger.info(operationLabel)
 
-    val result = for {
+    val result: Future[EncodedClientKey] = for {
       clientUuid <- clientId.toFutureUUID
       _          <- assertIsConsumer(clientUuid)
       encodedKey <- authorizationManagementService.getEncodedClientKey(clientUuid, keyId)(contexts)
     } yield EncodedClientKey(key = encodedKey.key)
 
     onComplete(result) {
-      handleEncodedKeyRetrieveError(operationLabel) orElse { case Success(key) => getEncodedClientKeyById200(key) }
+      getEncodedClientKeyByIdResponse[EncodedClientKey](operationLabel)(getEncodedClientKeyById200)
     }
   }
 

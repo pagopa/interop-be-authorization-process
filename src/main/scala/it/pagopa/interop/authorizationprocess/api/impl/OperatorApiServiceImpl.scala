@@ -6,8 +6,7 @@ import akka.http.scaladsl.server.Route
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationprocess.api.OperatorApiService
-import it.pagopa.interop.authorizationprocess.error.OperatorApiHandlers._
-import it.pagopa.interop.authorizationprocess.error._
+import OperatorApiHandlers._
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, SECURITY_ROLE, authorize}
@@ -15,8 +14,7 @@ import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLo
 import it.pagopa.interop.commons.utils.TypeConversions.StringOps
 import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _}
 
-import scala.concurrent.ExecutionContext
-import scala.util.Success
+import scala.concurrent.{ExecutionContext, Future}
 
 final case class OperatorApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
@@ -35,7 +33,7 @@ final case class OperatorApiServiceImpl(
     val operationLabel: String = s"Getting client keys $clientId for operator $operatorId"
     logger.info(operationLabel)
 
-    val result = for {
+    val result: Future[ClientKeys] = for {
       operatorUuid  <- operatorId.toFutureUUID
       relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)
       clientUuid    <- clientId.toFutureUUID
@@ -45,9 +43,7 @@ final case class OperatorApiServiceImpl(
     } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
 
     onComplete(result) {
-      handleClientOperatorKeysRetrieveError(operationLabel) orElse { case Success(result) =>
-        getClientOperatorKeys200(result)
-      }
+      getClientOperatorKeysResponse[ClientKeys](operationLabel)(getClientOperatorKeys200)
     }
   }
 
