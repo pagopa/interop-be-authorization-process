@@ -5,6 +5,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.ClientNotFound
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
 import it.pagopa.interop.authorizationprocess.service.{
@@ -151,7 +152,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       Get() ~> service
         .getClient(client.id.toString)(contexts, toEntityMarshallerProblem, toEntityMarshallerClient) ~> check {
         status shouldEqual StatusCodes.Forbidden
-        entityAs[Problem].errors.head.code shouldBe "007-0052"
+        entityAs[Problem].errors.head.code shouldBe "007-0008"
       }
     }
 
@@ -160,7 +161,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .getClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
-        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(ClientNotFound(client.id)))
 
       Get() ~> service.getClient(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -295,7 +296,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .deleteClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
-        .returns(Future.failed(authorizationmanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(ClientNotFound(client.id)))
 
       Get() ~> service.deleteClient(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound

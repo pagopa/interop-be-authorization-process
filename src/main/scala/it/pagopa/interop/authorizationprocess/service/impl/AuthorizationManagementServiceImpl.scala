@@ -1,23 +1,28 @@
 package it.pagopa.interop.authorizationprocess.service.impl
 
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
-import it.pagopa.interop.authorizationmanagement.client.invoker.BearerToken
+import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError, ApiRequest, BearerToken}
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.commons.utils.withHeaders
 import it.pagopa.interop.authorizationprocess.service.{AuthorizationManagementInvoker, AuthorizationManagementService}
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{
+  ClientKeyNotFound,
+  ClientNotFound,
+  ClientRelationshipNotFound
+}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
 import java.util.UUID
-import scala.concurrent.Future
-import it.pagopa.interop.authorizationmanagement.client.invoker.ApiRequest
+import scala.concurrent.{ExecutionContext, Future}
 
 final case class AuthorizationManagementServiceImpl(
   invoker: AuthorizationManagementInvoker,
   clientApi: ClientApi,
   keyApi: KeyApi,
   purposeApi: PurposeApi
-) extends AuthorizationManagementService {
+)(implicit ec: ExecutionContext)
+    extends AuthorizationManagementService {
 
   implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
@@ -37,7 +42,11 @@ final case class AuthorizationManagementServiceImpl(
     withHeaders[Client] { (bearerToken, correlationId, ip) =>
       val request: ApiRequest[Client] =
         clientApi.getClient(xCorrelationId = correlationId, clientId, xForwardedFor = ip)(BearerToken(bearerToken))
-      invoker.invoke(request, "Client retrieve")
+      invoker
+        .invoke(request, "Client retrieve")
+        .recoverWith {
+          case err: ApiError[_] if err.code == 404 => Future.failed(ClientNotFound(clientId))
+        }
     }
 
   override def listClients(
@@ -68,7 +77,11 @@ final case class AuthorizationManagementServiceImpl(
         clientApi.deleteClient(xCorrelationId = correlationId, clientId.toString, xForwardedFor = ip)(
           BearerToken(bearerToken)
         )
-      invoker.invoke(request, "Client delete")
+      invoker
+        .invoke(request, "Client delete")
+        .recoverWith {
+          case err: ApiError[_] if err.code == 404 => Future.failed(ClientNotFound(clientId))
+        }
     }
 
   override def addRelationship(clientId: UUID, relationshipId: UUID)(implicit
@@ -90,7 +103,11 @@ final case class AuthorizationManagementServiceImpl(
       clientApi.removeClientRelationship(xCorrelationId = correlationId, clientId, relationshipId, xForwardedFor = ip)(
         BearerToken(bearerToken)
       )
-    invoker.invoke(request, "Operator removal from client")
+    invoker
+      .invoke(request, "Operator removal from client")
+      .recoverWith {
+        case err: ApiError[_] if err.code == 404 => Future.failed(ClientRelationshipNotFound(clientId, relationshipId))
+      }
   }
 
   override def getKey(clientId: UUID, kid: String)(implicit contexts: Seq[(String, String)]): Future[ClientKey] =
@@ -99,7 +116,11 @@ final case class AuthorizationManagementServiceImpl(
         keyApi.getClientKeyById(xCorrelationId = correlationId, clientId, kid, xForwardedFor = ip)(
           BearerToken(bearerToken)
         )
-      invoker.invoke(request, "Key Retrieve")
+      invoker
+        .invoke(request, "Key Retrieve")
+        .recoverWith {
+          case err: ApiError[_] if err.code == 404 => Future.failed(ClientKeyNotFound(clientId, kid))
+        }
     }
 
   override def deleteKey(clientId: UUID, kid: String)(implicit contexts: Seq[(String, String)]): Future[Unit] =
@@ -108,14 +129,22 @@ final case class AuthorizationManagementServiceImpl(
         keyApi.deleteClientKeyById(xCorrelationId = correlationId, clientId, kid, xForwardedFor = ip)(
           BearerToken(bearerToken)
         )
-      invoker.invoke(request, "Key Delete")
+      invoker
+        .invoke(request, "Key Delete")
+        .recoverWith {
+          case err: ApiError[_] if err.code == 404 => Future.failed(ClientKeyNotFound(clientId, kid))
+        }
     }
 
   override def getClientKeys(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[KeysResponse] =
     withHeaders[KeysResponse] { (bearerToken, correlationId, ip) =>
       val request: ApiRequest[KeysResponse] =
         keyApi.getClientKeys(xCorrelationId = correlationId, clientId, xForwardedFor = ip)(BearerToken(bearerToken))
-      invoker.invoke(request, "Client keys retrieve")
+      invoker
+        .invoke(request, "Client keys retrieve")
+        .recoverWith {
+          case err: ApiError[_] if err.code == 404 => Future.failed(ClientNotFound(clientId))
+        }
     }
 
   def getEncodedClientKey(clientId: UUID, kid: String)(implicit
@@ -125,7 +154,11 @@ final case class AuthorizationManagementServiceImpl(
       keyApi.getEncodedClientKeyById(xCorrelationId = correlationId, clientId, kid, xForwardedFor = ip)(
         BearerToken(bearerToken)
       )
-    invoker.invoke(request, "Key Retrieve")
+    invoker
+      .invoke(request, "Key Retrieve")
+      .recoverWith {
+        case err: ApiError[_] if err.code == 404 => Future.failed(ClientKeyNotFound(clientId, kid))
+      }
   }
 
   override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(implicit
@@ -145,7 +178,11 @@ final case class AuthorizationManagementServiceImpl(
       purposeApi.addClientPurpose(xCorrelationId = correlationId, clientId, purposeSeed, xForwardedFor = ip)(
         BearerToken(bearerToken)
       )
-    invoker.invoke(request, "Purpose addition to client")
+    invoker
+      .invoke(request, "Purpose addition to client")
+      .recoverWith {
+        case err: ApiError[_] if err.code == 404 => Future.failed(ClientNotFound(clientId))
+      }
   }
 
   override def removeClientPurpose(clientId: UUID, purposeId: UUID)(implicit
@@ -155,6 +192,10 @@ final case class AuthorizationManagementServiceImpl(
       purposeApi.removeClientPurpose(xCorrelationId = correlationId, clientId, purposeId, xForwardedFor = ip)(
         BearerToken(bearerToken)
       )
-    invoker.invoke(request, "Purpose remove from client")
+    invoker
+      .invoke(request, "Purpose remove from client")
+      .recoverWith {
+        case err: ApiError[_] if err.code == 404 => Future.failed(ClientNotFound(clientId))
+      }
   }
 }

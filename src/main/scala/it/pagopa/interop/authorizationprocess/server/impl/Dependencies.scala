@@ -20,12 +20,11 @@ import it.pagopa.interop.authorizationprocess.api.impl.{
   HealthApiMarshallerImpl,
   HealthServiceApiImpl,
   OperatorApiMarshallerImpl,
-  OperatorApiServiceImpl,
-  entityMarshallerProblem,
-  problemOf
+  OperatorApiServiceImpl
 }
 import it.pagopa.interop.authorizationprocess.api.{ClientApi, HealthApi, OperatorApi}
 import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
+import it.pagopa.interop.authorizationprocess.api.impl.serviceCode
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.service.impl._
 import it.pagopa.interop.catalogmanagement.client.api.{EServiceApi => CatalogManagementApi}
@@ -33,6 +32,7 @@ import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
 import it.pagopa.interop.commons.utils.TypeConversions.TryOps
+import it.pagopa.interop.commons.utils.errors.{Problem => CommonProblem}
 import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
 import it.pagopa.interop.purposemanagement.client.api.{PurposeApi => PurposeManagementApi}
 import it.pagopa.interop.selfcare.partymanagement.client.api.{PartyApi => PartyManagementApi}
@@ -72,7 +72,7 @@ trait Dependencies {
     AuthorizationClientApi(ApplicationConfiguration.getAuthorizationManagementURL),
     AuthorizationKeyApi(ApplicationConfiguration.getAuthorizationManagementURL),
     AuthorizationPurposeApi(ApplicationConfiguration.getAuthorizationManagementURL)
-  )
+  )(blockingEc)
 
   def agreementManagementService(
     blockingEc: ExecutionContextExecutor
@@ -93,18 +93,21 @@ trait Dependencies {
   )(implicit actorSystem: ActorSystem[_]): PurposeManagementService = PurposeManagementServiceImpl(
     PurposeManagementInvoker(blockingEc)(actorSystem.classicSystem),
     PurposeManagementApi(ApplicationConfiguration.getPurposeManagementURL)
-  )
+  )(blockingEc)
 
   val validationExceptionToRoute: ValidationReport => Route = report => {
     val error =
-      problemOf(StatusCodes.BadRequest, OpenapiUtils.errorFromRequestValidationReport(report))
-    complete(error.status, error)(entityMarshallerProblem)
+      CommonProblem(StatusCodes.BadRequest, OpenapiUtils.errorFromRequestValidationReport(report), serviceCode)
+    complete(error.status, error)
   }
 
-  def tenantManagement(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): TenantManagementService =
-    new TenantManagementServiceImpl(ApplicationConfiguration.getTenantManagementURL, blockingEc)
+  def tenantManagement(
+    blockingEc: ExecutionContextExecutor
+  )(implicit actorSystem: ActorSystem[_]): TenantManagementService =
+    new TenantManagementServiceImpl(ApplicationConfiguration.getTenantManagementURL, blockingEc)(
+      actorSystem,
+      blockingEc
+    )
 
   def clientApi(jwtReader: JWTReader, blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_],
