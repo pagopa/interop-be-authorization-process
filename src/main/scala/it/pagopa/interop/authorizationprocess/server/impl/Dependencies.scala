@@ -40,6 +40,8 @@ import it.pagopa.interop.selfcare.userregistry.client.api.{UserApi => UserRegist
 import it.pagopa.interop.selfcare.userregistry.client.invoker.ApiKeyValue
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import com.typesafe.scalalogging.Logger
+import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
 trait Dependencies {
 
@@ -132,7 +134,7 @@ trait Dependencies {
   ): OperatorApi = new OperatorApi(
     OperatorApiServiceImpl(authorizationManagementService(blockingEc), partyManagementService()),
     OperatorApiMarshallerImpl,
-    jwtReader.OAuth2JWTValidatorAsContexts
+    jwtReader.OAuth2JWTValidatorAsContexts(Logger.takingImplicit[ContextFieldsToLog]("OAuth2JWTValidatorAsContexts"))
   )
 
   def getJwtValidator(): Future[JWTReader] = JWTConfiguration.jwtReader
