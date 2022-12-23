@@ -40,10 +40,13 @@ import it.pagopa.interop.selfcare.userregistry.client.api.{UserApi => UserRegist
 import it.pagopa.interop.selfcare.userregistry.client.invoker.ApiKeyValue
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
 trait Dependencies {
+
+  implicit val loggerTI: LoggerTakingImplicit[ContextFieldsToLog] =
+    Logger.takingImplicit[ContextFieldsToLog]("OAuth2JWTValidatorAsContexts")
 
   implicit val partyManagementApiKeyValue: PartyManagementApiKeyValue = PartyManagementApiKeyValue()
 
