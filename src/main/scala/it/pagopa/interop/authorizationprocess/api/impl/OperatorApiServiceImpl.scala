@@ -13,7 +13,7 @@ import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, SECURITY_ROLE, authorize}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.TypeConversions.StringOps
 import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _}
-
+import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
 import scala.concurrent.{ExecutionContext, Future}
 
 final case class OperatorApiServiceImpl(
@@ -34,6 +34,8 @@ final case class OperatorApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[ClientKeys] = for {
+      clientUuid    <- clientId.toFutureUUID
+      _             <- assertIsConsumer(clientUuid)(authorizationManagementService)
       operatorUuid  <- operatorId.toFutureUUID
       relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)
       clientUuid    <- clientId.toFutureUUID

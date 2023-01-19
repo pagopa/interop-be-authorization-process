@@ -3,7 +3,7 @@ package it.pagopa.interop.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
-import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
+import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiServiceImpl, OperatorApiServiceImpl}
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.ClientNotFound
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
@@ -16,12 +16,13 @@ import it.pagopa.interop.authorizationprocess.service.impl.{
   PartyManagementServiceImpl
 }
 import it.pagopa.interop.authorizationprocess.service._
-import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
 import it.pagopa.interop.selfcare.partymanagement.client.api.PartyApi
 import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
+import it.pagopa.interop.authorizationmanagement.client.model.KeysResponse
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
+import it.pagopa.interop.authorizationprocess.util._
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,6 +33,9 @@ class OperatorOperationSpec
     with SpecUtilsWithImplicit
     with ScalatestRouteTest {
   import clientApiMarshaller._
+
+  val serviceOperator: OperatorApiServiceImpl =
+    OperatorApiServiceImpl(mockAuthorizationManagementService, mockPartyManagementService)(ExecutionContext.global)
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
     mockAuthorizationManagementService,
@@ -449,6 +453,46 @@ class OperatorOperationSpec
 
       Get() ~> service.getClientOperatorRelationshipById(client.id.toString, relationship.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
+      }
+    }
+  }
+
+  "Operator retrieve keys" should {
+    "succeed" in {
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
+        .once()
+        .returns(Future.successful(client.copy(consumerId = consumerId)))
+
+      (mockPartyManagementService
+        .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(consumerId, Seq.empty, *, *)
+        .once()
+        .returns(Future.successful(relationships.copy(items = Seq.empty)))
+
+      (mockAuthorizationManagementService
+        .getClientKeys(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
+        .once()
+        .returns(Future.successful(KeysResponse(Seq(createdKey))))
+
+      Get() ~> serviceOperator.getClientOperatorKeys(client.id.toString, client.consumerId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+
+    "fail if client consumer is different then the caller" in {
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
+        .once()
+        .returns(Future.successful(client.copy(consumerId = UUID.randomUUID())))
+
+      Get() ~> serviceOperator.getClientOperatorKeys(client.id.toString, UUID.randomUUID().toString) ~> check {
+        status shouldEqual StatusCodes.Forbidden
       }
     }
   }
