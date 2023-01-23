@@ -799,8 +799,10 @@ components:
       properties:
         name:
           type: string
+          maxLength: 60
         description:
           type: string
+          maxLength: 250
       required:
         - name
     Client:
@@ -814,12 +816,14 @@ components:
           $ref: '#/components/schemas/Organization'
         name:
           type: string
+          maxLength: 60
         purposes:
           type: array
           items:
             $ref: '#/components/schemas/Purpose'
         description:
           type: string
+          maxLength: 250
         operators:
           $ref: '#/components/schemas/Operators'
           uniqueItems: true
@@ -1007,6 +1011,7 @@ components:
           $ref: '#/components/schemas/Key'
         name:
           type: string
+          maxLength: 60
         createdAt:
           type: string
           format: date-time
