@@ -9,7 +9,7 @@ import it.pagopa.interop.authorizationprocess.service.AuthorizationManagementSer
 
 object AuthorizationUtils {
 
-  def assertIsConsumer(clientId: UUID)(
+  def assertIsClientConsumer(clientId: UUID)(
     authorizationManagementService: AuthorizationManagementService
   )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Unit] =
     for {
@@ -21,7 +21,7 @@ object AuthorizationUtils {
         )
     } yield ()
 
-  def assertIsConsumerOfRequestedPurpose(purposeId: UUID, consumerId: UUID)(implicit
+  def assertIsPurposeConsumer(purposeId: UUID, consumerId: UUID)(implicit
     contexts: Seq[(String, String)],
     ec: ExecutionContext
   ): Future[Unit] =

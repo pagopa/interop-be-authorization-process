@@ -107,7 +107,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
       }
     }
 
-    "fail if client consumer is different then the caller" in {
+    "fail if the caller is not the client consumer" in {
 
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: Seq[(String, String)]))
@@ -120,7 +120,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
       }
     }
 
-    "fail if purpose consumer is different then the caller" in {
+    "fail if the caller is not the purpose consumer" in {
 
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: Seq[(String, String)]))

@@ -35,7 +35,7 @@ final case class OperatorApiServiceImpl(
 
     val result: Future[ClientKeys] = for {
       clientUuid    <- clientId.toFutureUUID
-      _             <- assertIsConsumer(clientUuid)(authorizationManagementService)
+      _             <- assertIsClientConsumer(clientUuid)(authorizationManagementService)
       operatorUuid  <- operatorId.toFutureUUID
       relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)
       clientUuid    <- clientId.toFutureUUID

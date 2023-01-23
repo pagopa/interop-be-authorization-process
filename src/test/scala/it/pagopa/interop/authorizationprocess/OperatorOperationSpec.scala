@@ -483,7 +483,7 @@ class OperatorOperationSpec
       }
     }
 
-    "fail if client consumer is different then the caller" in {
+    "fail if the caller is not the client consumer" in {
 
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: Seq[(String, String)]))
