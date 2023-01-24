@@ -799,9 +799,11 @@ components:
       properties:
         name:
           type: string
+          minLength: 5
           maxLength: 60
         description:
           type: string
+          minLength: 10
           maxLength: 250
       required:
         - name
@@ -1064,6 +1066,8 @@ components:
         name:
           type: string
           description: 'Name given to the current key.'
+          minLength: 5
+          maxLength: 60
       required:
         - key
         - use
