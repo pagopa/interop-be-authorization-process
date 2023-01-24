@@ -15,6 +15,7 @@ import it.pagopa.interop.commons.utils.TypeConversions.StringOps
 import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _}
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
 import scala.concurrent.{ExecutionContext, Future}
+import it.pagopa.interop.commons.utils.TypeConversions._
 
 final case class OperatorApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
@@ -35,7 +36,8 @@ final case class OperatorApiServiceImpl(
 
     val result: Future[ClientKeys] = for {
       clientUuid    <- clientId.toFutureUUID
-      _             <- assertIsClientConsumer(clientUuid)(authorizationManagementService)
+      client        <- authorizationManagementService.getClient(clientUuid)(contexts)
+      _             <- assertIsClientConsumer(client).toFuture
       operatorUuid  <- operatorId.toFutureUUID
       relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)
       clientUuid    <- clientId.toFutureUUID

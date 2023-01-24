@@ -1,35 +1,33 @@
 package it.pagopa.interop.authorizationprocess.common
 
-import cats.implicits._
-import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdFutureUUID
+import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdUUID
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import java.util.UUID
-import scala.concurrent.{ExecutionContext, Future}
-import it.pagopa.interop.authorizationprocess.service.AuthorizationManagementService
+import it.pagopa.interop.authorizationprocess.service.ManagementClient
 
 object AuthorizationUtils {
 
-  def assertIsClientConsumer(clientId: UUID)(
-    authorizationManagementService: AuthorizationManagementService
-  )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Unit] =
+  def assertIsClientConsumer(
+    client: ManagementClient
+  )(implicit contexts: Seq[(String, String)]): Either[Throwable, Unit] =
     for {
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      _              <- authorizationManagementService
-        .getClient(clientId)(contexts)
-        .ensureOr(client => OrganizationNotAllowedOnClient(clientId.toString, client.consumerId))(
-          _.consumerId == organizationId
-        )
+      organizationId <- getOrganizationIdUUID(contexts)
+      _              <- Either.cond(
+        client.consumerId == organizationId,
+        (),
+        OrganizationNotAllowedOnClient(client.id.toString, client.consumerId)
+      )
     } yield ()
 
   def assertIsPurposeConsumer(purposeId: UUID, consumerId: UUID)(implicit
-    contexts: Seq[(String, String)],
-    ec: ExecutionContext
-  ): Future[Unit] =
+    contexts: Seq[(String, String)]
+  ): Either[Throwable, Unit] =
     for {
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      _              <- Future
-        .failed(OrganizationNotAllowedOnPurpose(purposeId.toString, consumerId.toString))
-        .unlessA(consumerId == organizationId)
-
+      organizationId <- getOrganizationIdUUID(contexts)
+      _              <- Either.cond(
+        consumerId == organizationId,
+        (),
+        OrganizationNotAllowedOnPurpose(purposeId.toString, consumerId.toString)
+      )
     } yield ()
 }
