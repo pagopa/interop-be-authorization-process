@@ -144,12 +144,14 @@ object ClientApiHandlers extends AkkaResponses {
     success: T => Route
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
     result match {
-      case Success(s)                         => success(s)
-      case Failure(ex: AgreementNotFound)     => badRequest(ex, logMessage)
-      case Failure(ex: PurposeNoVersionFound) => badRequest(ex, logMessage)
-      case Failure(ex: PurposeNotFound)       => notFound(ex, logMessage)
-      case Failure(ex: ClientNotFound)        => notFound(ex, logMessage)
-      case Failure(ex)                        => internalServerError(ex, logMessage)
+      case Success(s)                                   => success(s)
+      case Failure(ex: OrganizationNotAllowedOnClient)  => forbidden(ex, logMessage)
+      case Failure(ex: OrganizationNotAllowedOnPurpose) => forbidden(ex, logMessage)
+      case Failure(ex: AgreementNotFound)               => badRequest(ex, logMessage)
+      case Failure(ex: PurposeNoVersionFound)           => badRequest(ex, logMessage)
+      case Failure(ex: PurposeNotFound)                 => notFound(ex, logMessage)
+      case Failure(ex: ClientNotFound)                  => notFound(ex, logMessage)
+      case Failure(ex)                                  => internalServerError(ex, logMessage)
     }
 
   def removeClientPurposeResponse[T](logMessage: String)(
