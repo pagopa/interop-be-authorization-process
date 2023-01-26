@@ -18,3 +18,9 @@ client/project/build.properties
 .bsp
 .DS_Store
 .env
+
+.bloop/
+.metals/
+.vscode/
+project/.bloop/
+project/metals.sbt

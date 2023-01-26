@@ -58,4 +58,6 @@ object AuthorizationProcessErrors {
   final case class PurposeNoVersionFound(purposeId: UUID)
       extends ComponentError("0015", s"No version found in Purpose $purposeId")
 
+  final case class OrganizationNotAllowedOnPurpose(purposeId: String, organizationId: String)
+      extends ComponentError("0016", s"Organization $organizationId is not allowed on purpose $purposeId")
 }

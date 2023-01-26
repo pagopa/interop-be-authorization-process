@@ -8,7 +8,7 @@ import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
-import it.pagopa.interop.purposemanagement
+
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
@@ -16,6 +16,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 
 class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsWithImplicit with ScalatestRouteTest {
 
@@ -33,6 +34,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
   "Purpose add to Client" should {
     "succeed" in {
+
       val purposeSeed = AuthorizationManagementDependency.PurposeSeed(states =
         AuthorizationManagementDependency.ClientStatesChainSeed(
           eservice = AuthorizationManagementDependency.ClientEServiceDetailsSeed(
@@ -56,6 +58,12 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         )
       )
 
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
+        .once()
+        .returns(Future.successful(client.copy(consumerId = consumerId)))
+
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
         .expects(purpose.id, *)
@@ -63,7 +71,10 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         .returns(
           Future.successful(
             purpose
-              .copy(versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ACTIVE)))
+              .copy(
+                consumerId = consumerId,
+                versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ACTIVE))
+              )
           )
         )
 
@@ -96,7 +107,27 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
       }
     }
 
-    "fail if no valid agreement exists" in {
+    "fail if the caller is not the client consumer" in {
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
+        .once()
+        .returns(Future.successful(client.copy(consumerId = UUID.randomUUID())))
+
+      Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+      }
+    }
+
+    "fail if the caller is not the purpose consumer" in {
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
+        .once()
+        .returns(Future.successful(client))
+
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
         .expects(purpose.id, *)
@@ -104,7 +135,37 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         .returns(
           Future.successful(
             purpose
-              .copy(versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ACTIVE)))
+              .copy(
+                consumerId = UUID.randomUUID,
+                versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ACTIVE))
+              )
+          )
+        )
+
+      Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+      }
+    }
+
+    "fail if no valid agreement exists" in {
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
+        .once()
+        .returns(Future.successful(client.copy(consumerId = consumerId)))
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purpose.id, *)
+        .once()
+        .returns(
+          Future.successful(
+            purpose
+              .copy(
+                consumerId = consumerId,
+                versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ACTIVE))
+              )
           )
         )
 
@@ -133,18 +194,31 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
     }
 
     "fail if Purpose does not exist" in {
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
+        .once()
+        .returns(Future.successful(client.copy(consumerId = consumerId)))
+
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
         .expects(purpose.id, *)
         .once()
-        .returns(Future.failed(purposemanagement.client.invoker.ApiError(404, "message", None)))
+        .returns(Future.failed(PurposeNotFound(purpose.id)))
 
       Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
-        status shouldEqual StatusCodes.InternalServerError
+        status shouldEqual StatusCodes.NotFound
       }
     }
 
     "succeed even if Purpose has only draft versions" in {
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
+        .once()
+        .returns(Future.successful(client.copy(consumerId = consumerId)))
+
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
         .expects(purpose.id, *)
@@ -152,7 +226,10 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
         .returns(
           Future.successful(
             purpose
-              .copy(versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.DRAFT)))
+              .copy(
+                consumerId = consumerId,
+                versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.DRAFT))
+              )
           )
         )
 
