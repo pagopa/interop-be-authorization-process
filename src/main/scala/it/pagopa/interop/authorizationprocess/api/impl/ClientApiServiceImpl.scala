@@ -416,6 +416,9 @@ final case class ClientApiServiceImpl(
         AgreementManagementDependency.AgreementState.SUSPENDED
       )
 
+    val invalidPurposeStates: Set[PurposeManagementDependency.PurposeVersionState] =
+      Set(PurposeManagementDependency.PurposeVersionState.ARCHIVED)
+
     def descriptorToComponentState(
       descriptor: CatalogManagementDependency.EServiceDescriptor
     ): AuthorizationManagementDependency.ClientComponentState = descriptor.state match {
@@ -456,6 +459,7 @@ final case class ClientApiServiceImpl(
         .find(_.id == agreement.descriptorId)
         .toFuture(DescriptorNotFound(purpose.eserviceId, agreement.descriptorId))
       version    <- purpose.versions
+        .filterNot(v => invalidPurposeStates(v.state))
         .maxByOption(_.createdAt)
         .toFuture(PurposeNoVersionFound(purpose.id))
       states = AuthorizationManagementDependency.ClientStatesChainSeed(

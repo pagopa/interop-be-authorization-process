@@ -168,7 +168,11 @@ final case class AuthorizationManagementServiceImpl(
       keyApi.createKeys(xCorrelationId = correlationId, clientId, keysSeeds, xForwardedFor = ip)(
         BearerToken(bearerToken)
       )
-    invoker.invoke(request, "Key creation")
+    invoker
+      .invoke(request, "Key creation")
+      .recoverWith {
+        case err: ApiError[_] if err.code == 404 => Future.failed(ClientNotFound(clientId))
+      }
   }
 
   override def addClientPurpose(clientId: UUID, purposeSeed: PurposeSeed)(implicit
