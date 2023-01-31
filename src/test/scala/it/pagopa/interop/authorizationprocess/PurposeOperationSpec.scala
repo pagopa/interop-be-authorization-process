@@ -262,6 +262,51 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
       }
     }
 
+    "fail if Purpose has only archived versions" in {
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(client.id, *)
+        .once()
+        .returns(Future.successful(client.copy(consumerId = consumerId)))
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purpose.id, *)
+        .once()
+        .returns(
+          Future.successful(
+            purpose
+              .copy(
+                consumerId = consumerId,
+                versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ARCHIVED))
+              )
+          )
+        )
+
+      (mockCatalogManagementService
+        .getEService(_: UUID)(_: Seq[(String, String)]))
+        .expects(eService.id, *)
+        .once()
+        .returns(
+          Future.successful(
+            eService.copy(descriptors =
+              Seq(activeDescriptor.copy(state = CatalogManagementDependency.EServiceDescriptorState.PUBLISHED))
+            )
+          )
+        )
+
+      (mockAgreementManagementService
+        .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
+        .expects(eService.id, consumer.id, *)
+        .once()
+        .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.ACTIVE))))
+
+      Post() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+      }
+    }
+
   }
 
 }
