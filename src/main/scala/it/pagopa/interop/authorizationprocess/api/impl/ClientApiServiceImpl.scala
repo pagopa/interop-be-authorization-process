@@ -422,7 +422,8 @@ final case class ClientApiServiceImpl(
     def descriptorToComponentState(
       descriptor: CatalogManagementDependency.EServiceDescriptor
     ): AuthorizationManagementDependency.ClientComponentState = descriptor.state match {
-      case CatalogManagementDependency.EServiceDescriptorState.PUBLISHED =>
+      case CatalogManagementDependency.EServiceDescriptorState.PUBLISHED |
+          CatalogManagementDependency.EServiceDescriptorState.DEPRECATED =>
         AuthorizationManagementDependency.ClientComponentState.ACTIVE
       case _ => AuthorizationManagementDependency.ClientComponentState.INACTIVE
     }
