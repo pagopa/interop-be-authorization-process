@@ -9,7 +9,9 @@ import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{
   ClientKeyNotFound,
   ClientNotFound,
-  ClientRelationshipNotFound
+  ClientRelationshipNotFound,
+  CreateKeysBadRequest,
+  KeysAlreadyExist
 }
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
@@ -168,7 +170,12 @@ final case class AuthorizationManagementServiceImpl(
       keyApi.createKeys(xCorrelationId = correlationId, clientId, keysSeeds, xForwardedFor = ip)(
         BearerToken(bearerToken)
       )
-    invoker.invoke(request, "Key creation")
+    invoker
+      .invoke(request, "Key creation")
+      .recoverWith {
+        case err: ApiError[_] if err.code == 400 => Future.failed(CreateKeysBadRequest(err.message))
+        case err: ApiError[_] if err.code == 409 => Future.failed(KeysAlreadyExist(err.message))
+      }
   }
 
   override def addClientPurpose(clientId: UUID, purposeSeed: PurposeSeed)(implicit

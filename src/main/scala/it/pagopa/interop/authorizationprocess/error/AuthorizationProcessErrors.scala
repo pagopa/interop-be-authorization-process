@@ -60,4 +60,11 @@ object AuthorizationProcessErrors {
 
   final case class OrganizationNotAllowedOnPurpose(purposeId: String, organizationId: String)
       extends ComponentError("0016", s"Organization $organizationId is not allowed on purpose $purposeId")
+
+  final case class CreateKeysBadRequest(message: String)
+      extends ComponentError("0017", s"Unable to create keys: $message")
+
+  final case class KeysAlreadyExist(message: String)
+      extends ComponentError("0018", s"One or more keys already exist: $message")
+
 }
