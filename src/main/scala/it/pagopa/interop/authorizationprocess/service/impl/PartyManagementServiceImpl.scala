@@ -1,13 +1,13 @@
 package it.pagopa.interop.authorizationprocess.service.impl
 
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
+import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
 import it.pagopa.interop.authorizationprocess.service.{
   PartyManagementApiKeyValue,
   PartyManagementInvoker,
   PartyManagementService
 }
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.INTEROP_PRODUCT_NAME
 import it.pagopa.interop.selfcare.partymanagement.client.api.PartyApi
 import it.pagopa.interop.selfcare.partymanagement.client.model._
 import it.pagopa.interop.commons.utils.withUid
@@ -33,7 +33,7 @@ final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api
         to = Some(selfcareUUID),
         roles = Seq.empty,
         states = Seq.empty,
-        products = Seq(INTEROP_PRODUCT_NAME),
+        products = Seq(ApplicationConfiguration.selfcareProductId),
         productRoles = productRoles
       )(uid)
       invoker.invoke(request, "Retrieve Relationships")
@@ -49,7 +49,7 @@ final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api
       to = None,
       roles = Seq.empty,
       states = Seq.empty,
-      products = Seq(INTEROP_PRODUCT_NAME),
+      products = Seq(ApplicationConfiguration.selfcareProductId),
       productRoles = productRoles
     )(uid)
     invoker.invoke(request, "Retrieve Relationships By Person Id")
