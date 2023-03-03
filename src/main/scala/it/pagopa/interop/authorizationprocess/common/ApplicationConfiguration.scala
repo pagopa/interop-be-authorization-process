@@ -27,4 +27,6 @@ object ApplicationConfiguration {
 
   require(jwtAudience.nonEmpty, "Audience cannot be empty")
 
+  val selfcareProductId: String = config.getString("authorization-process.selfcare-product-id")
+
 }
