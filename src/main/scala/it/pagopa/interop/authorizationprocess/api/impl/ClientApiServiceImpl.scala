@@ -568,15 +568,9 @@ final case class ClientApiServiceImpl(
         Set(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
           .contains(relationship.product.role)
 
-      val isValidPartyRole: Boolean = Set[PartyRole](
-        PartyManagementDependency.PartyRole.MANAGER,
-        PartyManagementDependency.PartyRole.DELEGATE,
-        PartyManagementDependency.PartyRole.OPERATOR
-      ).contains(relationship.role)
-
       val isActive: Boolean = relationship.state == PartyManagementDependency.RelationshipState.ACTIVE
 
-      val condition: Boolean = isValidProductRole && isValidPartyRole && isActive
+      val condition: Boolean = isValidProductRole && isActive
 
       if (condition) Future.successful(true)
       else Future.failed(SecurityOperatorRelationshipNotActive(relationshipId))
