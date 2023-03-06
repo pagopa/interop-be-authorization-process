@@ -18,6 +18,7 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipStateToApi
 }
 import it.pagopa.interop.authorizationprocess.service._
+import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, SECURITY_ROLE, authorize}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
@@ -30,6 +31,9 @@ import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManageme
 import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
 import it.pagopa.interop.tenantmanagement.client.{model => TenantManagementDependency}
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.authorizationprocess.common.readmodel.ReadModelQueries
+import it.pagopa.interop.authorizationprocess.common.Adapters._
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,7 +45,8 @@ final case class ClientApiServiceImpl(
   partyManagementService: PartyManagementService,
   purposeManagementService: PurposeManagementService,
   userRegistryManagementService: UserRegistryManagementService,
-  tenantManagementService: TenantManagementService
+  tenantManagementService: TenantManagementService,
+  readModel: ReadModelService
 )(implicit ec: ExecutionContext)
     extends ClientApiService {
 
@@ -568,15 +573,9 @@ final case class ClientApiServiceImpl(
         Set(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
           .contains(relationship.product.role)
 
-      val isValidPartyRole: Boolean = Set[PartyRole](
-        PartyManagementDependency.PartyRole.MANAGER,
-        PartyManagementDependency.PartyRole.DELEGATE,
-        PartyManagementDependency.PartyRole.OPERATOR
-      ).contains(relationship.role)
-
       val isActive: Boolean = relationship.state == PartyManagementDependency.RelationshipState.ACTIVE
 
-      val condition: Boolean = isValidProductRole && isValidPartyRole && isActive
+      val condition: Boolean = isValidProductRole && isActive
 
       if (condition) Future.successful(true)
       else Future.failed(SecurityOperatorRelationshipNotActive(relationshipId))
@@ -712,6 +711,23 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       getEncodedClientKeyByIdResponse[EncodedClientKey](operationLabel)(getEncodedClientKeyById200)
     }
+  }
+
+  override def getClients(name: Option[String], relationshipIds: String, offset: Int, limit: Int)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerClients: ToEntityMarshaller[ClientList],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
+    val operationLabel =
+      s"Retrieving clients by name $name , relationship $relationshipIds"
+    logger.info(operationLabel)
+
+    val result: Future[ClientList] = for {
+      clients <- ReadModelQueries.listClients(name, parseArrayParameters(relationshipIds), offset, limit)(readModel)
+    } yield ClientList(results = clients.results.map(_.toApi), totalCount = clients.totalCount)
+
+    onComplete(result) { getClientsResponse[ClientList](operationLabel)(getClients200) }
+
   }
 
 }

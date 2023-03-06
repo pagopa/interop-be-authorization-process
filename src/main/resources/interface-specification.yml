@@ -157,6 +157,66 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /clientsByQuery:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    get:
+      tags:
+        - client
+      summary: List clients
+      description: List clients
+      operationId: getClients
+      parameters:
+        - in: query
+          name: name
+          description: Filter for the client name
+          schema:
+            type: string
+        - in: query
+          name: relationshipIds
+          description: comma separated sequence of relationship IDs
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+            default: []
+          explode: false
+        - in: query
+          name: offset
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 50 
+      responses:
+        '200':
+          description: Clients found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientList'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /clients/{clientId}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -842,6 +902,19 @@ components:
       enum:
         - CONSUMER
         - API
+    ClientList:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Client'
+        totalCount:
+          type: integer
+          format: int32
+      required:
+        - results
+        - totalCount    
     Clients:
       description: Models a group of Clients
       type: object
