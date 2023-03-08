@@ -34,7 +34,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     mockPartyManagementService,
     mockPurposeManagementService,
     mockUserRegistryManagementService,
-    mockTenantManagementService
+    mockTenantManagementService,
+    mockReadModel
   )(ExecutionContext.global)
 
   "Client creation" should {
@@ -92,7 +93,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         mockPartyManagementService,
         mockPurposeManagementService,
         mockUserRegistryManagementService,
-        mockTenantManagementService
+        mockTenantManagementService,
+        mockReadModel
       )(ExecutionContext.global)
       Get() ~> service.createConsumerClient(clientSeed) ~> check {
         status shouldEqual StatusCodes.Forbidden

@@ -20,6 +20,8 @@ import it.pagopa.interop.selfcare.userregistry.client.model.{
   CertifiableFieldResourceOfstringEnums,
   UserResource
 }
+import it.pagopa.interop.commons.cqrs.service.{MongoDbReadModelService, ReadModelService}
+import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
 import org.scalamock.scalatest.MockFactory
 
 import java.time.OffsetDateTime
@@ -51,6 +53,13 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockPurposeManagementService: PurposeManagementService             = mock[PurposeManagementService]
   val mockUserRegistryManagementService: UserRegistryManagementService   = mock[UserRegistryManagementService]
   val mockTenantManagementService: TenantManagementService               = mock[TenantManagementService]
+
+  val mockReadModel: ReadModelService = new MongoDbReadModelService(
+    ReadModelConfig(
+      "mongodb://localhost/?socketTimeoutMS=1&serverSelectionTimeoutMS=1&connectTimeoutMS=1&&autoReconnect=false&keepAlive=false",
+      "db"
+    )
+  )
 
   val timestamp: OffsetDateTime = OffsetDateTime.now()
 

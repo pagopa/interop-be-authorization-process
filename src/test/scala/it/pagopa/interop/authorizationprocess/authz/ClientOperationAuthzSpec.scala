@@ -6,6 +6,8 @@ import it.pagopa.interop.authorizationprocess.model.{ClientSeed, PurposeAddition
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.util.FakeDependencies._
 import it.pagopa.interop.authorizationprocess.util.{AuthorizedRoutes, AuthzScalatestRouteTest}
+import it.pagopa.interop.commons.cqrs.service.{MongoDbReadModelService, ReadModelService}
+import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -22,6 +24,13 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
   val fakeUserRegistryManagementService: UserRegistryManagementService   = new FakeUserRegistryManagementService()
   val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
 
+  val fakeReadModel: ReadModelService = new MongoDbReadModelService(
+    ReadModelConfig(
+      "mongodb://localhost/?socketTimeoutMS=1&serverSelectionTimeoutMS=1&connectTimeoutMS=1&&autoReconnect=false&keepAlive=false",
+      "db"
+    )
+  )
+
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
     fakeAuthorizationManagementService,
     fakeAgreementManagementService,
@@ -29,7 +38,8 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
     fakePartyManagementService,
     fakePurposeManagementService,
     fakeUserRegistryManagementService,
-    fakeTenantManagementService
+    fakeTenantManagementService,
+    readModel = fakeReadModel
   )(ExecutionContext.global)
 
   "Client operation authorization spec" should {
@@ -58,6 +68,15 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
       validateAuthorization(
         endpoint,
         { implicit c: Seq[(String, String)] => service.listClients(None, None, "test", None, None) }
+      )
+    }
+    "accept authorized roles for getClients" in {
+      val endpoint = AuthorizedRoutes.endpoints("getClients")
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] =>
+          service.getClients(Some("name"), "relationshipIds", 0, 0)
+        }
       )
     }
     "accept authorized roles for clientOperatorRelationshipBinding" in {

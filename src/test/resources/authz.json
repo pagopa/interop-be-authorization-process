@@ -41,6 +41,11 @@
       "roles": ["admin", "security", "m2m"]
     },
     {
+      "route": "getClients",
+      "verb": "GET",
+      "roles": ["admin", "security", "m2m"]
+    },
+    {
       "route": "deleteClientKeyById",
       "verb": "DELETE",
       "roles": ["admin", "security"]
