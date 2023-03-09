@@ -5,7 +5,7 @@ import com.nimbusds.jose.jwk.gen.{ECKeyGenerator, RSAKeyGenerator}
 import com.nimbusds.jose.jwk.{Curve, ECKey, JWK, RSAKey}
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
-import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
+import it.pagopa.interop.authorizationprocess.common.system.ApplicationConfiguration
 import org.bouncycastle.util.io.pem.{PemObject, PemWriter}
 
 import java.io.StringWriter

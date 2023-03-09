@@ -1,4 +1,4 @@
-package it.pagopa.interop.authorizationprocess.common
+package it.pagopa.interop.authorizationprocess.common.system
 
 import com.typesafe.config.{Config, ConfigFactory}
 import it.pagopa.interop.commons.cqrs.model.ReadModelConfig

@@ -39,7 +39,7 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
     fakePurposeManagementService,
     fakeUserRegistryManagementService,
     fakeTenantManagementService,
-    readModel = fakeReadModel
+    fakeReadModel
   )(ExecutionContext.global)
 
   "Client operation authorization spec" should {
@@ -62,13 +62,6 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
     "accept authorized roles for getClient" in {
       val endpoint = AuthorizedRoutes.endpoints("getClient")
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClient("fake") })
-    }
-    "accept authorized roles for listClients" in {
-      val endpoint = AuthorizedRoutes.endpoints("listClients")
-      validateAuthorization(
-        endpoint,
-        { implicit c: Seq[(String, String)] => service.listClients(None, None, "test", None, None) }
-      )
     }
     "accept authorized roles for getClients" in {
       val endpoint = AuthorizedRoutes.endpoints("getClients")

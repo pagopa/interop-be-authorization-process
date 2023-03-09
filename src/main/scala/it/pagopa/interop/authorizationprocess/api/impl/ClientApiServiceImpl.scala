@@ -130,68 +130,6 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  override def listClients(
-    offset: Option[Int],
-    limit: Option[Int],
-    consumerId: String,
-    purposeId: Option[String],
-    kind: Option[String]
-  )(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerClients: ToEntityMarshaller[Clients],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
-    val operationLabel: String =
-      s"Listing clients (offset: $offset and limit: $limit) for purposeId $purposeId and consumer $consumerId of kind $kind"
-    logger.info(operationLabel)
-
-    // TODO Improve multiple requests
-    val result: Future[Clients] = for {
-      personId      <- getUidFutureUUID(contexts)
-      consumerUuid  <- consumerId.toFutureUUID
-      clientKind    <- kind.traverse(AuthorizationManagementDependency.ClientKind.fromValue).toFuture
-      selfcareId    <- tenantManagementService.getTenant(consumerUuid).flatMap(_.selfcareId.toFuture(MissingSelfcareId))
-      relationships <-
-        partyManagementService
-          .getRelationships(
-            selfcareId,
-            personId,
-            Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
-          )
-          .map(_.items.filter(_.state == RelationshipState.ACTIVE))
-      purposeUuid   <- purposeId.traverse(_.toFutureUUID)
-      managementClients <-
-        if (relationships.exists(_.product.role == PartyManagementService.PRODUCT_ROLE_ADMIN))
-          authorizationManagementService.listClients(
-            offset = offset,
-            limit = limit,
-            relationshipId = None,
-            consumerId = consumerUuid.some,
-            purposeId = purposeUuid,
-            kind = clientKind
-          )(contexts)
-        else
-          Future
-            .traverse(relationships.map(_.id.some))(relationshipId =>
-              authorizationManagementService.listClients(
-                offset = offset,
-                limit = limit,
-                relationshipId = relationshipId,
-                consumerId = consumerUuid.some,
-                purposeId = purposeUuid,
-                kind = clientKind
-              )(contexts)
-            )
-            .map(_.flatten)
-
-      clients <- Future.traverse(managementClients)(getClient)
-    } yield Clients(clients)
-
-    onComplete(result) {
-      listClientsResponse[Clients](operationLabel)(listClients200)
-    }
-  }
-
   override def deleteClient(
     clientId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
@@ -715,18 +653,19 @@ final case class ClientApiServiceImpl(
 
   override def getClients(name: Option[String], relationshipIds: String, offset: Int, limit: Int)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerClients: ToEntityMarshaller[ClientList],
+    toEntityMarshallerClients: ToEntityMarshaller[Clients],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
     val operationLabel =
       s"Retrieving clients by name $name , relationship $relationshipIds"
     logger.info(operationLabel)
 
-    val result: Future[ClientList] = for {
+    val result: Future[Clients] = for {
       clients <- ReadModelQueries.listClients(name, parseArrayParameters(relationshipIds), offset, limit)(readModel)
-    } yield ClientList(results = clients.results.map(_.toApi), totalCount = clients.totalCount)
+      apiClients = clients.results.map(_.toApi)
+    } yield Clients(results = apiClients, totalCount = clients.totalCount)
 
-    onComplete(result) { getClientsResponse[ClientList](operationLabel)(getClients200) }
+    onComplete(result) { getClientsResponse[Clients](operationLabel)(getClients200) }
 
   }
 

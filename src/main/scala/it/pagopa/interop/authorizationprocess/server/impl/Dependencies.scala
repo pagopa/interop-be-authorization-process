@@ -23,7 +23,7 @@ import it.pagopa.interop.authorizationprocess.api.impl.{
   OperatorApiServiceImpl
 }
 import it.pagopa.interop.authorizationprocess.api.{ClientApi, HealthApi, OperatorApi}
-import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
+import it.pagopa.interop.authorizationprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.authorizationprocess.api.impl.serviceCode
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.service.impl._

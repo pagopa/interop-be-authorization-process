@@ -100,72 +100,6 @@ paths:
         - client
       summary: List clients
       description: List clients
-      operationId: listClients
-      parameters:
-        - name: offset
-          in: query
-          description: Pagination offset
-          schema:
-            type: integer
-            format: int32
-        - name: limit
-          in: query
-          description: Pagination limit
-          schema:
-            type: integer
-            format: int32
-        - name: consumerId
-          in: query
-          description: ID of Consumer that MUST be related to the Client
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: purposeId
-          in: query
-          description: ID of Purpose that MUST be related to the Client
-          schema:
-            type: string
-            format: uuid
-        - name: kind
-          in: query
-          description: type of Client to be retrieved
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Request succeed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Clients'
-        '400':
-          description: Bad Request
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '401':
-          description: Unauthorized
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-  /clientsByQuery:
-    parameters:
-      - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
-    get:
-      tags:
-        - client
-      summary: List clients
-      description: List clients
       operationId: getClients
       parameters:
         - in: query
@@ -204,7 +138,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClientList'
+                $ref: '#/components/schemas/Clients'
         '400':
           description: Bad Request
           content:
@@ -896,35 +830,58 @@ components:
         - name
         - purposes
         - kind
+    ClientEntry:
+      description: Models Client details
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        consumer:
+          type: string
+          format: uuid
+        purposes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientStatesChain'
+        relationships:
+          type: array
+          items:
+            type: string
+            format: uuid
+          uniqueItems: true    
+        kind:
+          $ref: '#/components/schemas/ClientKind'
+      required:
+        - id
+        - consumer
+        - name
+        - purposes
+        - relationships
+        - kind
     ClientKind:
       type: string
       description: kind of client
       enum:
         - CONSUMER
         - API
-    ClientList:
+    Clients:
       type: object
       properties:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/Client'
+            $ref: '#/components/schemas/ClientEntry'
         totalCount:
           type: integer
           format: int32
       required:
         - results
         - totalCount    
-    Clients:
-      description: Models a group of Clients
-      type: object
-      properties:
-        clients:
-          type: array
-          items:
-            $ref: '#/components/schemas/Client'
-      required:
-        - clients
     OperatorDetails:
       description: Contains some details about operator
       type: object

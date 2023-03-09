@@ -3,7 +3,11 @@ package it.pagopa.interop.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
+import it.pagopa.interop.authorizationprocess.common.readmodel.TotalCountResult
+import org.mongodb.scala.bson.conversions.Bson
+import spray.json.JsonReader
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
+import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, Api}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.ClientNotFound
 import it.pagopa.interop.authorizationprocess.model._
@@ -11,11 +15,9 @@ import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManageme
 import it.pagopa.interop.authorizationprocess.service.{
   AuthorizationManagementInvoker,
   AuthorizationManagementService,
-  CatalogManagementService,
-  PartyManagementService
+  CatalogManagementService
 }
 import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
-import it.pagopa.interop.selfcare.partymanagement.client.model.Relationships
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -173,97 +175,35 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
   "Client list" should {
     "succeed" in {
-      val offset: Option[Int]            = Some(0)
-      val limit: Option[Int]             = Some(10)
-      val relationshipUuid: Option[UUID] = Some(relationship.id)
-      val consumerUuid: Option[UUID]     = Some(client.consumerId)
-      val purposeUuid: Option[UUID]      = Some(clientPurpose.states.purpose.purposeId)
-
-      mockGetTenant()
-
-      (mockPartyManagementService
-        .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
-        .expects(
-          consumer.selfcareId.get,
-          personId,
-          Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
-          *,
-          *
-        )
-        .once()
-        .returns(Future.successful(Relationships(Seq(relationship))))
-
-      (mockAuthorizationManagementService
-        .listClients(
-          _: Option[Int],
-          _: Option[Int],
-          _: Option[UUID],
-          _: Option[UUID],
-          _: Option[UUID],
-          _: Option[authorizationmanagement.client.model.ClientKind]
-        )(_: Seq[(String, String)]))
-        .expects(
-          offset,
-          limit,
-          relationshipUuid,
-          consumerUuid,
-          purposeUuid,
-          Some(authorizationmanagement.client.model.ClientKind.CONSUMER),
-          *
-        )
-        .once()
-        .returns(Future.successful(Seq(client)))
-
-      mockGetTenant()
-
-      (mockAgreementManagementService
-        .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
-        .expects(client.purposes.head.states.eservice.eserviceId, client.consumerId, *)
-        .once()
-        .returns(Future.successful(Seq(agreement)))
-
-      (mockPurposeManagementService
-        .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(clientPurpose.states.purpose.purposeId, *)
-        .once()
-        .returns(Future.successful(purpose.copy(eserviceId = eService.id, consumerId = consumer.id)))
-
-      (mockCatalogManagementService
-        .getEService(_: UUID)(_: Seq[(String, String)]))
-        .expects(agreement.eserviceId, *)
-        .once()
-        .returns(
-          Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(id = agreement.descriptorId))))
-        )
-
-      val expectedAgreement: Agreement = Agreement(
-        id = agreement.id,
-        eservice = CatalogManagementService.eServiceToApi(eService),
-        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId))
+      val client = PersistentClient(
+        id = UUID.randomUUID(),
+        consumerId = UUID.randomUUID(),
+        name = "name",
+        purposes = Seq.empty,
+        description = None,
+        relationships = Set.empty,
+        kind = Api
       )
 
-      val expected = Clients(
-        Client(
-          id = client.id,
-          consumer = Organization(consumer.externalId.value, consumer.name),
-          name = client.name,
-          purposes =
-            client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
-          description = client.description,
-          operators = Some(Seq.empty),
-          kind = ClientKind.CONSUMER
-        ) :: Nil
-      )
+      val clients: Seq[PersistentClient] = Seq(client)
 
-      Get() ~> service.listClients(
-        offset,
-        limit,
-        client.consumerId.toString,
-        Some(clientPurpose.states.purpose.purposeId.toString),
-        Some("CONSUMER")
-      ) ~> check {
+      val offset: Int = 0
+      val limit: Int  = 50
+
+      (mockReadModel
+        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
+        .expects("clients", *, offset, limit, *, *)
+        .once()
+        .returns(Future.successful(clients))
+
+      (mockReadModel
+        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
+        .expects("clients", *, offset, Int.MaxValue, *, *)
+        .once()
+        .returns(Future.successful(Seq(TotalCountResult(1))))
+
+      Get() ~> service.getClients(Option("name"), "relationshipIds", offset, limit) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[Clients] shouldEqual expected
       }
     }
   }
