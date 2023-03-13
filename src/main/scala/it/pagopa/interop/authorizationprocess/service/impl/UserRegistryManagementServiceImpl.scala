@@ -19,7 +19,7 @@ final case class UserRegistryManagementServiceImpl(invoker: UserRegistryManageme
 
   override def getUserById(id: UUID)(implicit contexts: Seq[(String, String)]): Future[UserResource] = {
     val request: ApiRequest[UserResource] =
-      api.findByIdUsingGET(id, Seq(Field.name, Field.familyName, Field.fiscalCode))(apiKeyValue)
+      api.findByIdUsingGET(id, Seq(Field.name, Field.familyName, Field.fiscalCode))
     invoker.invoke(request, "Retrieve User by ID")
   }
 }
