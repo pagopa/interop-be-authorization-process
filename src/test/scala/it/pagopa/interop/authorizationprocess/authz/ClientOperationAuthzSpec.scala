@@ -68,7 +68,7 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
       validateAuthorization(
         endpoint,
         { implicit c: Seq[(String, String)] =>
-          service.getClients(Some("name"), "relationshipIds", 0, 0)
+          service.getClients(Some("name"), "relationshipIds", "consumerId", Some("purposeId"), None, 0, 0)
         }
       )
     }

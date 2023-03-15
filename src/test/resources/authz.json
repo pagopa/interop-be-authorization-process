@@ -16,11 +16,6 @@
       "roles": ["admin", "security", "m2m"]
     },
     {
-      "route": "listClients",
-      "verb": "GET",
-      "roles": ["admin", "security", "m2m"]
-    },
-    {
       "route": "deleteClient",
       "verb": "DELETE",
       "roles": ["admin"]

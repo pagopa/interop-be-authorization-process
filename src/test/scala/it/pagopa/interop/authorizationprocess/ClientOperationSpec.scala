@@ -21,6 +21,7 @@ import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
+import it.pagopa.interop.commons.utils.USER_ROLES
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -174,10 +175,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
   }
 
   "Client list" should {
-    "succeed" in {
-      val client = PersistentClient(
+    "succeed with ADMIN role" in {
+      val consumerId = UUID.randomUUID()
+      val client     = PersistentClient(
         id = UUID.randomUUID(),
-        consumerId = UUID.randomUUID(),
+        consumerId = consumerId,
         name = "name",
         purposes = Seq.empty,
         description = None,
@@ -202,7 +204,78 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(Seq(TotalCountResult(1))))
 
-      Get() ~> service.getClients(Option("name"), "relationshipIds", offset, limit) ~> check {
+      Get() ~> service.getClients(
+        Option("name"),
+        "relationshipIds",
+        consumerId.toString,
+        Some("purposeId"),
+        None,
+        offset,
+        limit
+      ) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+    "succeed with SECURITY role" in {
+
+      val consumerId = UUID.randomUUID()
+
+      implicit val contexts: Seq[(String, String)] =
+        Seq(
+          "bearer"         -> bearerToken,
+          "uid"            -> personId.toString,
+          USER_ROLES       -> "security",
+          "organizationId" -> consumerId.toString
+        )
+
+      val client = PersistentClient(
+        id = UUID.randomUUID(),
+        consumerId = consumerId,
+        name = "name",
+        purposes = Seq.empty,
+        description = None,
+        relationships = Set.empty,
+        kind = Api
+      )
+
+      val clients: Seq[PersistentClient] = Seq(client)
+
+      val offset: Int = 0
+      val limit: Int  = 50
+
+      (mockTenantManagementService
+        .getTenant(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(consumer))
+
+      (mockPartyManagementService
+        .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(consumer.selfcareId.get, *, *, *, *)
+        .once()
+        .returns(Future.successful(relationships))
+
+      (mockReadModel
+        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
+        .expects("clients", *, offset, limit, *, *)
+        .once()
+        .returns(Future.successful(clients))
+
+      (mockReadModel
+        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
+        .expects("clients", *, offset, Int.MaxValue, *, *)
+        .once()
+        .returns(Future.successful(Seq(TotalCountResult(1))))
+
+      Get() ~> service.getClients(
+        Option("name"),
+        "relationshipIds",
+        consumerId.toString,
+        Some("purposeId"),
+        None,
+        offset,
+        limit
+      )(contexts, toEntityMarshallerClients, toEntityMarshallerProblem) ~> check {
         status shouldEqual StatusCodes.OK
       }
     }

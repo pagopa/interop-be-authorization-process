@@ -8,13 +8,13 @@ import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientCo
 object Adapters {
 
   implicit class PersistentClientWrapper(private val p: PersistentClient) extends AnyVal {
-    def toApi: ClientEntry = ClientEntry(
+    def toApi(showRelationShips: Boolean): ClientEntry = ClientEntry(
       id = p.id,
       name = p.name,
       description = p.description,
-      consumer = p.consumerId,
+      consumerId = p.consumerId,
       purposes = p.purposes.map(_.toApi),
-      relationships = p.relationships,
+      relationshipsIds = if (showRelationShips) p.relationships else Set.empty,
       kind = p.kind.toApi
     )
   }

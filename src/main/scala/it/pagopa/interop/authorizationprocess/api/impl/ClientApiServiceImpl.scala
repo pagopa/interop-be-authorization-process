@@ -22,7 +22,7 @@ import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, SECURITY_ROLE, authorize}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.AkkaUtils.{getOrganizationIdFutureUUID, getUidFutureUUID}
+import it.pagopa.interop.commons.utils.AkkaUtils._
 import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.selfcare._
@@ -525,16 +525,15 @@ final case class ClientApiServiceImpl(
     } yield relationship
   }
 
-  private[this] def securityOperatorRelationship(consumerId: UUID, userId: UUID)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[PartyManagementDependency.Relationship] = for {
+  private[this] def securityOperatorRelationship(
+    consumerId: UUID,
+    userId: UUID,
+    roles: Seq[String] =
+      Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
+  )(implicit contexts: Seq[(String, String)]): Future[PartyManagementDependency.Relationship] = for {
     selfcareId    <- tenantManagementService.getTenant(consumerId).flatMap(_.selfcareId.toFuture(MissingSelfcareId))
     relationships <- partyManagementService
-      .getRelationships(
-        selfcareId,
-        userId,
-        Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
-      )
+      .getRelationships(selfcareId, userId, roles)
     activeRelationShips = relationships.items.toList.filter(
       _.state == PartyManagementDependency.RelationshipState.ACTIVE
     )
@@ -651,7 +650,15 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  override def getClients(name: Option[String], relationshipIds: String, offset: Int, limit: Int)(implicit
+  override def getClients(
+    name: Option[String],
+    relationshipIds: String,
+    consumerId: String,
+    purposeId: Option[String],
+    kind: Option[String],
+    offset: Int,
+    limit: Int
+  )(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerClients: ToEntityMarshaller[Clients],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -660,9 +667,25 @@ final case class ClientApiServiceImpl(
       s"Retrieving clients by name $name , relationship $relationshipIds"
     logger.info(operationLabel)
 
+    def getRelationships(userId: UUID, consumerId: UUID): Future[List[String]] = for {
+      relationshipId <- securityOperatorRelationship(consumerId, userId, Seq(SECURITY_ROLE))
+        .map(_.id)
+        .map(_.toString)
+    } yield List(relationshipId)
+
     val result: Future[Clients] = for {
-      clients <- ReadModelQueries.listClients(name, parseArrayParameters(relationshipIds), offset, limit)(readModel)
-      apiClients = clients.results.map(_.toApi)
+      requesterUuid <- getOrganizationIdFutureUUID(contexts)
+      userUuid      <- getUidFutureUUID(contexts)
+      consumerUuid  <- consumerId.toFutureUUID
+      roles         <- getUserRolesFuture(contexts)
+      relationships <-
+        if (roles.contains(SECURITY_ROLE))
+          getRelationships(requesterUuid, userUuid)
+        else Future.successful(parseArrayParameters(relationshipIds))
+      clients       <- ReadModelQueries.listClients(name, relationships, consumerId, purposeId, kind, offset, limit)(
+        readModel
+      )
+      apiClients = clients.results.map(_.toApi(requesterUuid == consumerUuid))
     } yield Clients(results = apiClients, totalCount = clients.totalCount)
 
     onComplete(result) { getClientsResponse[Clients](operationLabel)(getClients200) }

@@ -117,6 +117,24 @@ paths:
               format: uuid
             default: []
           explode: false
+        - name: consumerId
+          in: query
+          description: ID of Consumer that MUST be related to the Client
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: purposeId
+          in: query
+          description: ID of Purpose that MUST be related to the Client
+          schema:
+            type: string
+            format: uuid
+        - name: kind
+          in: query
+          description: type of Client to be retrieved
+          schema:
+            type: string  
         - in: query
           name: offset
           required: true
@@ -151,6 +169,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'        
   /clients/{clientId}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -841,14 +865,14 @@ components:
           type: string
         description:
           type: string
-        consumer:
+        consumerId:
           type: string
           format: uuid
         purposes:
           type: array
           items:
             $ref: '#/components/schemas/ClientStatesChain'
-        relationships:
+        relationshipsIds:
           type: array
           items:
             type: string
@@ -858,10 +882,10 @@ components:
           $ref: '#/components/schemas/ClientKind'
       required:
         - id
-        - consumer
+        - consumerId
         - name
         - purposes
-        - relationships
+        - relationshipsIds
         - kind
     ClientKind:
       type: string

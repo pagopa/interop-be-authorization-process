@@ -14,11 +14,17 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object ReadModelQueries {
 
-  def listClients(name: Option[String], relationshipIds: List[String], offset: Int, limit: Int)(
-    readModel: ReadModelService
-  )(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentClient]] = {
+  def listClients(
+    name: Option[String],
+    relationshipIds: List[String],
+    consumerId: String,
+    purposeId: Option[String],
+    kind: Option[String],
+    offset: Int,
+    limit: Int
+  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentClient]] = {
 
-    val query: Bson = listClientsFilters(name, relationshipIds)
+    val query: Bson = listClientsFilters(name, relationshipIds, consumerId, purposeId, kind)
 
     val filterPipeline: Seq[Bson] = Seq(`match`(query))
 
@@ -42,11 +48,22 @@ object ReadModelQueries {
     } yield PaginatedResult(results = clients, totalCount = count.headOption.map(_.totalCount).getOrElse(0))
   }
 
-  private def listClientsFilters(name: Option[String], relationshipIds: List[String]): Bson = {
+  private def listClientsFilters(
+    name: Option[String],
+    relationshipIds: List[String],
+    consumerId: String,
+    purposeId: Option[String],
+    kind: Option[String]
+  ): Bson = {
     val relationshipIdsFilter = mapToVarArgs(relationshipIds.map(Filters.eq("data.relationships", _)))(Filters.or)
     val nameFilter            = name.map(Filters.regex("data.name", _, "i"))
+    val kindFilter            = kind.map(Filters.regex("data.kind", _, "i"))
+    val consumerFilter        = Filters.eq("data.consumerId", consumerId)
+    val purposeFilter         = purposeId.map(Filters.in("data.purposes", _))
 
-    mapToVarArgs(relationshipIdsFilter.toList ++ nameFilter.toList)(Filters.and).getOrElse(Filters.empty())
+    mapToVarArgs(
+      relationshipIdsFilter.toList ++ nameFilter.toList ++ kindFilter.toList ++ purposeFilter.toList :+ consumerFilter
+    )(Filters.and).getOrElse(Filters.empty())
   }
 
   def mapToVarArgs[A, B](l: Seq[A])(f: Seq[A] => B): Option[B] = Option.when(l.nonEmpty)(f(l))
