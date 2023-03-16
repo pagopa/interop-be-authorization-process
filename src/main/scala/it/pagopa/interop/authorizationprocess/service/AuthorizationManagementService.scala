@@ -31,15 +31,6 @@ trait AuthorizationManagementService {
 
   def getClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[ManagementClient]
 
-  def listClients(
-    offset: Option[Int],
-    limit: Option[Int],
-    relationshipId: Option[UUID],
-    consumerId: Option[UUID],
-    purposeId: Option[UUID],
-    kind: Option[ClientKind]
-  )(implicit contexts: Seq[(String, String)]): Future[Seq[ManagementClient]]
-
   def deleteClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit]
 
   def addRelationship(clientId: UUID, relationshipId: UUID)(implicit
