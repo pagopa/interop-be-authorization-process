@@ -4,6 +4,7 @@ import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationmanagement.model.client._
 import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientComponentState.Active
 import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientComponentState.Inactive
+import it.pagopa.interop.authorizationmanagement.model.client.{Api, Consumer}
 
 object Adapters {
 
@@ -19,10 +20,17 @@ object Adapters {
     )
   }
 
-  implicit class ClientKindWrapper(private val ck: PersistentClientKind) extends AnyVal {
-    def toApi: ClientKind = ck match {
+  implicit class PersistentClientKindWrapper(private val pck: PersistentClientKind) extends AnyVal {
+    def toApi: ClientKind = pck match {
       case Api      => ClientKind.API
       case Consumer => ClientKind.CONSUMER
+    }
+  }
+
+  implicit class ClientKindWrapper(private val ck: ClientKind) extends AnyVal {
+    def toProcess: PersistentClientKind = ck match {
+      case ClientKind.API      => Api
+      case ClientKind.CONSUMER => Consumer
     }
   }
 
@@ -32,7 +40,8 @@ object Adapters {
       case Inactive => ClientComponentState.INACTIVE
     }
   }
-  implicit class ClientStatesChainWrapper(private val csc: PersistentClientStatesChain)      extends AnyVal {
+
+  implicit class ClientStatesChainWrapper(private val csc: PersistentClientStatesChain) extends AnyVal {
     def toApi: ClientStatesChain = ClientStatesChain(
       id = csc.id,
       eservice = csc.eService.toApi,

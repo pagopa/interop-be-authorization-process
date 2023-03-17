@@ -2,7 +2,7 @@ package it.pagopa.interop.authorizationprocess.common.readmodel
 
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.authorizationmanagement.model.persistence.JsonFormats._
-import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
+import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, PersistentClientKind}
 import org.mongodb.scala.Document
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Aggregates.{`match`, count, project, sort}
@@ -11,20 +11,22 @@ import org.mongodb.scala.model.Projections.{computed, fields, include}
 import org.mongodb.scala.model.Sorts.ascending
 
 import scala.concurrent.{ExecutionContext, Future}
+import java.util.UUID
 
 object ReadModelQueries {
 
   def listClients(
     name: Option[String],
-    relationshipIds: List[String],
-    consumerId: String,
-    purposeId: Option[String],
-    kind: Option[String],
+    relationshipIds: List[UUID],
+    consumerId: UUID,
+    purposeId: Option[UUID],
+    kind: Option[PersistentClientKind],
     offset: Int,
     limit: Int
   )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentClient]] = {
 
-    val query: Bson = listClientsFilters(name, relationshipIds, consumerId, purposeId, kind)
+    val query: Bson =
+      listClientsFilters(name, relationshipIds.map(_.toString), consumerId.toString, purposeId.map(_.toString), kind)
 
     val filterPipeline: Seq[Bson] = Seq(`match`(query))
 
@@ -53,13 +55,14 @@ object ReadModelQueries {
     relationshipIds: List[String],
     consumerId: String,
     purposeId: Option[String],
-    kind: Option[String]
+    kind: Option[PersistentClientKind]
   ): Bson = {
     val relationshipIdsFilter = mapToVarArgs(relationshipIds.map(Filters.eq("data.relationships", _)))(Filters.or)
     val nameFilter            = name.map(Filters.regex("data.name", _, "i"))
-    val kindFilter            = kind.map(Filters.regex("data.kind", _, "i"))
-    val consumerFilter        = Filters.eq("data.consumerId", consumerId)
-    val purposeFilter         = purposeId.map(Filters.in("data.purposes", _))
+    val kindFilter            = kind.map(k => Filters.eq("data.kind", k.toString))
+
+    val consumerFilter = Filters.eq("data.consumerId", consumerId)
+    val purposeFilter  = purposeId.map(Filters.eq("data.purposes.purpose.purposeId", _))
 
     mapToVarArgs(
       relationshipIdsFilter.toList ++ nameFilter.toList ++ kindFilter.toList ++ purposeFilter.toList :+ consumerFilter

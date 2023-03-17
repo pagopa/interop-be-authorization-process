@@ -206,9 +206,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       Get() ~> service.getClients(
         Option("name"),
-        "relationshipIds",
+        UUID.randomUUID().toString,
         consumerId.toString,
-        Some("purposeId"),
+        Some(UUID.randomUUID().toString),
         None,
         offset,
         limit
@@ -269,9 +269,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       Get() ~> service.getClients(
         Option("name"),
-        "relationshipIds",
+        UUID.randomUUID().toString,
         consumerId.toString,
-        Some("purposeId"),
+        Some(UUID.randomUUID().toString),
         None,
         offset,
         limit

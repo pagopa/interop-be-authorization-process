@@ -667,24 +667,28 @@ final case class ClientApiServiceImpl(
       s"Retrieving clients by name $name , relationship $relationshipIds"
     logger.info(operationLabel)
 
-    def getRelationships(userId: UUID, consumerId: UUID): Future[List[String]] = for {
-      relationshipId <- securityOperatorRelationship(consumerId, userId, Seq(SECURITY_ROLE))
-        .map(_.id)
-        .map(_.toString)
-    } yield List(relationshipId)
+    def getRelationship(userId: UUID, consumerId: UUID): Future[UUID] =
+      securityOperatorRelationship(consumerId, userId, Seq(SECURITY_ROLE)).map(_.id)
 
     val result: Future[Clients] = for {
       requesterUuid <- getOrganizationIdFutureUUID(contexts)
       userUuid      <- getUidFutureUUID(contexts)
       consumerUuid  <- consumerId.toFutureUUID
+      purposeUUid   <- purposeId.map(_.toFutureUUID).sequence
       roles         <- getUserRolesFuture(contexts)
       relationships <-
-        if (roles.contains(SECURITY_ROLE))
-          getRelationships(requesterUuid, userUuid)
-        else Future.successful(parseArrayParameters(relationshipIds))
-      clients       <- ReadModelQueries.listClients(name, relationships, consumerId, purposeId, kind, offset, limit)(
-        readModel
-      )
+        if (roles.contains(SECURITY_ROLE)) List(getRelationship(requesterUuid, userUuid)).sequence
+        else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+      clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
+      clients       <- ReadModelQueries.listClients(
+        name,
+        relationships,
+        consumerUuid,
+        purposeUUid,
+        clientKind.map(_.toProcess),
+        offset,
+        limit
+      )(readModel)
       apiClients = clients.results.map(_.toApi(requesterUuid == consumerUuid))
     } yield Clients(results = apiClients, totalCount = clients.totalCount)
 
