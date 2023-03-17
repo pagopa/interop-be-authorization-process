@@ -3,7 +3,7 @@ package it.pagopa.interop.authorizationprocess.api.impl
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
-import cats.implicits._
+import cats.syntax.all._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop._
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
