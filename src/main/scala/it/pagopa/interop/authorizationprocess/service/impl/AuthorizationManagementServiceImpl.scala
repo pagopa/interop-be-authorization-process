@@ -51,28 +51,6 @@ final case class AuthorizationManagementServiceImpl(
         }
     }
 
-  override def listClients(
-    offset: Option[Int],
-    limit: Option[Int],
-    relationshipId: Option[UUID],
-    consumerId: Option[UUID],
-    purposeId: Option[UUID],
-    kind: Option[ClientKind] = None
-  )(implicit contexts: Seq[(String, String)]): Future[Seq[Client]] =
-    withHeaders[Seq[Client]] { (bearerToken, correlationId, ip) =>
-      val request: ApiRequest[Seq[Client]] = clientApi.listClients(
-        xCorrelationId = correlationId,
-        xForwardedFor = ip,
-        offset = offset,
-        limit = limit,
-        relationshipId = relationshipId,
-        consumerId = consumerId,
-        purposeId = purposeId,
-        kind = kind
-      )(BearerToken(bearerToken))
-      invoker.invoke(request, "Client list")
-    }
-
   override def deleteClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] =
     withHeaders[Unit] { (bearerToken, correlationId, ip) =>
       val request: ApiRequest[Unit] =

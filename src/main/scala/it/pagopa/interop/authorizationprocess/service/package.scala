@@ -5,7 +5,7 @@ import it.pagopa.interop.authorizationmanagement.client.model.Client
 import it.pagopa.interop.selfcare.userregistry
 import it.pagopa.interop._
 import it.pagopa.interop.authorizationmanagement
-import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
+import it.pagopa.interop.authorizationprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.selfcare.partymanagement
 
 import scala.concurrent.ExecutionContextExecutor

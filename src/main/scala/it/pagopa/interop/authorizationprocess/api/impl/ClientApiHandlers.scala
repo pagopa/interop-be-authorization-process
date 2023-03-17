@@ -36,13 +36,13 @@ object ClientApiHandlers extends AkkaResponses {
       case Failure(ex)                                 => internalServerError(ex, logMessage)
     }
 
-  def listClientsResponse[T](logMessage: String)(
+  def getClientsResponse[T](logMessage: String)(
     success: T => Route
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
     result match {
-      case Success(s)                  => success(s)
-      case Failure(ex: TenantNotFound) => notFound(ex, logMessage)
-      case Failure(ex)                 => internalServerError(ex, logMessage)
+      case Success(s)                                        => success(s)
+      case Failure(ex: SecurityOperatorRelationshipNotFound) => forbidden(ex, logMessage)
+      case Failure(ex)                                       => internalServerError(ex, logMessage)
     }
 
   def deleteClientResponse[T](logMessage: String)(

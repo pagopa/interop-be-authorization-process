@@ -100,20 +100,23 @@ paths:
         - client
       summary: List clients
       description: List clients
-      operationId: listClients
+      operationId: getClients
       parameters:
-        - name: offset
-          in: query
-          description: Pagination offset
+        - in: query
+          name: name
+          description: Filter for the client name
           schema:
-            type: integer
-            format: int32
-        - name: limit
-          in: query
-          description: Pagination limit
+            type: string
+        - in: query
+          name: relationshipIds
+          description: comma separated sequence of relationship IDs
           schema:
-            type: integer
-            format: int32
+            type: array
+            items:
+              type: string
+              format: uuid
+            default: []
+          explode: false
         - name: consumerId
           in: query
           description: ID of Consumer that MUST be related to the Client
@@ -131,10 +134,25 @@ paths:
           in: query
           description: type of Client to be retrieved
           schema:
-            type: string
+            type: string  
+        - in: query
+          name: offset
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 50 
       responses:
         '200':
-          description: Request succeed
+          description: Clients found
           content:
             application/json:
               schema:
@@ -145,18 +163,18 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
         '401':
           description: Unauthorized
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'        
   /clients/{clientId}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -836,6 +854,39 @@ components:
         - name
         - purposes
         - kind
+    ClientEntry:
+      description: Models Client details
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        consumerId:
+          type: string
+          format: uuid
+        purposes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientStatesChain'
+        relationshipsIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          uniqueItems: true    
+        kind:
+          $ref: '#/components/schemas/ClientKind'
+      required:
+        - id
+        - consumerId
+        - name
+        - purposes
+        - relationshipsIds
+        - kind
     ClientKind:
       type: string
       description: kind of client
@@ -843,15 +894,18 @@ components:
         - CONSUMER
         - API
     Clients:
-      description: Models a group of Clients
       type: object
       properties:
-        clients:
+        results:
           type: array
           items:
-            $ref: '#/components/schemas/Client'
+            $ref: '#/components/schemas/ClientEntry'
+        totalCount:
+          type: integer
+          format: int32
       required:
-        - clients
+        - results
+        - totalCount    
     OperatorDetails:
       description: Contains some details about operator
       type: object

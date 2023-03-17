@@ -44,7 +44,8 @@ class OperatorOperationSpec
     mockPartyManagementService,
     mockPurposeManagementService,
     mockUserRegistryManagementService,
-    mockTenantManagementService
+    mockTenantManagementService,
+    mockReadModel
   )(ExecutionContext.global)
 
   "Operator addition" should {
@@ -116,7 +117,8 @@ class OperatorOperationSpec
         mockPartyManagementService,
         mockPurposeManagementService,
         mockUserRegistryManagementService,
-        mockTenantManagementService
+        mockTenantManagementService,
+        mockReadModel
       )(ExecutionContext.global)
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, seed) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -195,7 +197,8 @@ class OperatorOperationSpec
         PartyManagementServiceImpl(PartyManagementInvoker(), PartyApi())(PartyManagementApiKeyValue()),
         mockPurposeManagementService,
         mockUserRegistryManagementService,
-        mockTenantManagementService
+        mockTenantManagementService,
+        mockReadModel
       )(ExecutionContext.global)
       Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationship.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -352,7 +355,8 @@ class OperatorOperationSpec
         mockPartyManagementService,
         mockPurposeManagementService,
         mockUserRegistryManagementService,
-        mockTenantManagementService
+        mockTenantManagementService,
+        mockReadModel
       )(ExecutionContext.global)
       Get() ~> service.getClientOperators(client.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -425,7 +429,8 @@ class OperatorOperationSpec
         mockPartyManagementService,
         mockPurposeManagementService,
         mockUserRegistryManagementService,
-        mockTenantManagementService
+        mockTenantManagementService,
+        mockReadModel
       )(ExecutionContext.global)
       Get() ~> service.getClientOperatorRelationshipById(client.id.toString, relationship.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden

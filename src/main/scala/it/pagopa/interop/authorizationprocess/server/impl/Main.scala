@@ -7,7 +7,7 @@ import akka.management.scaladsl.AkkaManagement
 import buildinfo.BuildInfo
 import cats.syntax.all._
 import com.typesafe.scalalogging.Logger
-import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
+import it.pagopa.interop.authorizationprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.authorizationprocess.server.Controller
 import it.pagopa.interop.commons.logging.renderBuildInfo
 import it.pagopa.interop.commons.utils.CORSSupport

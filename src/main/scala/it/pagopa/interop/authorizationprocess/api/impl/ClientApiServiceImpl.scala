@@ -3,7 +3,7 @@ package it.pagopa.interop.authorizationprocess.api.impl
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
-import cats.implicits._
+import cats.syntax.all._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop._
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
@@ -18,10 +18,11 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipStateToApi
 }
 import it.pagopa.interop.authorizationprocess.service._
+import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, SECURITY_ROLE, authorize}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.AkkaUtils.{getOrganizationIdFutureUUID, getUidFutureUUID}
+import it.pagopa.interop.commons.utils.AkkaUtils._
 import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.selfcare._
@@ -30,6 +31,9 @@ import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManageme
 import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
 import it.pagopa.interop.tenantmanagement.client.{model => TenantManagementDependency}
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.authorizationprocess.common.readmodel.ReadModelQueries
+import it.pagopa.interop.authorizationprocess.common.Adapters._
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,7 +45,8 @@ final case class ClientApiServiceImpl(
   partyManagementService: PartyManagementService,
   purposeManagementService: PurposeManagementService,
   userRegistryManagementService: UserRegistryManagementService,
-  tenantManagementService: TenantManagementService
+  tenantManagementService: TenantManagementService,
+  readModel: ReadModelService
 )(implicit ec: ExecutionContext)
     extends ClientApiService {
 
@@ -122,68 +127,6 @@ final case class ClientApiServiceImpl(
 
     onComplete(result) {
       getClientResponse[Client](operationLabel)(getClient200)
-    }
-  }
-
-  override def listClients(
-    offset: Option[Int],
-    limit: Option[Int],
-    consumerId: String,
-    purposeId: Option[String],
-    kind: Option[String]
-  )(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerClients: ToEntityMarshaller[Clients],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
-    val operationLabel: String =
-      s"Listing clients (offset: $offset and limit: $limit) for purposeId $purposeId and consumer $consumerId of kind $kind"
-    logger.info(operationLabel)
-
-    // TODO Improve multiple requests
-    val result: Future[Clients] = for {
-      personId      <- getUidFutureUUID(contexts)
-      consumerUuid  <- consumerId.toFutureUUID
-      clientKind    <- kind.traverse(AuthorizationManagementDependency.ClientKind.fromValue).toFuture
-      selfcareId    <- tenantManagementService.getTenant(consumerUuid).flatMap(_.selfcareId.toFuture(MissingSelfcareId))
-      relationships <-
-        partyManagementService
-          .getRelationships(
-            selfcareId,
-            personId,
-            Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
-          )
-          .map(_.items.filter(_.state == RelationshipState.ACTIVE))
-      purposeUuid   <- purposeId.traverse(_.toFutureUUID)
-      managementClients <-
-        if (relationships.exists(_.product.role == PartyManagementService.PRODUCT_ROLE_ADMIN))
-          authorizationManagementService.listClients(
-            offset = offset,
-            limit = limit,
-            relationshipId = None,
-            consumerId = consumerUuid.some,
-            purposeId = purposeUuid,
-            kind = clientKind
-          )(contexts)
-        else
-          Future
-            .traverse(relationships.map(_.id.some))(relationshipId =>
-              authorizationManagementService.listClients(
-                offset = offset,
-                limit = limit,
-                relationshipId = relationshipId,
-                consumerId = consumerUuid.some,
-                purposeId = purposeUuid,
-                kind = clientKind
-              )(contexts)
-            )
-            .map(_.flatten)
-
-      clients <- Future.traverse(managementClients)(getClient)
-    } yield Clients(clients)
-
-    onComplete(result) {
-      listClientsResponse[Clients](operationLabel)(listClients200)
     }
   }
 
@@ -582,16 +525,15 @@ final case class ClientApiServiceImpl(
     } yield relationship
   }
 
-  private[this] def securityOperatorRelationship(consumerId: UUID, userId: UUID)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[PartyManagementDependency.Relationship] = for {
+  private[this] def securityOperatorRelationship(
+    consumerId: UUID,
+    userId: UUID,
+    roles: Seq[String] =
+      Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
+  )(implicit contexts: Seq[(String, String)]): Future[PartyManagementDependency.Relationship] = for {
     selfcareId    <- tenantManagementService.getTenant(consumerId).flatMap(_.selfcareId.toFuture(MissingSelfcareId))
     relationships <- partyManagementService
-      .getRelationships(
-        selfcareId,
-        userId,
-        Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
-      )
+      .getRelationships(selfcareId, userId, roles)
     activeRelationShips = relationships.items.toList.filter(
       _.state == PartyManagementDependency.RelationshipState.ACTIVE
     )
@@ -706,6 +648,52 @@ final case class ClientApiServiceImpl(
     onComplete(result) {
       getEncodedClientKeyByIdResponse[EncodedClientKey](operationLabel)(getEncodedClientKeyById200)
     }
+  }
+
+  override def getClients(
+    name: Option[String],
+    relationshipIds: String,
+    consumerId: String,
+    purposeId: Option[String],
+    kind: Option[String],
+    offset: Int,
+    limit: Int
+  )(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerClients: ToEntityMarshaller[Clients],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
+    val operationLabel =
+      s"Retrieving clients by name $name , relationship $relationshipIds"
+    logger.info(operationLabel)
+
+    def getRelationship(userId: UUID, consumerId: UUID): Future[UUID] =
+      securityOperatorRelationship(consumerId, userId, Seq(SECURITY_ROLE)).map(_.id)
+
+    val result: Future[Clients] = for {
+      requesterUuid <- getOrganizationIdFutureUUID(contexts)
+      userUuid      <- getUidFutureUUID(contexts)
+      consumerUuid  <- consumerId.toFutureUUID
+      purposeUUid   <- purposeId.traverse(_.toFutureUUID)
+      roles         <- getUserRolesFuture(contexts)
+      relationships <-
+        if (roles.contains(SECURITY_ROLE)) List(getRelationship(requesterUuid, userUuid)).sequence
+        else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+      clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
+      clients       <- ReadModelQueries.listClients(
+        name,
+        relationships,
+        consumerUuid,
+        purposeUUid,
+        clientKind.map(_.toProcess),
+        offset,
+        limit
+      )(readModel)
+      apiClients = clients.results.map(_.toApi(requesterUuid == consumerUuid))
+    } yield Clients(results = apiClients, totalCount = clients.totalCount)
+
+    onComplete(result) { getClientsResponse[Clients](operationLabel)(getClients200) }
+
   }
 
 }

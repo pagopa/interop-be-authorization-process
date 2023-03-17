@@ -1,7 +1,7 @@
 package it.pagopa.interop.authorizationprocess.service.impl
 
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
-import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
+import it.pagopa.interop.authorizationprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.authorizationprocess.service.{
   PartyManagementApiKeyValue,
   PartyManagementInvoker,

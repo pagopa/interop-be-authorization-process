@@ -65,15 +65,6 @@ object FakeDependencies {
         )
       )
 
-    override def listClients(
-      offset: Option[Int],
-      limit: Option[Int],
-      relationshipId: Option[UUID],
-      consumerId: Option[UUID],
-      purposeId: Option[UUID],
-      kind: Option[ClientKind]
-    )(implicit contexts: Seq[(String, String)]): Future[Seq[ManagementClient]] = Future.successful(Seq.empty)
-
     override def deleteClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] =
       Future.successful(())
 

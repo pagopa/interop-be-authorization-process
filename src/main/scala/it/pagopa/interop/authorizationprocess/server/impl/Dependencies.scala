@@ -23,7 +23,7 @@ import it.pagopa.interop.authorizationprocess.api.impl.{
   OperatorApiServiceImpl
 }
 import it.pagopa.interop.authorizationprocess.api.{ClientApi, HealthApi, OperatorApi}
-import it.pagopa.interop.authorizationprocess.common.ApplicationConfiguration
+import it.pagopa.interop.authorizationprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.authorizationprocess.api.impl.serviceCode
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.service.impl._
@@ -38,6 +38,7 @@ import it.pagopa.interop.purposemanagement.client.api.{PurposeApi => PurposeMana
 import it.pagopa.interop.selfcare.partymanagement.client.api.{PartyApi => PartyManagementApi}
 import it.pagopa.interop.selfcare.userregistry.client.api.{UserApi => UserRegistryManagementApi}
 import it.pagopa.interop.selfcare.userregistry.client.invoker.ApiKeyValue
+import it.pagopa.interop.commons.cqrs.service.{MongoDbReadModelService, ReadModelService}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
@@ -49,6 +50,7 @@ trait Dependencies {
     Logger.takingImplicit[ContextFieldsToLog]("OAuth2JWTValidatorAsContexts")
 
   implicit val partyManagementApiKeyValue: PartyManagementApiKeyValue = PartyManagementApiKeyValue()
+  val readModelService: ReadModelService = new MongoDbReadModelService(ApplicationConfiguration.readModelConfig)
 
   def partyManagementService()(implicit actorSystem: ActorSystem[_]): PartyManagementService =
     PartyManagementServiceImpl(
@@ -125,7 +127,8 @@ trait Dependencies {
       partyManagementService(),
       purposeManagementService(blockingEc),
       userRegistryManagementService(),
-      tenantManagement(blockingEc)
+      tenantManagement(blockingEc),
+      readModelService
     ),
     ClientApiMarshallerImpl,
     jwtReader.OAuth2JWTValidatorAsContexts

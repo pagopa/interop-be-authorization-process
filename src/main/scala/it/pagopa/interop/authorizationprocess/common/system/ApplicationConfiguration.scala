@@ -1,7 +1,7 @@
-package it.pagopa.interop.authorizationprocess.common
+package it.pagopa.interop.authorizationprocess.common.system
 
 import com.typesafe.config.{Config, ConfigFactory}
-
+import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
 object ApplicationConfiguration {
   val config: Config = ConfigFactory.load()
 
@@ -29,4 +29,10 @@ object ApplicationConfiguration {
 
   val selfcareProductId: String = config.getString("authorization-process.selfcare-product-id")
 
+  val readModelConfig: ReadModelConfig = {
+    val connectionString: String = config.getString("authorization-process.read-model.db.connection-string")
+    val dbName: String           = config.getString("authorization-process.read-model.db.name")
+
+    ReadModelConfig(connectionString, dbName)
+  }
 }

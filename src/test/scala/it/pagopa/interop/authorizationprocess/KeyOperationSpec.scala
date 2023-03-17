@@ -34,7 +34,8 @@ class KeyOperationSpec
     mockPartyManagementService,
     mockPurposeManagementService,
     mockUserRegistryManagementService,
-    mockTenantManagementService
+    mockTenantManagementService,
+    mockReadModel
   )(ExecutionContext.global)
 
   val apiClientKey: ClientKey = ClientKey(
@@ -125,7 +126,8 @@ class KeyOperationSpec
         mockPartyManagementService,
         mockPurposeManagementService,
         mockUserRegistryManagementService,
-        mockTenantManagementService
+        mockTenantManagementService,
+        mockReadModel
       )(ExecutionContext.global)
       val kid                                      = "some-kid"
       Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
@@ -210,7 +212,8 @@ class KeyOperationSpec
         mockPartyManagementService,
         mockPurposeManagementService,
         mockUserRegistryManagementService,
-        mockTenantManagementService
+        mockTenantManagementService,
+        mockReadModel
       )(ExecutionContext.global)
       Get() ~> service.getClientKeys(client.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -288,7 +291,8 @@ class KeyOperationSpec
         mockPartyManagementService,
         mockPurposeManagementService,
         mockUserRegistryManagementService,
-        mockTenantManagementService
+        mockTenantManagementService,
+        mockReadModel
       )(ExecutionContext.global)
       Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.Forbidden
