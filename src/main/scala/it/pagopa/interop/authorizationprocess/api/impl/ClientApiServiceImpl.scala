@@ -674,7 +674,7 @@ final case class ClientApiServiceImpl(
       requesterUuid <- getOrganizationIdFutureUUID(contexts)
       userUuid      <- getUidFutureUUID(contexts)
       consumerUuid  <- consumerId.toFutureUUID
-      purposeUUid   <- purposeId.map(_.toFutureUUID).sequence
+      purposeUUid   <- purposeId.traverse(_.toFutureUUID)
       roles         <- getUserRolesFuture(contexts)
       relationships <-
         if (roles.contains(SECURITY_ROLE)) List(getRelationship(requesterUuid, userUuid)).sequence
