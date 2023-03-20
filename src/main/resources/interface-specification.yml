@@ -134,7 +134,7 @@ paths:
           in: query
           description: type of Client to be retrieved
           schema:
-            type: string  
+            $ref: '#/components/schemas/ClientKind' 
         - in: query
           name: offset
           required: true
