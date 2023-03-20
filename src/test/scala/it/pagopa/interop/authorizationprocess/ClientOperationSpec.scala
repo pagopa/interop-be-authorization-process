@@ -155,7 +155,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returns(Future.successful(eService))
 
       Get() ~> service
-        .getClient(client.id.toString)(contexts, toEntityMarshallerProblem, toEntityMarshallerClient) ~> check {
+        .getClient(client.id.toString)(contexts, toEntityMarshallerProblem, toEntityMarshallerClientEntry) ~> check {
         status shouldEqual StatusCodes.Forbidden
         entityAs[Problem].errors.head.code shouldBe "007-0008"
       }

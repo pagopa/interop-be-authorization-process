@@ -110,24 +110,38 @@ final case class ClientApiServiceImpl(
   override def getClient(clientId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerClient: ToEntityMarshaller[Client]
+    toEntityMarshallerClientEntry: ToEntityMarshaller[ClientEntry]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
     val operationLabel: String = s"Retrieving client $clientId"
     logger.info(operationLabel)
 
-    val result: Future[Client] = for {
-      clientUuid     <- clientId.toFutureUUID
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      client         <- authorizationManagementService.getClient(clientUuid)(contexts)
-      apiClient      <- isConsumerOrProducer(organizationId, client).ifM(
-        getClient(client),
-        OrganizationNotAllowedOnClient(clientId, organizationId).raiseError[Future, Client]
-      )
-    } yield apiClient
+    val result: Future[ClientEntry] = for {
+      requesterUuid <- getOrganizationIdFutureUUID(contexts)
+      clientUuid    <- clientId.toFutureUUID
+      client        <- authorizationManagementService.getClient(clientUuid)(contexts)
+      _             <- assertIsClientConsumer(client).toFuture
+      eServices     <- Future
+        .traverse(client.purposes.map(_.states.eservice.eserviceId))(catalogManagementService.getEService)
+      _             <- Future
+        .failed(OrganizationNotAllowedOnClient(client.id.toString, client.consumerId))
+        .whenA(eServices.find(_.producerId == requesterUuid).isDefined)
+
+    } yield client.toApi(requesterUuid == client.consumerId)
 
     onComplete(result) {
-      getClientResponse[Client](operationLabel)(getClient200)
+      getClientResponse[ClientEntry](operationLabel)(getClient200)
     }
+  }
+
+  def isConsumerOrProducer(organizationId: UUID, client: ManagementClient)(implicit
+    ec: ExecutionContext,
+    contexts: Seq[(String, String)]
+  ): Future[Boolean] = {
+    def isProducer(): Future[Boolean] = Future
+      .traverse(client.purposes.map(_.states.eservice.eserviceId))(catalogManagementService.getEService)
+      .map(eservices => eservices.map(_.producerId).contains(organizationId))
+
+    (client.consumerId == organizationId).pure[Future].ifM(true.pure[Future], isProducer())
   }
 
   override def deleteClient(
@@ -579,17 +593,6 @@ final case class ClientApiServiceImpl(
     } yield (name.value, familyName.value, fiscalCode)
 
     userInfo.toFuture(MissingUserInfo(user.id))
-  }
-
-  def isConsumerOrProducer(organizationId: UUID, client: ManagementClient)(implicit
-    ec: ExecutionContext,
-    contexts: Seq[(String, String)]
-  ): Future[Boolean] = {
-    def isProducer(): Future[Boolean] = Future
-      .traverse(client.purposes.map(_.states.eservice.eserviceId))(catalogManagementService.getEService)
-      .map(eservices => eservices.map(_.producerId).contains(organizationId))
-
-    (client.consumerId == organizationId).pure[Future].ifM(true.pure[Future], isProducer())
   }
 
   private[this] def clientToApi(
