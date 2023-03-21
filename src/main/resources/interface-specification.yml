@@ -834,8 +834,6 @@ components:
           format: uuid
         name:
           type: string
-        description:
-          type: string
         consumerId:
           type: string
           format: uuid
@@ -843,18 +841,20 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ClientStatesChain'
+        description:
+          type: string
         relationshipsIds:
           type: array
           items:
             type: string
             format: uuid
-          uniqueItems: true    
+          uniqueItems: true
         kind:
           $ref: '#/components/schemas/ClientKind'
       required:
         - id
-        - consumerId
         - name
+        - consumerId
         - purposes
         - relationshipsIds
         - kind
@@ -1199,18 +1199,18 @@ components:
         eserviceId:
           type: string
           format: uuid
-        agreementId:
+        consumerId:
           type: string
           format: uuid
-        consumerId:
+        agreementId:
           type: string
           format: uuid
         state:
           $ref: '#/components/schemas/ClientComponentState'
       required:
         - eserviceId
-        - agreementId
         - consumerId
+        - agreementId
         - state
     ClientPurposeDetails:
       type: object
@@ -1220,7 +1220,7 @@ components:
           format: uuid
         versionId:
           type: string
-          format: uuid
+          format: uuid  
         state:
           $ref: '#/components/schemas/ClientComponentState'
       required:
