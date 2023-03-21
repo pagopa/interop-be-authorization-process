@@ -16,6 +16,7 @@ import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _}
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
 import scala.concurrent.{ExecutionContext, Future}
 import it.pagopa.interop.commons.utils.TypeConversions._
+import it.pagopa.interop.authorizationprocess.common.Adapters._
 
 final case class OperatorApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
@@ -44,7 +45,7 @@ final case class OperatorApiServiceImpl(
       clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)(contexts)
       operatorKeys = clientKeys.keys.filter(key => relationships.items.exists(_.id == key.relationshipId))
       keysResponse = authorizationmanagement.client.model.KeysResponse(operatorKeys)
-    } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
+    } yield ClientKeys(keysResponse.keys.map(_.toApi))
 
     onComplete(result) {
       getClientOperatorKeysResponse[ClientKeys](operationLabel)(getClientOperatorKeys200)

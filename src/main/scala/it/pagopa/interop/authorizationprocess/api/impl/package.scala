@@ -29,16 +29,15 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val eServiceFormat: RootJsonFormat[EService]                             = jsonFormat2(EService)
   implicit val agreementFormat: RootJsonFormat[Agreement]                           = jsonFormat3(Agreement)
   implicit val clientAgreementDetailsFormat: RootJsonFormat[ClientAgreementDetails] =
-    jsonFormat3(ClientAgreementDetails)
-  implicit val clientEServiceDetailsFormat: RootJsonFormat[ClientEServiceDetails]   = jsonFormat4(ClientEServiceDetails)
-  implicit val clientPurposeDetailsFormat: RootJsonFormat[ClientPurposeDetails]     = jsonFormat2(ClientPurposeDetails)
+    jsonFormat4(ClientAgreementDetails)
+  implicit val clientEServiceDetailsFormat: RootJsonFormat[ClientEServiceDetails]   = jsonFormat5(ClientEServiceDetails)
+  implicit val clientPurposeDetailsFormat: RootJsonFormat[ClientPurposeDetails]     = jsonFormat3(ClientPurposeDetails)
   implicit val clientStatesChainFormat: RootJsonFormat[ClientStatesChain]           = jsonFormat4(ClientStatesChain)
   implicit val purposeFormat: RootJsonFormat[Purpose]                               = jsonFormat4(Purpose)
   implicit val purposeAddDetailsFormat: RootJsonFormat[PurposeAdditionDetails] = jsonFormat1(PurposeAdditionDetails)
 
-  implicit val clientFormat: RootJsonFormat[Client]           = jsonFormat7(Client)
-  implicit val clientEntryFormat: RootJsonFormat[ClientEntry] = jsonFormat7(ClientEntry)
-  implicit val clientsFormat: RootJsonFormat[Clients]         = jsonFormat2(Clients)
+  implicit val clientFormat: RootJsonFormat[Client]   = jsonFormat7(Client)
+  implicit val clientsFormat: RootJsonFormat[Clients] = jsonFormat2(Clients)
 
   final val entityMarshallerProblem: ToEntityMarshaller[Problem] = sprayJsonMarshaller[Problem]
 

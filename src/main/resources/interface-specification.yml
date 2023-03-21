@@ -198,7 +198,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClientEntry'
+                $ref: '#/components/schemas/Client'
         '401':
           description: Unauthorized
           content:
@@ -832,35 +832,6 @@ components:
         id:
           type: string
           format: uuid
-        consumer:
-          $ref: '#/components/schemas/Organization'
-        name:
-          type: string
-        purposes:
-          type: array
-          items:
-            $ref: '#/components/schemas/Purpose'
-        description:
-          type: string
-        operators:
-          $ref: '#/components/schemas/Operators'
-          uniqueItems: true
-        kind:
-          $ref: '#/components/schemas/ClientKind'
-      required:
-        - id
-        - organization
-        - consumer
-        - name
-        - purposes
-        - kind
-    ClientEntry:
-      description: Models Client details
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
         name:
           type: string
         description:
@@ -899,7 +870,7 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/ClientEntry'
+            $ref: '#/components/schemas/Client'
         totalCount:
           type: integer
           format: int32
@@ -1204,6 +1175,9 @@ components:
         eserviceId:
           type: string
           format: uuid
+        descriptorId:
+          type: string
+          format: uuid
         state:
           $ref: '#/components/schemas/ClientComponentState'
         audience:
@@ -1215,6 +1189,7 @@ components:
           format: int32
       required:
         - eserviceId
+        - descriptorId
         - state
         - audience
         - voucherLifespan
@@ -1224,6 +1199,9 @@ components:
         eserviceId:
           type: string
           format: uuid
+        agreementId:
+          type: string
+          format: uuid
         consumerId:
           type: string
           format: uuid
@@ -1231,6 +1209,7 @@ components:
           $ref: '#/components/schemas/ClientComponentState'
       required:
         - eserviceId
+        - agreementId
         - consumerId
         - state
     ClientPurposeDetails:
@@ -1239,10 +1218,14 @@ components:
         purposeId:
           type: string
           format: uuid
+        versionId:
+          type: string
+          format: uuid
         state:
           $ref: '#/components/schemas/ClientComponentState'
       required:
         - purposeId
+        - versionId
         - state
     ClientComponentState:
       type: string

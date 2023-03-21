@@ -4,6 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiServiceImpl, OperatorApiServiceImpl}
+import it.pagopa.interop.authorizationprocess.api.impl.ClientApiMarshallerImpl._
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.ClientNotFound
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
@@ -32,7 +33,6 @@ class OperatorOperationSpec
     with MockFactory
     with SpecUtilsWithImplicit
     with ScalatestRouteTest {
-  import clientApiMarshaller._
 
   val serviceOperator: OperatorApiServiceImpl =
     OperatorApiServiceImpl(mockAuthorizationManagementService, mockPartyManagementService)(ExecutionContext.global)
@@ -73,26 +73,13 @@ class OperatorOperationSpec
         .once()
         .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
 
-      mockClientComposition(withOperators = true, relationship = activeRelationship)
-
-      val expectedAgreement: Agreement = Agreement(
-        id = agreement.id,
-        eservice = CatalogManagementService.eServiceToApi(eService),
-        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId))
-      )
-
       val expected = Client(
         id = client.id,
-        consumer = Organization(consumer.externalId.value, consumer.name),
+        consumerId = consumerId,
         name = client.name,
-        purposes =
-          client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
+        purposes = Seq(clientStatesChain),
         description = client.description,
-        operators = Some(
-          Seq(
-            operator.copy(product = operator.product.copy(role = PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR))
-          )
-        ),
+        relationshipsIds = Set(relationship.id),
         kind = ClientKind.CONSUMER
       )
 
