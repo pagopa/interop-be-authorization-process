@@ -120,7 +120,8 @@ final case class ClientApiServiceImpl(
         .traverse(client.purposes.map(_.states.eservice.eserviceId))(catalogManagementService.getEService)
         .map(eservices => eservices.map(_.producerId).contains(organizationId))
 
-      (client.consumerId == organizationId).pure[Future].ifM(true.pure[Future], isProducer())
+      if (client.consumerId == organizationId) Future.successful(true) else isProducer()
+
     }
 
     val result: Future[Client] = for {
@@ -461,51 +462,6 @@ final case class ClientApiServiceImpl(
       removeClientPurposeResponse[Unit](operationLabel)(_ => addClientPurpose204)
     }
   }
-
-  // private[this] def getClient(
-  //   client: AuthorizationManagementDependency.Client
-  // )(implicit contexts: Seq[(String, String)]): Future[Client] = {
-  //   def getLatestAgreement(
-  //     purpose: AuthorizationManagementDependency.Purpose
-  //   ): Future[AgreementManagementDependency.Agreement] = {
-  //     val eServiceId: UUID = purpose.states.eservice.eserviceId
-  //     for {
-  //       agreements <- agreementManagementService.getAgreements(eServiceId, client.consumerId)
-  //       client     <- agreements
-  //         .sortBy(_.createdAt)
-  //         .lastOption
-  //         .toFuture(AgreementNotFound(eServiceId, client.consumerId))
-  //     } yield client
-  //   }
-
-  //   def enrichPurpose(
-  //     clientPurpose: AuthorizationManagementDependency.Purpose,
-  //     agreement: AgreementManagementDependency.Agreement
-  //   ): Future[
-  //     (
-  //       AuthorizationManagementDependency.Purpose,
-  //       PurposeManagementDependency.Purpose,
-  //       AgreementManagementDependency.Agreement,
-  //       CatalogManagementDependency.EService,
-  //       CatalogManagementDependency.EServiceDescriptor
-  //     )
-  //   ] = for {
-  //     purpose    <- purposeManagementService.getPurpose(clientPurpose.states.purpose.purposeId)
-  //     eService   <- catalogManagementService.getEService(agreement.eserviceId)
-  //     descriptor <- eService.descriptors
-  //       .find(_.id == agreement.descriptorId)
-  //       .toFuture(DescriptorNotFound(agreement.eserviceId, agreement.descriptorId))
-  //   } yield (clientPurpose, purpose, agreement, eService, descriptor)
-
-  //   for {
-  //     consumer              <- tenantManagementService.getTenant(client.consumerId)
-  //     operators             <- operatorsFromClient(client)
-  //     purposesAndAgreements <- Future.traverse(client.purposes)(purpose =>
-  //       getLatestAgreement(purpose).map((purpose, _))
-  //     )
-  //     purposesDetails       <- Future.traverse(purposesAndAgreements) { case (p, a) => enrichPurpose(p, a) }
-  //   } yield clientToApi(client, consumer, purposesDetails, operators)
-  // }
 
   private[this] def getSecurityRelationship(
     relationshipId: UUID

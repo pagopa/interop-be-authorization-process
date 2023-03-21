@@ -77,7 +77,7 @@ class OperatorOperationSpec
         id = client.id,
         consumerId = consumerId,
         name = client.name,
-        purposes = Seq(clientStatesChain),
+        purposes = Seq(clientPurposeProcess),
         description = client.description,
         relationshipsIds = Set(relationship.id),
         kind = ClientKind.CONSUMER

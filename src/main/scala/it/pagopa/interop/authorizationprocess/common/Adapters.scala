@@ -16,10 +16,15 @@ object Adapters {
       name = p.name,
       description = p.description,
       consumerId = p.consumerId,
-      purposes = p.purposes.map(_.toApi),
+      purposes = p.purposes.map(p => ClientPurpose(states = p.toApi)),
       relationshipsIds = if (showRelationShips) p.relationships else Set.empty,
       kind = p.kind.toApi
     )
+  }
+
+  implicit class ManagementClientPurposeWrapper(private val cp: AuthorizationManagementDependency.Purpose)
+      extends AnyVal {
+    def toApi: ClientPurpose = ClientPurpose(states = cp.states.toApi)
   }
 
   implicit class ManagementClientWrapper(private val p: AuthorizationManagementDependency.Client) extends AnyVal {
@@ -28,7 +33,7 @@ object Adapters {
       name = p.name,
       description = p.description,
       consumerId = p.consumerId,
-      purposes = p.purposes.map(_.states.toApi),
+      purposes = p.purposes.map(_.toApi),
       relationshipsIds = if (showRelationShips) p.relationships else Set.empty,
       kind = p.kind.toApi
     )

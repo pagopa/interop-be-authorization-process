@@ -57,7 +57,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         id = client.id,
         consumerId = consumerId,
         name = client.name,
-        purposes = Seq(clientStatesChain),
+        purposes = Seq(clientPurposeProcess),
         relationshipsIds = Set.empty,
         description = client.description,
         kind = ClientKind.CONSUMER
@@ -105,7 +105,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           id = client.id,
           consumerId = consumerId,
           name = client.name,
-          purposes = Seq(clientStatesChain),
+          purposes = Seq(clientPurposeProcess),
           description = client.description,
           relationshipsIds = Set.empty,
           kind = ClientKind.CONSUMER
@@ -143,7 +143,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           id = client.id,
           consumerId = anotherConsumerId,
           name = client.name,
-          purposes = Seq(clientStatesChain),
+          purposes = Seq(clientPurposeProcess),
           description = client.description,
           relationshipsIds = Set.empty,
           kind = ClientKind.CONSUMER

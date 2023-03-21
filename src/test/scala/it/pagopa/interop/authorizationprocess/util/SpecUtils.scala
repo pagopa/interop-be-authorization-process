@@ -153,7 +153,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val clientStateId = UUID.randomUUID()
 
-  val clientStatesChain: AuthorizationProcessModel.ClientStatesChain =
+  val clientPurposeProcess: AuthorizationProcessModel.ClientPurpose = AuthorizationProcessModel.ClientPurpose(states =
     AuthorizationProcessModel.ClientStatesChain(
       id = clientStateId,
       eservice = AuthorizationProcessModel.ClientEServiceDetails(
@@ -175,6 +175,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
         state = AuthorizationProcessModel.ClientComponentState.ACTIVE
       )
     )
+  )
 
   val clientPurpose: AuthorizationManagementDependency.Purpose = AuthorizationManagementDependency.Purpose(states =
     AuthorizationManagementDependency.ClientStatesChain(

@@ -840,7 +840,8 @@ components:
         purposes:
           type: array
           items:
-            $ref: '#/components/schemas/ClientStatesChain'
+            $ref: '#/components/schemas/ClientPurpose'
+          default: []
         description:
           type: string
         relationshipsIds:
@@ -858,6 +859,14 @@ components:
         - purposes
         - relationshipsIds
         - kind
+    ClientPurpose:
+      type: object
+      description: Models Client purposes
+      properties:
+        states: 
+          $ref: '#/components/schemas/ClientStatesChain'
+      required:
+        - states   
     ClientKind:
       type: string
       description: kind of client
