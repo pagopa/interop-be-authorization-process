@@ -297,9 +297,7 @@ final case class ClientApiServiceImpl(
       client       <- authorizationManagementService.getClient(clientUuid)(contexts)
       _            <- assertIsClientConsumer(client).toFuture
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)(contexts)
-      keys         <- Future.traverse(keysResponse.keys)(k =>
-        operatorFromRelationship(k.relationshipId).map(operator => k.toReadKeyApi(operator))
-      )
+      keys <- Future.traverse(keysResponse.keys)(k => operatorFromRelationship(k.relationshipId).map(k.toReadKeyApi))
     } yield ReadClientKeys(keys)
 
     onComplete(result) {
