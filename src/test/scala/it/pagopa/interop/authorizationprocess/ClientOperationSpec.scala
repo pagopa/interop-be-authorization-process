@@ -12,11 +12,7 @@ import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.ClientNotFound
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
-import it.pagopa.interop.authorizationprocess.service.{
-  AuthorizationManagementInvoker,
-  AuthorizationManagementService,
-  CatalogManagementService
-}
+import it.pagopa.interop.authorizationprocess.service.AuthorizationManagementInvoker
 import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
@@ -57,22 +53,13 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(client))
 
-      mockClientComposition(withOperators = false)
-
-      val expectedAgreement: Agreement = Agreement(
-        id = agreement.id,
-        eservice = CatalogManagementService.eServiceToApi(eService),
-        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId))
-      )
-
       val expected = Client(
         id = client.id,
-        consumer = Organization(consumer.externalId.value, consumer.name),
+        consumerId = consumerId,
         name = client.name,
-        purposes =
-          client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
+        purposes = Seq(clientPurposeProcess),
+        relationshipsIds = Set.empty,
         description = client.description,
-        operators = Some(Seq.empty),
         kind = ClientKind.CONSUMER
       )
 
@@ -106,30 +93,21 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
   }
 
   "Client retrieve" should {
-    "succeed" in {
+    "succeed in case of requester is the consumer" in {
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
         .returns(Future.successful(client))
 
-      mockClientComposition(withOperators = false, client)
-
-      val expectedAgreement: Agreement = Agreement(
-        id = agreement.id,
-        eservice = CatalogManagementService.eServiceToApi(eService),
-        descriptor = CatalogManagementService.descriptorToApi(activeDescriptor.copy(id = agreement.descriptorId))
-      )
-
       val expected =
         Client(
           id = client.id,
-          consumer = Organization(consumer.externalId.value, consumer.name),
+          consumerId = consumerId,
           name = client.name,
-          purposes =
-            client.purposes.map(AuthorizationManagementService.purposeToApi(_, purpose.title, expectedAgreement)),
+          purposes = Seq(clientPurposeProcess),
           description = client.description,
-          operators = Some(Seq.empty),
+          relationshipsIds = Set.empty,
           kind = ClientKind.CONSUMER
         )
 
@@ -139,9 +117,15 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       }
     }
 
-    "fail if the organization in the token is not the same in the client" in {
-      val anotherConsumerId = UUID.randomUUID()
-
+    "succeed in case of requester is the producer" in {
+      implicit val contexts: Seq[(String, String)] =
+        Seq(
+          "bearer"         -> bearerToken,
+          "uid"            -> personId.toString,
+          USER_ROLES       -> "admin",
+          "organizationId" -> eService.producerId.toString
+        )
+      val anotherConsumerId                        = UUID.randomUUID()
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
@@ -154,8 +138,41 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(eService))
 
+      val expected =
+        Client(
+          id = client.id,
+          consumerId = anotherConsumerId,
+          name = client.name,
+          purposes = Seq(clientPurposeProcess),
+          description = client.description,
+          relationshipsIds = Set.empty,
+          kind = ClientKind.CONSUMER
+        )
+
+      Get() ~> service.getClient(client.id.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+        entityAs[Client] shouldEqual expected
+      }
+    }
+
+    "fail if the organization in the token is not the same" in {
+      val anotherConsumerId = UUID.randomUUID()
+      val anotherProducerId = UUID.randomUUID()
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(client.copy(consumerId = anotherConsumerId)))
+
+      (mockCatalogManagementService
+        .getEService(_: UUID)(_: Seq[(String, String)]))
+        .expects(*, *)
+        .once()
+        .returns(Future.successful(eService.copy(producerId = anotherProducerId)))
+
       Get() ~> service
-        .getClient(client.id.toString)(contexts, toEntityMarshallerProblem, toEntityMarshallerClient) ~> check {
+        .getClient(client.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
         entityAs[Problem].errors.head.code shouldBe "007-0008"
       }
@@ -275,7 +292,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         None,
         offset,
         limit
-      )(contexts, toEntityMarshallerClients, toEntityMarshallerProblem) ~> check {
+      ) ~> check {
         status shouldEqual StatusCodes.OK
       }
     }

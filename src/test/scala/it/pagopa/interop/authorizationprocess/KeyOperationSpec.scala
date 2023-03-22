@@ -5,6 +5,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationmanagement.client.model.{KeysResponse, KeySeed => KeyMgmtSeed}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
+import it.pagopa.interop.authorizationprocess.api.impl.ClientApiMarshallerImpl._
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{ClientKeyNotFound, ClientNotFound}
 import it.pagopa.interop.authorizationprocess.model._
@@ -25,7 +26,6 @@ class KeyOperationSpec
     with SpecUtilsWithImplicit
     with ScalatestRouteTest
     with CustomMatchers {
-  import clientApiMarshaller._
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
     mockAuthorizationManagementService,

@@ -23,9 +23,6 @@ case object ClientApiMarshallerImpl extends ClientApiMarshaller with SprayJsonSu
 
   override implicit def toEntityMarshallerClient: ToEntityMarshaller[Client] = sprayJsonMarshaller[Client]
 
-  implicit def toEntityMarshallerClientarray: ToEntityMarshaller[Seq[Client]] =
-    sprayJsonMarshaller[Seq[Client]]
-
   override implicit def toEntityMarshallerClients: ToEntityMarshaller[Clients] =
     sprayJsonMarshaller[Clients]
 

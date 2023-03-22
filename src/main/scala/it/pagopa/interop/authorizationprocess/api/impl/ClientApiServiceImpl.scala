@@ -29,7 +29,6 @@ import it.pagopa.interop.selfcare._
 import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
 import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
-import it.pagopa.interop.tenantmanagement.client.{model => TenantManagementDependency}
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.authorizationprocess.common.readmodel.ReadModelQueries
@@ -68,14 +67,13 @@ final case class ClientApiServiceImpl(
     val result: Future[Client] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Creating CONSUMER client ${clientSeed.name} for consumer $organizationId")
-      client    <- authorizationManagementService.createClient(
+      client <- authorizationManagementService.createClient(
         organizationId,
         clientSeed.name,
         clientSeed.description,
         authorizationmanagement.client.model.ClientKind.CONSUMER
       )(contexts)
-      apiClient <- getClient(client)
-    } yield apiClient
+    } yield client.toApi(organizationId == client.consumerId)
 
     onComplete(result) {
       createConsumerClientResponse[Client](operationLabel)(createConsumerClient201)
@@ -93,14 +91,13 @@ final case class ClientApiServiceImpl(
     val result: Future[Client] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Creating API client ${clientSeed.name} for and consumer $organizationId")
-      client    <- authorizationManagementService.createClient(
+      client <- authorizationManagementService.createClient(
         organizationId,
         clientSeed.name,
         clientSeed.description,
         authorizationmanagement.client.model.ClientKind.API
       )(contexts)
-      apiClient <- getClient(client)
-    } yield apiClient
+    } yield client.toApi(organizationId == client.consumerId)
 
     onComplete(result) {
       createApiClientResponse[Client](operationLabel)(createApiClient201)
@@ -115,15 +112,28 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Retrieving client $clientId"
     logger.info(operationLabel)
 
+    def isConsumerOrProducer(organizationId: UUID, client: ManagementClient)(implicit
+      ec: ExecutionContext,
+      contexts: Seq[(String, String)]
+    ): Future[Boolean] = {
+      def isProducer(): Future[Boolean] = Future
+        .traverse(client.purposes.map(_.states.eservice.eserviceId))(catalogManagementService.getEService)
+        .map(eservices => eservices.map(_.producerId).contains(organizationId))
+
+      if (client.consumerId == organizationId) Future.successful(true) else isProducer()
+
+    }
+
     val result: Future[Client] = for {
-      clientUuid     <- clientId.toFutureUUID
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      client         <- authorizationManagementService.getClient(clientUuid)(contexts)
-      apiClient      <- isConsumerOrProducer(organizationId, client).ifM(
-        getClient(client),
-        OrganizationNotAllowedOnClient(clientId, organizationId).raiseError[Future, Client]
-      )
-    } yield apiClient
+      requesterUuid        <- getOrganizationIdFutureUUID(contexts)
+      clientUuid           <- clientId.toFutureUUID
+      client               <- authorizationManagementService.getClient(clientUuid)(contexts)
+      isConsumerOrProducer <- isConsumerOrProducer(requesterUuid, client)
+      _                    <- Future
+        .failed(OrganizationNotAllowedOnClient(client.id.toString, requesterUuid))
+        .unlessA(isConsumerOrProducer)
+
+    } yield client.toApi(requesterUuid == client.consumerId)
 
     onComplete(result) {
       getClientResponse[Client](operationLabel)(getClient200)
@@ -170,8 +180,7 @@ final case class ClientApiServiceImpl(
         .fold(authorizationManagementService.addRelationship(clientUUID, relationship.id)(contexts))(_ =>
           Future.failed(OperatorRelationshipAlreadyAssigned(client.id, relationship.id))
         )
-      apiClient        <- getClient(updatedClient)
-    } yield apiClient
+    } yield updatedClient.toApi(organizationId == updatedClient.consumerId)
 
     onComplete(result) {
       clientOperatorRelationshipBindingResponse[Client](operationLabel)(clientOperatorRelationshipBinding201)
@@ -224,7 +233,7 @@ final case class ClientApiServiceImpl(
       _          <- assertIsClientConsumer(client).toFuture
       key        <- authorizationManagementService.getKey(clientUuid, keyId)
       operator   <- operatorFromRelationship(key.relationshipId)
-    } yield AuthorizationManagementService.readKeyToApi(key, operator)
+    } yield key.toReadKeyApi(operator)
 
     onComplete(result) {
       getClientKeyByIdResponse[ReadClientKey](operationLabel)(getClientKeyById200)
@@ -266,9 +275,9 @@ final case class ClientApiServiceImpl(
         .getClient(clientUuid)(contexts)
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
       relationshipId <- securityOperatorRelationship(client.consumerId, userId).map(_.id)
-      seeds = keysSeeds.map(AuthorizationManagementService.toDependencyKeySeed(_, relationshipId))
+      seeds = keysSeeds.map(_.toDependency(relationshipId))
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
-    } yield ClientKeys(keysResponse.keys.map(AuthorizationManagementService.keyToApi))
+    } yield ClientKeys(keysResponse.keys.map(_.toApi))
 
     onComplete(result) {
       createKeysResponse[ClientKeys](operationLabel)(createKeys201)
@@ -288,11 +297,7 @@ final case class ClientApiServiceImpl(
       client       <- authorizationManagementService.getClient(clientUuid)(contexts)
       _            <- assertIsClientConsumer(client).toFuture
       keysResponse <- authorizationManagementService.getClientKeys(clientUuid)(contexts)
-      keys         <- Future.traverse(keysResponse.keys)(k =>
-        operatorFromRelationship(k.relationshipId).map(operator =>
-          AuthorizationManagementService.readKeyToApi(k, operator)
-        )
-      )
+      keys <- Future.traverse(keysResponse.keys)(k => operatorFromRelationship(k.relationshipId).map(k.toReadKeyApi))
     } yield ReadClientKeys(keys)
 
     onComplete(result) {
@@ -456,51 +461,6 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  private[this] def getClient(
-    client: AuthorizationManagementDependency.Client
-  )(implicit contexts: Seq[(String, String)]): Future[Client] = {
-    def getLatestAgreement(
-      purpose: AuthorizationManagementDependency.Purpose
-    ): Future[AgreementManagementDependency.Agreement] = {
-      val eServiceId: UUID = purpose.states.eservice.eserviceId
-      for {
-        agreements <- agreementManagementService.getAgreements(eServiceId, client.consumerId)
-        client     <- agreements
-          .sortBy(_.createdAt)
-          .lastOption
-          .toFuture(AgreementNotFound(eServiceId, client.consumerId))
-      } yield client
-    }
-
-    def enrichPurpose(
-      clientPurpose: AuthorizationManagementDependency.Purpose,
-      agreement: AgreementManagementDependency.Agreement
-    ): Future[
-      (
-        AuthorizationManagementDependency.Purpose,
-        PurposeManagementDependency.Purpose,
-        AgreementManagementDependency.Agreement,
-        CatalogManagementDependency.EService,
-        CatalogManagementDependency.EServiceDescriptor
-      )
-    ] = for {
-      purpose    <- purposeManagementService.getPurpose(clientPurpose.states.purpose.purposeId)
-      eService   <- catalogManagementService.getEService(agreement.eserviceId)
-      descriptor <- eService.descriptors
-        .find(_.id == agreement.descriptorId)
-        .toFuture(DescriptorNotFound(agreement.eserviceId, agreement.descriptorId))
-    } yield (clientPurpose, purpose, agreement, eService, descriptor)
-
-    for {
-      consumer              <- tenantManagementService.getTenant(client.consumerId)
-      operators             <- operatorsFromClient(client)
-      purposesAndAgreements <- Future.traverse(client.purposes)(purpose =>
-        getLatestAgreement(purpose).map((purpose, _))
-      )
-      purposesDetails       <- Future.traverse(purposesAndAgreements) { case (p, a) => enrichPurpose(p, a) }
-    } yield clientToApi(client, consumer, purposesDetails, operators)
-  }
-
   private[this] def getSecurityRelationship(
     relationshipId: UUID
   )(implicit contexts: Seq[(String, String)]): Future[partymanagement.client.model.Relationship] = {
@@ -579,55 +539,6 @@ final case class ClientApiServiceImpl(
     } yield (name.value, familyName.value, fiscalCode)
 
     userInfo.toFuture(MissingUserInfo(user.id))
-  }
-
-  def isConsumerOrProducer(organizationId: UUID, client: ManagementClient)(implicit
-    ec: ExecutionContext,
-    contexts: Seq[(String, String)]
-  ): Future[Boolean] = {
-    def isProducer(): Future[Boolean] = Future
-      .traverse(client.purposes.map(_.states.eservice.eserviceId))(catalogManagementService.getEService)
-      .map(eservices => eservices.map(_.producerId).contains(organizationId))
-
-    (client.consumerId == organizationId).pure[Future].ifM(true.pure[Future], isProducer())
-  }
-
-  private[this] def clientToApi(
-    client: AuthorizationManagementDependency.Client,
-    consumer: TenantManagementDependency.Tenant,
-    purposesDetails: Seq[
-      (
-        AuthorizationManagementDependency.Purpose,
-        PurposeManagementDependency.Purpose,
-        AgreementManagementDependency.Agreement,
-        CatalogManagementDependency.EService,
-        CatalogManagementDependency.EServiceDescriptor
-      )
-    ],
-    operator: Seq[Operator]
-  ): Client = {
-    def purposeToApi(
-      clientPurpose: AuthorizationManagementDependency.Purpose,
-      purpose: PurposeManagementDependency.Purpose,
-      agreement: AgreementManagementDependency.Agreement,
-      eService: CatalogManagementDependency.EService,
-      descriptor: CatalogManagementDependency.EServiceDescriptor
-    ): Purpose = {
-      val apiEService   = CatalogManagementService.eServiceToApi(eService)
-      val apiDescriptor = CatalogManagementService.descriptorToApi(descriptor)
-      val apiAgreement  = AgreementManagementService.agreementToApi(agreement, apiEService, apiDescriptor)
-      AuthorizationManagementService.purposeToApi(clientPurpose, purpose.title, apiAgreement)
-    }
-
-    Client(
-      id = client.id,
-      consumer = TenantManagementService.tenantToApi(consumer),
-      name = client.name,
-      purposes = purposesDetails.map(t => (purposeToApi _).tupled(t)),
-      description = client.description,
-      operators = Some(operator),
-      kind = AuthorizationManagementService.convertToApiClientKind(client.kind)
-    )
   }
 
   override def getEncodedClientKeyById(clientId: String, keyId: String)(implicit

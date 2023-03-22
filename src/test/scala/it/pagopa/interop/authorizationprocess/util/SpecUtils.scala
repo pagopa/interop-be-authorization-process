@@ -6,6 +6,7 @@ import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
 import it.pagopa.interop.agreementmanagement.client.model.{Stamps, Agreement => AgreementManagerAgreement}
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
+import it.pagopa.interop.authorizationprocess.{model => AuthorizationProcessModel}
 import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiMarshallerImpl, _}
@@ -65,6 +66,10 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val agreementId: UUID      = UUID.randomUUID()
   val organizationId: UUID   = UUID.randomUUID()
   val personId: UUID         = UUID.randomUUID()
+  val descriptorId: UUID     = UUID.randomUUID()
+  val versionId: UUID        = UUID.randomUUID()
+  val purposeId: UUID        = UUID.randomUUID()
+  val clientPurposeId: UUID  = UUID.randomUUID()
   val taxCode: String        = "taxCode"
   val institutionId: String  = "some-external-id1"
   val clientSeed: ClientSeed = ClientSeed("client name", Some("client description"))
@@ -146,25 +151,51 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     riskAnalysis = None
   )
 
+  val clientStateId = UUID.randomUUID()
+
+  val clientPurposeProcess: AuthorizationProcessModel.ClientPurpose = AuthorizationProcessModel.ClientPurpose(states =
+    AuthorizationProcessModel.ClientStatesChain(
+      id = clientStateId,
+      eservice = AuthorizationProcessModel.ClientEServiceDetails(
+        eserviceId = eServiceId,
+        descriptorId = descriptorId,
+        state = AuthorizationProcessModel.ClientComponentState.ACTIVE,
+        audience = Seq("audience"),
+        voucherLifespan = 10
+      ),
+      agreement = AuthorizationProcessModel.ClientAgreementDetails(
+        eserviceId = eServiceId,
+        agreementId = agreementId,
+        consumerId = consumerId,
+        state = AuthorizationProcessModel.ClientComponentState.ACTIVE
+      ),
+      purpose = AuthorizationProcessModel.ClientPurposeDetails(
+        purposeId = purposeId,
+        versionId = versionId,
+        state = AuthorizationProcessModel.ClientComponentState.ACTIVE
+      )
+    )
+  )
+
   val clientPurpose: AuthorizationManagementDependency.Purpose = AuthorizationManagementDependency.Purpose(states =
     AuthorizationManagementDependency.ClientStatesChain(
-      id = UUID.randomUUID(),
+      id = clientStateId,
       eservice = AuthorizationManagementDependency.ClientEServiceDetails(
-        eserviceId = UUID.randomUUID(),
-        descriptorId = UUID.randomUUID(),
+        eserviceId = eServiceId,
+        descriptorId = descriptorId,
         state = AuthorizationManagementDependency.ClientComponentState.ACTIVE,
         audience = Seq("audience"),
         voucherLifespan = 10
       ),
       agreement = AuthorizationManagementDependency.ClientAgreementDetails(
-        eserviceId = UUID.randomUUID(),
-        consumerId = UUID.randomUUID(),
-        agreementId = UUID.randomUUID(),
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        agreementId = agreementId,
         state = AuthorizationManagementDependency.ClientComponentState.ACTIVE
       ),
       purpose = AuthorizationManagementDependency.ClientPurposeDetails(
-        purposeId = UUID.randomUUID(),
-        versionId = UUID.randomUUID(),
+        purposeId = purposeId,
+        versionId = versionId,
         state = AuthorizationManagementDependency.ClientComponentState.ACTIVE
       )
     )
