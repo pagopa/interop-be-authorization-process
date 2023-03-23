@@ -161,13 +161,13 @@ class KeyOperationSpec
         .getClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
 
       (mockAuthorizationManagementService
         .getClientKeys(_: UUID)(_: Seq[(String, String)]))
         .expects(client.id, *)
         .once()
-        .returns(Future.successful(KeysResponse(Seq(createdKey))))
+        .returns(Future.successful(KeysResponse(Seq(createdKey.copy(relationshipId = relationship.id)))))
 
       (mockPartyManagementService
         .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
@@ -192,7 +192,9 @@ class KeyOperationSpec
         )
       )
 
-      Get() ~> service.getClientKeys(client.id.toString) ~> check {
+      val relationshipIds = relationship.id.toString
+
+      Get() ~> service.getClientKeys(relationshipIds, client.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[ReadClientKeys] should haveTheSameReadKeys(ReadClientKeys(Seq(expected)))
       }
@@ -200,6 +202,7 @@ class KeyOperationSpec
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
+      val relationshipIds                          = UUID.randomUUID.toString
       val service: ClientApiServiceImpl            = ClientApiServiceImpl(
         AuthorizationManagementServiceImpl(
           AuthorizationManagementInvoker(ExecutionContext.global),
@@ -215,7 +218,7 @@ class KeyOperationSpec
         mockTenantManagementService,
         mockReadModel
       )(ExecutionContext.global)
-      Get() ~> service.getClientKeys(client.id.toString) ~> check {
+      Get() ~> service.getClientKeys(client.id.toString, relationshipIds) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
     }
@@ -233,7 +236,9 @@ class KeyOperationSpec
         .once()
         .returns(Future.failed(ClientNotFound(client.id)))
 
-      Get() ~> service.getClientKeys(client.id.toString) ~> check {
+      val relationshipIds = UUID.randomUUID.toString
+
+      Get() ~> service.getClientKeys(client.id.toString, relationshipIds) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
