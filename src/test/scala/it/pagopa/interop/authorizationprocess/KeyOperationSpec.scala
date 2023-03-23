@@ -218,7 +218,7 @@ class KeyOperationSpec
         mockTenantManagementService,
         mockReadModel
       )(ExecutionContext.global)
-      Get() ~> service.getClientKeys(client.id.toString, relationshipIds) ~> check {
+      Get() ~> service.getClientKeys(relationshipIds, client.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
     }
@@ -238,7 +238,7 @@ class KeyOperationSpec
 
       val relationshipIds = UUID.randomUUID.toString
 
-      Get() ~> service.getClientKeys(client.id.toString, relationshipIds) ~> check {
+      Get() ~> service.getClientKeys(relationshipIds, client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
