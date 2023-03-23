@@ -284,7 +284,7 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  override def getClientKeys(clientId: String)(implicit
+  override def getClientKeys(relationshipIds: String, clientId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKeys: ToEntityMarshaller[ReadClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -293,10 +293,16 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[ReadClientKeys] = for {
-      clientUuid   <- clientId.toFutureUUID
-      client       <- authorizationManagementService.getClient(clientUuid)(contexts)
-      _            <- assertIsClientConsumer(client).toFuture
-      keysResponse <- authorizationManagementService.getClientKeys(clientUuid)(contexts)
+      clientUuid    <- clientId.toFutureUUID
+      relationships <- parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+      client        <- authorizationManagementService.getClient(clientUuid)(contexts)
+      _             <- assertIsClientConsumer(client).toFuture
+      clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)(contexts)
+      operatorKeys =
+        if (relationships.isEmpty) clientKeys.keys
+        else
+          clientKeys.keys.filter(key => relationships.contains(key.relationshipId))
+      keysResponse = authorizationmanagement.client.model.KeysResponse(operatorKeys)
       keys <- Future.traverse(keysResponse.keys)(k => operatorFromRelationship(k.relationshipId).map(k.toReadKeyApi))
     } yield ReadClientKeys(keys)
 

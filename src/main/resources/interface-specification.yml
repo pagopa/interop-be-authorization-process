@@ -483,6 +483,16 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: relationshipIds
+          in: query
+          description: comma separated sequence of relationship IDs
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+            default: []
+          explode: false    
       responses:
         '200':
           description: returns the corresponding array of keys
@@ -661,7 +671,7 @@ paths:
       - name: operatorId
         in: path
         required: true
-        description: ID of the Opeartor that the added keys MUST belong to
+        description: ID of the Operator that the added keys MUST belong to
         schema:
           type: string
           format: uuid

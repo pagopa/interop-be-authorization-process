@@ -104,7 +104,7 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
     }
     "accept authorized roles for getClientKeys" in {
       val endpoint = AuthorizedRoutes.endpoints("getClientKeys")
-      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClientKeys("yada") })
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClientKeys("yada", "yada") })
     }
     "accept authorized roles for getClientOperators" in {
       val endpoint = AuthorizedRoutes.endpoints("getClientOperators")
