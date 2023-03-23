@@ -301,7 +301,7 @@ final case class ClientApiServiceImpl(
       operatorKeys =
         if (relationships.isEmpty) clientKeys.keys
         else
-          clientKeys.keys.filter(key => relationships.exists(_ == key.relationshipId))
+          clientKeys.keys.filter(key => relationships.contains(key.relationshipId))
       keysResponse = authorizationmanagement.client.model.KeysResponse(operatorKeys)
       keys <- Future.traverse(keysResponse.keys)(k => operatorFromRelationship(k.relationshipId).map(k.toReadKeyApi))
     } yield ReadClientKeys(keys)
