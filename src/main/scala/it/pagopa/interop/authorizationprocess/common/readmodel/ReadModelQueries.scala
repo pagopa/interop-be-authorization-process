@@ -1,8 +1,7 @@
 package it.pagopa.interop.authorizationprocess.common.readmodel
 
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
-import it.pagopa.interop.authorizationmanagement.model.persistence.JsonFormats._
-import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, PersistentClientKind}
+import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientKind
 import org.mongodb.scala.Document
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Aggregates.{`match`, count, project, sort}
@@ -12,10 +11,11 @@ import org.mongodb.scala.model.Sorts.ascending
 
 import scala.concurrent.{ExecutionContext, Future}
 import java.util.UUID
+import spray.json._
 
 object ReadModelQueries {
 
-  def listClients(
+  def listClients[A: JsonReader](
     name: Option[String],
     relationshipIds: List[UUID],
     consumerId: UUID,
@@ -23,7 +23,7 @@ object ReadModelQueries {
     kind: Option[PersistentClientKind],
     offset: Int,
     limit: Int
-  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentClient]] = {
+  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[A]] = {
 
     val query: Bson =
       listClientsFilters(name, relationshipIds.map(_.toString), consumerId.toString, purposeId.map(_.toString), kind)
@@ -35,7 +35,7 @@ object ReadModelQueries {
     }
 
     for {
-      clients <- readModel.aggregate[PersistentClient](
+      clients <- readModel.aggregate[A](
         "clients",
         filterPipeline ++
           Seq(

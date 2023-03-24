@@ -8,6 +8,8 @@ import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop._
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
+import it.pagopa.interop.authorizationmanagement.model.persistence.JsonFormats._
 import it.pagopa.interop.authorizationprocess.api.ClientApiService
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiHandlers._
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
@@ -32,6 +34,7 @@ import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.authorizationprocess.common.readmodel.ReadModelQueries
+import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationprocess.common.Adapters._
 
 import java.util.UUID
@@ -584,9 +587,6 @@ final case class ClientApiServiceImpl(
       s"Retrieving clients by name $name , relationship $relationshipIds"
     logger.info(operationLabel)
 
-    def getRelationship(userId: UUID, consumerId: UUID): Future[UUID] =
-      securityOperatorRelationship(consumerId, userId, Seq(SECURITY_ROLE)).map(_.id)
-
     val result: Future[Clients] = for {
       requesterUuid <- getOrganizationIdFutureUUID(contexts)
       userUuid      <- getUidFutureUUID(contexts)
@@ -597,7 +597,7 @@ final case class ClientApiServiceImpl(
         if (roles.contains(SECURITY_ROLE)) List(getRelationship(requesterUuid, userUuid)).sequence
         else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
       clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
-      clients       <- ReadModelQueries.listClients(
+      clients       <- ReadModelQueries.listClients[PersistentClient](
         name,
         relationships,
         consumerUuid,
@@ -610,6 +610,57 @@ final case class ClientApiServiceImpl(
     } yield Clients(results = apiClients, totalCount = clients.totalCount)
 
     onComplete(result) { getClientsResponse[Clients](operationLabel)(getClients200) }
+
+  }
+
+  private def getRelationship(userId: UUID, consumerId: UUID, roles: Seq[String] = Seq(SECURITY_ROLE))(implicit
+    contexts: Seq[(String, String)]
+  ): Future[UUID] =
+    securityOperatorRelationship(consumerId, userId, roles).map(_.id)
+
+  override def getClientsWithKeys(
+    name: Option[String],
+    relationshipIds: String,
+    consumerId: String,
+    purposeId: Option[String],
+    kind: Option[String],
+    offset: Int,
+    limit: Int
+  )(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerClientsKeys: ToEntityMarshaller[ClientsKeys],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
+
+    import it.pagopa.interop.authorizationprocess.common.readmodel.model.impl._
+
+    val operationLabel =
+      s"Retrieving clients by name $name , relationship $relationshipIds with keys"
+    logger.info(operationLabel)
+
+    val result: Future[ClientsKeys] = for {
+      requesterUuid <- getOrganizationIdFutureUUID(contexts)
+      userUuid      <- getUidFutureUUID(contexts)
+      consumerUuid  <- consumerId.toFutureUUID
+      purposeUUid   <- purposeId.traverse(_.toFutureUUID)
+      roles         <- getUserRolesFuture(contexts)
+      relationships <-
+        if (roles.contains(SECURITY_ROLE)) List(getRelationship(requesterUuid, userUuid)).sequence
+        else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+      clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
+      clientsKeys   <- ReadModelQueries.listClients[ReadModelClientWithKeys](
+        name,
+        relationships,
+        consumerUuid,
+        purposeUUid,
+        clientKind.map(_.toProcess),
+        offset,
+        limit
+      )(readModel)
+      apiClientsKeys = clientsKeys.results.map(_.toApi(requesterUuid == consumerUuid))
+    } yield ClientsKeys(results = apiClientsKeys, totalCount = clientsKeys.totalCount)
+
+    onComplete(result) { getClientsWithKeysResponse[ClientsKeys](operationLabel)(getClientsWithKeys200) }
 
   }
 
