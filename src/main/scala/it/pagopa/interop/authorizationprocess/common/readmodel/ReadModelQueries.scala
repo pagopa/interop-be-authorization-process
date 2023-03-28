@@ -1,7 +1,10 @@
 package it.pagopa.interop.authorizationprocess.common.readmodel
 
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
-import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientKind
+import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClientKind, PersistentClient}
+import it.pagopa.interop.authorizationmanagement.model.persistence.JsonFormats._
+import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
+import it.pagopa.interop.authorizationprocess.common.readmodel.model.impl._
 import org.mongodb.scala.Document
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Aggregates.{`match`, count, project, sort}
@@ -15,7 +18,43 @@ import spray.json._
 
 object ReadModelQueries {
 
-  def listClients[A: JsonReader](
+  def listClients(name: Option[String],
+    relationshipIds: List[UUID],
+    consumerId: UUID,
+    purposeId: Option[UUID],
+    kind: Option[PersistentClientKind],
+    offset: Int,
+    limit: Int)(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentClient]] = 
+      listGenericClients[PersistentClient](
+        name = name,
+        relationshipIds = relationshipIds,
+        consumerId = consumerId,
+        purposeId = purposeId,
+        kind = kind,
+        offset = offset,
+        limit = limit
+      )(readModel)
+
+
+  def listClientsWithKeys(
+    name: Option[String],
+    relationshipIds: List[UUID],
+    consumerId: UUID,
+    purposeId: Option[UUID],
+    kind: Option[PersistentClientKind],
+    offset: Int,
+    limit: Int
+  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[ReadModelClientWithKeys]] = listGenericClients[ReadModelClientWithKeys](
+    name = name,
+    relationshipIds = relationshipIds,
+    consumerId = consumerId,
+    purposeId = purposeId,
+    kind = kind,
+    offset = offset,
+    limit = limit
+  )(readModel)
+
+  private def listGenericClients[A: JsonReader](
     name: Option[String],
     relationshipIds: List[UUID],
     consumerId: UUID,

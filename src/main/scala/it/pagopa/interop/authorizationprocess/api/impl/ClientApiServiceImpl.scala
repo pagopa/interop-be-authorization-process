@@ -8,8 +8,6 @@ import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop._
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
-import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
-import it.pagopa.interop.authorizationmanagement.model.persistence.JsonFormats._
 import it.pagopa.interop.authorizationprocess.api.ClientApiService
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiHandlers._
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
@@ -34,7 +32,6 @@ import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.authorizationprocess.common.readmodel.ReadModelQueries
-import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationprocess.common.Adapters._
 
 import java.util.UUID
@@ -593,11 +590,9 @@ final case class ClientApiServiceImpl(
       consumerUuid  <- consumerId.toFutureUUID
       purposeUUid   <- purposeId.traverse(_.toFutureUUID)
       roles         <- getUserRolesFuture(contexts)
-      relationships <-
-        if (roles.contains(SECURITY_ROLE)) List(getRelationship(requesterUuid, userUuid)).sequence
-        else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+      relationships <- checkAuthorizationForRoles(roles, relationshipIds, requesterUuid, userUuid)(contexts)
       clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
-      clients       <- ReadModelQueries.listClients[PersistentClient](
+      clients       <- ReadModelQueries.listClients(
         name,
         relationships,
         consumerUuid,
@@ -613,7 +608,13 @@ final case class ClientApiServiceImpl(
 
   }
 
-  private def getRelationship(userId: UUID, consumerId: UUID, roles: Seq[String] = Seq(SECURITY_ROLE))(implicit
+  private def checkAuthorizationForRoles(roles: String, relationshipIds: String, requester: UUID, user: UUID)
+  (implicit contexts: Seq[(String, String)]): Future[List[UUID]] = {
+    if (roles.contains(SECURITY_ROLE)) List(getRelationship(requester, user, Seq(SECURITY_ROLE))).sequence
+        else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+  }
+
+  private def getRelationship(userId: UUID, consumerId: UUID, roles: Seq[String])(implicit
     contexts: Seq[(String, String)]
   ): Future[UUID] =
     securityOperatorRelationship(consumerId, userId, roles).map(_.id)
@@ -632,10 +633,8 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
 
-    import it.pagopa.interop.authorizationprocess.common.readmodel.model.impl._
-
     val operationLabel =
-      s"Retrieving clients by name $name , relationship $relationshipIds with keys"
+      s"Retrieving clients with keys by name $name , relationship $relationshipIds"
     logger.info(operationLabel)
 
     val result: Future[ClientsKeys] = for {
@@ -644,11 +643,9 @@ final case class ClientApiServiceImpl(
       consumerUuid  <- consumerId.toFutureUUID
       purposeUUid   <- purposeId.traverse(_.toFutureUUID)
       roles         <- getUserRolesFuture(contexts)
-      relationships <-
-        if (roles.contains(SECURITY_ROLE)) List(getRelationship(requesterUuid, userUuid)).sequence
-        else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+      relationships <- checkAuthorizationForRoles(roles, relationshipIds, requesterUuid, userUuid)(contexts)
       clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
-      clientsKeys   <- ReadModelQueries.listClients[ReadModelClientWithKeys](
+      clientsKeys   <- ReadModelQueries.listClientsWithKeys(
         name,
         relationships,
         consumerUuid,

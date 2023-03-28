@@ -156,7 +156,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClientsKeys'
+                $ref: '#/components/schemas/ClientsWithKeys'
         '400':
           description: Bad Request
           content:
@@ -995,7 +995,7 @@ components:
         - name
         - relationshipId
         - createdAt
-    ClientEntryKey:
+    ClientWithKeys:
       type: object
       properties:
         client:
@@ -1007,13 +1007,13 @@ components:
       required:
         - client
         - keys       
-    ClientsKeys:
+    ClientsWithKeys:
       type: object
       properties:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/ClientEntryKey'
+            $ref: '#/components/schemas/ClientWithKeys'
         totalCount:
           type: integer
           format: int32
