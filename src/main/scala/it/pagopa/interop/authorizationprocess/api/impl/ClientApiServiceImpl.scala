@@ -611,7 +611,7 @@ final case class ClientApiServiceImpl(
   private def checkAuthorizationForRoles(roles: String, relationshipIds: String, requester: UUID, user: UUID)(implicit
     contexts: Seq[(String, String)]
   ): Future[List[UUID]] = {
-    if (roles.contains(SECURITY_ROLE)) List(getRelationship(requester, user, Seq(SECURITY_ROLE))).sequence
+    if (roles.contains(SECURITY_ROLE)) getRelationship(requester, user, Seq(SECURITY_ROLE)).map(List[UUID](_))
     else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
   }
 
