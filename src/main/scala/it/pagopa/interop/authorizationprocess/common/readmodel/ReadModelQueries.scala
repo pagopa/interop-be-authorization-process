@@ -18,23 +18,24 @@ import spray.json._
 
 object ReadModelQueries {
 
-  def listClients(name: Option[String],
+  def listClients(
+    name: Option[String],
     relationshipIds: List[UUID],
     consumerId: UUID,
     purposeId: Option[UUID],
     kind: Option[PersistentClientKind],
     offset: Int,
-    limit: Int)(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentClient]] = 
-      listGenericClients[PersistentClient](
-        name = name,
-        relationshipIds = relationshipIds,
-        consumerId = consumerId,
-        purposeId = purposeId,
-        kind = kind,
-        offset = offset,
-        limit = limit
-      )(readModel)
-
+    limit: Int
+  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentClient]] =
+    listGenericClients[PersistentClient](
+      name = name,
+      relationshipIds = relationshipIds,
+      consumerId = consumerId,
+      purposeId = purposeId,
+      kind = kind,
+      offset = offset,
+      limit = limit
+    )(readModel)
 
   def listClientsWithKeys(
     name: Option[String],
@@ -44,15 +45,16 @@ object ReadModelQueries {
     kind: Option[PersistentClientKind],
     offset: Int,
     limit: Int
-  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[ReadModelClientWithKeys]] = listGenericClients[ReadModelClientWithKeys](
-    name = name,
-    relationshipIds = relationshipIds,
-    consumerId = consumerId,
-    purposeId = purposeId,
-    kind = kind,
-    offset = offset,
-    limit = limit
-  )(readModel)
+  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[ReadModelClientWithKeys]] =
+    listGenericClients[ReadModelClientWithKeys](
+      name = name,
+      relationshipIds = relationshipIds,
+      consumerId = consumerId,
+      purposeId = purposeId,
+      kind = kind,
+      offset = offset,
+      limit = limit
+    )(readModel)
 
   private def listGenericClients[A: JsonReader](
     name: Option[String],

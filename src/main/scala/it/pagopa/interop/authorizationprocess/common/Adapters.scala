@@ -28,8 +28,8 @@ object Adapters {
   }
 
   implicit class ReadModelClientWithKeysWrapper(private val rmck: ReadModelClientWithKeys) extends AnyVal {
-    def toApi(showRelationShips: Boolean): ClientEntryKey =
-      ClientEntryKey(
+    def toApi(showRelationShips: Boolean): ClientWithKeys =
+      ClientWithKeys(
         client = Client(
           id = rmck.id,
           name = rmck.name,

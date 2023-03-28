@@ -608,10 +608,11 @@ final case class ClientApiServiceImpl(
 
   }
 
-  private def checkAuthorizationForRoles(roles: String, relationshipIds: String, requester: UUID, user: UUID)
-  (implicit contexts: Seq[(String, String)]): Future[List[UUID]] = {
+  private def checkAuthorizationForRoles(roles: String, relationshipIds: String, requester: UUID, user: UUID)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[List[UUID]] = {
     if (roles.contains(SECURITY_ROLE)) List(getRelationship(requester, user, Seq(SECURITY_ROLE))).sequence
-        else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+    else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
   }
 
   private def getRelationship(userId: UUID, consumerId: UUID, roles: Seq[String])(implicit
@@ -629,7 +630,7 @@ final case class ClientApiServiceImpl(
     limit: Int
   )(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerClientsKeys: ToEntityMarshaller[ClientsKeys],
+    toEntityMarshallerClientsWithKeys: ToEntityMarshaller[ClientsWithKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
 
@@ -637,7 +638,7 @@ final case class ClientApiServiceImpl(
       s"Retrieving clients with keys by name $name , relationship $relationshipIds"
     logger.info(operationLabel)
 
-    val result: Future[ClientsKeys] = for {
+    val result: Future[ClientsWithKeys] = for {
       requesterUuid <- getOrganizationIdFutureUUID(contexts)
       userUuid      <- getUidFutureUUID(contexts)
       consumerUuid  <- consumerId.toFutureUUID
@@ -655,9 +656,9 @@ final case class ClientApiServiceImpl(
         limit
       )(readModel)
       apiClientsKeys = clientsKeys.results.map(_.toApi(requesterUuid == consumerUuid))
-    } yield ClientsKeys(results = apiClientsKeys, totalCount = clientsKeys.totalCount)
+    } yield ClientsWithKeys(results = apiClientsKeys, totalCount = clientsKeys.totalCount)
 
-    onComplete(result) { getClientsWithKeysResponse[ClientsKeys](operationLabel)(getClientsWithKeys200) }
+    onComplete(result) { getClientsWithKeysResponse[ClientsWithKeys](operationLabel)(getClientsWithKeys200) }
 
   }
 
