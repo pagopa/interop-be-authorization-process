@@ -584,18 +584,13 @@ final case class ClientApiServiceImpl(
       s"Retrieving clients by name $name , relationship $relationshipIds"
     logger.info(operationLabel)
 
-    def getRelationship(userId: UUID, consumerId: UUID): Future[UUID] =
-      securityOperatorRelationship(consumerId, userId, Seq(SECURITY_ROLE)).map(_.id)
-
     val result: Future[Clients] = for {
       requesterUuid <- getOrganizationIdFutureUUID(contexts)
       userUuid      <- getUidFutureUUID(contexts)
       consumerUuid  <- consumerId.toFutureUUID
       purposeUUid   <- purposeId.traverse(_.toFutureUUID)
       roles         <- getUserRolesFuture(contexts)
-      relationships <-
-        if (roles.contains(SECURITY_ROLE)) List(getRelationship(requesterUuid, userUuid)).sequence
-        else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+      relationships <- checkAuthorizationForRoles(roles, relationshipIds, requesterUuid, userUuid)(contexts)
       clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
       clients       <- ReadModelQueries.listClients(
         name,
@@ -610,6 +605,60 @@ final case class ClientApiServiceImpl(
     } yield Clients(results = apiClients, totalCount = clients.totalCount)
 
     onComplete(result) { getClientsResponse[Clients](operationLabel)(getClients200) }
+
+  }
+
+  private def checkAuthorizationForRoles(roles: String, relationshipIds: String, requester: UUID, user: UUID)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[List[UUID]] = {
+    if (roles.contains(SECURITY_ROLE)) getRelationship(requester, user, Seq(SECURITY_ROLE)).map(List[UUID](_))
+    else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+  }
+
+  private def getRelationship(userId: UUID, consumerId: UUID, roles: Seq[String])(implicit
+    contexts: Seq[(String, String)]
+  ): Future[UUID] =
+    securityOperatorRelationship(consumerId, userId, roles).map(_.id)
+
+  override def getClientsWithKeys(
+    name: Option[String],
+    relationshipIds: String,
+    consumerId: String,
+    purposeId: Option[String],
+    kind: Option[String],
+    offset: Int,
+    limit: Int
+  )(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerClientsWithKeys: ToEntityMarshaller[ClientsWithKeys],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
+
+    val operationLabel =
+      s"Retrieving clients with keys by name $name , relationship $relationshipIds"
+    logger.info(operationLabel)
+
+    val result: Future[ClientsWithKeys] = for {
+      requesterUuid <- getOrganizationIdFutureUUID(contexts)
+      userUuid      <- getUidFutureUUID(contexts)
+      consumerUuid  <- consumerId.toFutureUUID
+      purposeUUid   <- purposeId.traverse(_.toFutureUUID)
+      roles         <- getUserRolesFuture(contexts)
+      relationships <- checkAuthorizationForRoles(roles, relationshipIds, requesterUuid, userUuid)(contexts)
+      clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
+      clientsKeys   <- ReadModelQueries.listClientsWithKeys(
+        name,
+        relationships,
+        consumerUuid,
+        purposeUUid,
+        clientKind.map(_.toProcess),
+        offset,
+        limit
+      )(readModel)
+      apiClientsKeys = clientsKeys.results.map(_.toApi(requesterUuid == consumerUuid))
+    } yield ClientsWithKeys(results = apiClientsKeys, totalCount = clientsKeys.totalCount)
+
+    onComplete(result) { getClientsWithKeysResponse[ClientsWithKeys](operationLabel)(getClientsWithKeys200) }
 
   }
 

@@ -41,6 +41,10 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val clientFormat: RootJsonFormat[Client]   = jsonFormat7(Client)
   implicit val clientsFormat: RootJsonFormat[Clients] = jsonFormat2(Clients)
 
+  implicit val keyEntryFormat: RootJsonFormat[KeyEntry]             = jsonFormat7(KeyEntry)
+  implicit val clientEntryKeyFormat: RootJsonFormat[ClientWithKeys] = jsonFormat2(ClientWithKeys)
+  implicit val clientsKeysFormat: RootJsonFormat[ClientsWithKeys]   = jsonFormat2(ClientsWithKeys)
+
   final val entityMarshallerProblem: ToEntityMarshaller[Problem] = sprayJsonMarshaller[Problem]
 
   implicit val serviceCode: ServiceCode = ServiceCode("007")

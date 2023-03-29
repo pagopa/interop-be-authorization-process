@@ -5,8 +5,13 @@ import it.pagopa.interop.authorizationmanagement.model.client._
 import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientComponentState.Active
 import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientComponentState.Inactive
 import it.pagopa.interop.authorizationmanagement.model.client.{Api, Consumer}
+import it.pagopa.interop.authorizationmanagement.model.key.{Sig, Enc}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
+import it.pagopa.interop.authorizationmanagement.model.key.PersistentKey
+
 import java.util.UUID
+import it.pagopa.interop.authorizationmanagement.model.key.PersistentKeyUse
 
 object Adapters {
 
@@ -20,6 +25,35 @@ object Adapters {
       relationshipsIds = if (showRelationShips) p.relationships else Set.empty,
       kind = p.kind.toApi
     )
+  }
+
+  implicit class ReadModelClientWithKeysWrapper(private val rmck: ReadModelClientWithKeys) extends AnyVal {
+    def toApi(showRelationShips: Boolean): ClientWithKeys =
+      ClientWithKeys(
+        client = Client(
+          id = rmck.id,
+          name = rmck.name,
+          description = rmck.description,
+          consumerId = rmck.consumerId,
+          purposes = rmck.purposes.map(p => ClientPurpose(states = p.toApi)),
+          relationshipsIds = if (showRelationShips) rmck.relationships else Set.empty,
+          kind = rmck.kind.toApi
+        ),
+        keys = rmck.keys.map(_.toApi)
+      )
+  }
+
+  implicit class PersistentKeyWrapper(private val k: PersistentKey) extends AnyVal {
+    def toApi: KeyEntry =
+      KeyEntry(
+        id = k.kid,
+        key = k.encodedPem,
+        use = k.use.toApi,
+        alg = k.algorithm,
+        name = k.name,
+        createdAt = k.creationTimestamp,
+        relationshipId = k.relationshipId
+      )
   }
 
   implicit class ManagementClientPurposeWrapper(private val cp: AuthorizationManagementDependency.Purpose)
@@ -112,6 +146,13 @@ object Adapters {
     def toDependency: AuthorizationManagementDependency.KeyUse = use match {
       case KeyUse.SIG => AuthorizationManagementDependency.KeyUse.SIG
       case KeyUse.ENC => AuthorizationManagementDependency.KeyUse.ENC
+    }
+  }
+
+  implicit class PersistentKeyUseWrapper(private val use: PersistentKeyUse) extends AnyVal {
+    def toApi: KeyUse = use match {
+      case Sig => KeyUse.SIG
+      case Enc => KeyUse.ENC
     }
   }
 
