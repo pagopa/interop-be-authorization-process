@@ -350,7 +350,10 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .returns(Future.successful(archivedPurpose))
 
       (mockReadModel
-        .find(_: String, _: Bson, _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
+        .find[PersistentClient](_: String, _: Bson, _: Int, _: Int)(
+          _: JsonReader[PersistentClient],
+          _: ExecutionContext
+        ))
         .expects("clients", *, offset, limit, *, *)
         .once()
         .returns(Future.successful(clients))
