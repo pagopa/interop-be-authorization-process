@@ -76,6 +76,11 @@
       "roles": ["admin"]
     },
     {
+      "route": "removeArchivedPurpose",
+      "verb": "DELETE",
+      "roles": ["admin"]
+    },
+    {
       "route": "getEncodedClientKeyById",
       "verb": "GET",
       "roles": ["admin", "security", "m2m"]

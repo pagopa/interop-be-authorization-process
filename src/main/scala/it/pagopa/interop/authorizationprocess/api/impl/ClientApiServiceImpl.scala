@@ -662,4 +662,27 @@ final case class ClientApiServiceImpl(
 
   }
 
+  override def removeArchivedPurpose(
+    purposeId: String
+  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
+    authorize(ADMIN_ROLE) {
+      val operationLabel: String = s"Removing archived Purpose $purposeId from all clients"
+      logger.info(operationLabel)
+
+      val result: Future[Unit] = for {
+        purposeUuid <- purposeId.toFutureUUID
+        purpose     <- purposeManagementService.getPurpose(purposeUuid)
+        _           <- purpose.versions
+          .find(_.state == PurposeManagementDependency.PurposeVersionState.ARCHIVED)
+          .toFuture(PurposeNoVersionFound(purpose.id))
+        clients     <- ReadModelQueries.listClientsByPurpose(purposeUuid)(readModel)
+        _           <- Future.traverse(clients)(c =>
+          authorizationManagementService.removeClientPurpose(c.id, purposeUuid)(contexts)
+        )
+      } yield ()
+
+      onComplete(result) {
+        removeArchivedPurposeResponse[Unit](operationLabel)(_ => removeArchivedPurpose204)
+      }
+    }
 }
