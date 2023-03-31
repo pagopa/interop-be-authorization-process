@@ -61,11 +61,6 @@
       "roles": ["admin", "security"]
     },
     {
-      "route": "getClientOperatorRelationshipById",
-      "verb": "GET",
-      "roles": ["admin", "security", "m2m"]
-    },
-    {
       "route": "addClientPurpose",
       "verb": "POST",
       "roles": ["admin"]
