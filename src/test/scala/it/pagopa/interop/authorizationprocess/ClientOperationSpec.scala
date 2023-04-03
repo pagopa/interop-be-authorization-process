@@ -391,7 +391,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       Get() ~> service.removeArchivedPurpose(purpose.id.toString) ~> check {
         status shouldEqual StatusCodes.BadRequest
-        entityAs[Problem].errors.head.code shouldBe "007-0015"
+        entityAs[Problem].errors.head.code shouldBe "007-0019"
       }
     }
   }

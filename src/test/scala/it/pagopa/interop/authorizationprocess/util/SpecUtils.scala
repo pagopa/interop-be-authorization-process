@@ -25,7 +25,7 @@ import it.pagopa.interop.selfcare.userregistry.client.model.{
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import org.scalamock.scalatest.MockFactory
 
-import java.time.OffsetDateTime
+import java.time.{OffsetDateTime, Duration}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
@@ -274,13 +274,35 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val archivedPurpose: PurposeManagementDependency.Purpose =
     purpose.copy(
       id = UUID.randomUUID(),
-      versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ARCHIVED))
+      versions = Seq(
+        purposeVersion.copy(
+          id = UUID.randomUUID,
+          state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
+          createdAt = OffsetDateTime.now().minus(Duration.ofDays(10))
+        ),
+        purposeVersion.copy(
+          id = UUID.randomUUID,
+          state = PurposeManagementDependency.PurposeVersionState.ARCHIVED,
+          createdAt = OffsetDateTime.now()
+        )
+      )
     )
 
   val notArchivedPurpose: PurposeManagementDependency.Purpose =
     purpose.copy(
       id = UUID.randomUUID(),
-      versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ACTIVE))
+      versions = Seq(
+        purposeVersion.copy(
+          id = UUID.randomUUID,
+          state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
+          createdAt = OffsetDateTime.now()
+        ),
+        purposeVersion.copy(
+          id = UUID.randomUUID,
+          state = PurposeManagementDependency.PurposeVersionState.ARCHIVED,
+          createdAt = OffsetDateTime.now().minus(Duration.ofDays(10))
+        )
+      )
     )
 
   val operator: Operator = Operator(

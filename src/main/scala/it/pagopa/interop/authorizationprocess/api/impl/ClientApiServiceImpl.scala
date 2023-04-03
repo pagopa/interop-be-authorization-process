@@ -641,8 +641,9 @@ final case class ClientApiServiceImpl(
         purposeUuid <- purposeId.toFutureUUID
         purpose     <- purposeManagementService.getPurpose(purposeUuid)
         _           <- purpose.versions
+          .maxByOption(_.createdAt)
           .find(_.state == PurposeManagementDependency.PurposeVersionState.ARCHIVED)
-          .toFuture(PurposeNoVersionFound(purpose.id))
+          .toFuture(PurposeNotInExpectedState(purpose.id))
         clients     <- ReadModelQueries.listClientsByPurpose(purposeUuid)(readModel)
         _           <- Future.traverse(clients)(c =>
           authorizationManagementService.removeClientPurpose(c.id, purposeUuid)(contexts)
