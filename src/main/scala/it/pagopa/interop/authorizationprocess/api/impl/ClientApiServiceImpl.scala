@@ -333,30 +333,6 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  override def getClientOperatorRelationshipById(clientId: String, relationshipId: String)(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerOperator: ToEntityMarshaller[Operator],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
-    val operationLabel: String = s"Retrieving operator of client $clientId by relationship $relationshipId"
-    logger.info(operationLabel)
-
-    val result: Future[Operator] = for {
-      clientUUID       <- clientId.toFutureUUID
-      organizationId   <- getOrganizationIdFutureUUID(contexts)
-      relationshipUUID <- relationshipId.toFutureUUID
-      client           <- authorizationManagementService
-        .getClient(clientUUID)(contexts)
-        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
-      _                <- hasClientRelationship(client, relationshipUUID)
-      operator         <- operatorFromRelationship(relationshipUUID)
-    } yield operator
-
-    onComplete(result) {
-      getClientOperatorRelationshipByIdResponse[Operator](operationLabel)(getClientOperatorRelationshipById200)
-    }
-  }
-
   override def addClientPurpose(clientId: String, details: PurposeAdditionDetails)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -509,14 +485,6 @@ final case class ClientApiServiceImpl(
   private[this] def operatorsFromClient(client: AuthorizationManagementDependency.Client)(implicit
     contexts: Seq[(String, String)]
   ): Future[Seq[Operator]] = Future.traverse(client.relationships.toList)(operatorFromRelationship)
-
-  private[this] def hasClientRelationship(
-    client: authorizationmanagement.client.model.Client,
-    relationshipId: UUID
-  ): Future[UUID] =
-    client.relationships
-      .find(r => r == relationshipId)
-      .toFuture(SecurityOperatorRelationshipNotFound(client.consumerId, relationshipId))
 
   private[this] def operatorFromRelationship(
     relationshipId: UUID
