@@ -9,7 +9,7 @@ import spray.json.JsonReader
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, Api}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.ClientNotFound
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{ClientNotFound, PurposeNotFound}
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
 import it.pagopa.interop.authorizationprocess.service.AuthorizationManagementInvoker
@@ -332,6 +332,66 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       Get() ~> service.deleteClient(client.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
+      }
+    }
+  }
+
+  "Client purpose in archived state delete" should {
+    "succeed" in {
+      val clients: Seq[PersistentClient] = Seq(persistentClient)
+
+      val offset: Int = 0
+      val limit: Int  = Int.MaxValue
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purpose.id, *)
+        .once()
+        .returns(Future.successful(archivedPurpose))
+
+      (mockReadModel
+        .find[PersistentClient](_: String, _: Bson, _: Int, _: Int)(
+          _: JsonReader[PersistentClient],
+          _: ExecutionContext
+        ))
+        .expects("clients", *, offset, limit, *, *)
+        .once()
+        .returns(Future.successful(clients))
+
+      (mockAuthorizationManagementService
+        .removeClientPurpose(_: UUID, _: UUID)(_: Seq[(String, String)]))
+        .expects(*, *, *)
+        .once()
+        .returns(Future.successful(()))
+
+      Get() ~> service.removeArchivedPurpose(purpose.id.toString) ~> check {
+        status shouldEqual StatusCodes.NoContent
+      }
+    }
+
+    "fail if purpose does not exist" in {
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purpose.id, *)
+        .once()
+        .returns(Future.failed(PurposeNotFound(purpose.id)))
+
+      Get() ~> service.removeArchivedPurpose(purpose.id.toString) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        entityAs[Problem].errors.head.code shouldBe "007-0014"
+      }
+    }
+
+    "fail if purpose version is not in archived state" in {
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purpose.id, *)
+        .once()
+        .returns(Future.successful(notArchivedPurpose))
+
+      Get() ~> service.removeArchivedPurpose(purpose.id.toString) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        entityAs[Problem].errors.head.code shouldBe "007-0019"
       }
     }
   }
