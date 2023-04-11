@@ -468,18 +468,18 @@ final case class ClientApiServiceImpl(
   }
 
   private[this] def securityOperatorRelationship(
-    consumerId: UUID,
+    requesterId: UUID,
     userId: UUID,
     roles: Seq[String] =
       Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
   )(implicit contexts: Seq[(String, String)]): Future[PartyManagementDependency.Relationship] = for {
-    selfcareId    <- tenantManagementService.getTenant(consumerId).flatMap(_.selfcareId.toFuture(MissingSelfcareId))
+    selfcareId    <- tenantManagementService.getTenant(requesterId).flatMap(_.selfcareId.toFuture(MissingSelfcareId))
     relationships <- partyManagementService
       .getRelationships(selfcareId, userId, roles)
     activeRelationShips = relationships.items.toList.filter(
       _.state == PartyManagementDependency.RelationshipState.ACTIVE
     )
-    relationShip <- activeRelationShips.headOption.toFuture(SecurityOperatorRelationshipNotFound(consumerId, userId))
+    relationShip <- activeRelationShips.headOption.toFuture(SecurityOperatorRelationshipNotFound(requesterId, userId))
   } yield relationShip
 
   private[this] def operatorsFromClient(client: AuthorizationManagementDependency.Client)(implicit
@@ -576,17 +576,17 @@ final case class ClientApiServiceImpl(
 
   }
 
-  private def checkAuthorizationForRoles(roles: String, relationshipIds: String, requester: UUID, user: UUID)(implicit
-    contexts: Seq[(String, String)]
+  private def checkAuthorizationForRoles(roles: String, relationshipIds: String, requesterId: UUID, userId: UUID)(
+    implicit contexts: Seq[(String, String)]
   ): Future[List[UUID]] = {
-    if (roles.contains(SECURITY_ROLE)) getRelationship(requester, user, Seq(SECURITY_ROLE)).map(List[UUID](_))
+    if (roles.contains(SECURITY_ROLE)) getRelationship(userId, requesterId, Seq(SECURITY_ROLE)).map(List[UUID](_))
     else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
   }
 
-  private def getRelationship(userId: UUID, consumerId: UUID, roles: Seq[String])(implicit
+  private def getRelationship(userId: UUID, requesterId: UUID, roles: Seq[String])(implicit
     contexts: Seq[(String, String)]
   ): Future[UUID] =
-    securityOperatorRelationship(consumerId, userId, roles).map(_.id)
+    securityOperatorRelationship(requesterId, userId, roles).map(_.id)
 
   override def getClientsWithKeys(
     name: Option[String],
