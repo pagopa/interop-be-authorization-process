@@ -110,6 +110,16 @@ object ReadModelQueries {
     )(Filters.and).getOrElse(Filters.empty())
   }
 
+  def listClientsByPurpose(
+    purposeId: UUID
+  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[Seq[PersistentClient]] = {
+
+    val query: Bson = Filters
+      .and(Filters.eq("data.purposes.purpose.purposeId", purposeId.toString))
+
+    readModel.find[PersistentClient]("clients", query, offset = 0, limit = Int.MaxValue)
+  }
+
   def mapToVarArgs[A, B](l: Seq[A])(f: Seq[A] => B): Option[B] = Option.when(l.nonEmpty)(f(l))
 
 }

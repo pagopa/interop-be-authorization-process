@@ -38,8 +38,10 @@ object Dependencies {
       namespace %% "interop-selfcare-party-management-client" % partyManagementVersion
     lazy val tenantManagement =
       namespace %% "interop-be-tenant-management-client" % tenantManagementVersion
-    lazy val purposeManagement =
+    lazy val purposeManagementClient =
       namespace %% "interop-be-purpose-management-client" % purposeManagementVersion
+    lazy val purposeManagementModels =
+      namespace %% "interop-be-purpose-management-models" % purposeManagementVersion
     lazy val userRegistryManagement =
       namespace %% "interop-selfcare-user-registry-client" % userRegistryManagementVersion
 
@@ -138,7 +140,8 @@ object Dependencies {
       pagopa.authorizationManagementClient  % Compile,
       pagopa.authorizationManagementModels  % Compile,
       pagopa.partyManagement                % Compile,
-      pagopa.purposeManagement              % Compile,
+      pagopa.purposeManagementClient        % Compile,
+      pagopa.purposeManagementModels        % Compile,
       pagopa.tenantManagement               % Compile,
       pagopa.userRegistryManagement         % Compile,
       scalpb.core                           % "protobuf",

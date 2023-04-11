@@ -9,6 +9,7 @@ import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagemen
 import it.pagopa.interop.authorizationprocess.{model => AuthorizationProcessModel}
 import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.interop.authorizationmanagement.model.{client => AuthorizationPersistentModel}
 import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiMarshallerImpl, _}
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
@@ -24,7 +25,7 @@ import it.pagopa.interop.selfcare.userregistry.client.model.{
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import org.scalamock.scalatest.MockFactory
 
-import java.time.OffsetDateTime
+import java.time.{OffsetDateTime, Duration}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
@@ -201,6 +202,39 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     )
   )
 
+  val persistentClientPurpose: AuthorizationPersistentModel.PersistentClientStatesChain =
+    AuthorizationPersistentModel.PersistentClientStatesChain(
+      id = UUID.randomUUID(),
+      eService = AuthorizationPersistentModel.PersistentClientEServiceDetails(
+        eServiceId = eServiceId,
+        descriptorId = descriptorId,
+        state = AuthorizationPersistentModel.PersistentClientComponentState.Active,
+        audience = Seq("audience"),
+        voucherLifespan = 0
+      ),
+      agreement = AuthorizationPersistentModel.PersistentClientAgreementDetails(
+        eServiceId = eServiceId,
+        consumerId = consumerId,
+        agreementId = agreementId,
+        state = AuthorizationPersistentModel.PersistentClientComponentState.Active
+      ),
+      purpose = AuthorizationPersistentModel.PersistentClientPurposeDetails(
+        purposeId = purposeId,
+        versionId = versionId,
+        state = AuthorizationPersistentModel.PersistentClientComponentState.Active
+      )
+    )
+
+  val persistentClient: AuthorizationPersistentModel.PersistentClient = AuthorizationPersistentModel.PersistentClient(
+    id = UUID.randomUUID(),
+    consumerId = consumerId,
+    name = clientSeed.name,
+    purposes = Seq(persistentClientPurpose),
+    description = clientSeed.description,
+    relationships = Set.empty,
+    kind = AuthorizationPersistentModel.Consumer
+  )
+
   val client: AuthorizationManagementDependency.Client = AuthorizationManagementDependency.Client(
     id = UUID.randomUUID(),
     consumerId = consumerId,
@@ -236,6 +270,40 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     createdAt = timestamp,
     updatedAt = None
   )
+
+  val archivedPurpose: PurposeManagementDependency.Purpose =
+    purpose.copy(
+      id = UUID.randomUUID(),
+      versions = Seq(
+        purposeVersion.copy(
+          id = UUID.randomUUID,
+          state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
+          createdAt = OffsetDateTime.now().minus(Duration.ofDays(10))
+        ),
+        purposeVersion.copy(
+          id = UUID.randomUUID,
+          state = PurposeManagementDependency.PurposeVersionState.ARCHIVED,
+          createdAt = OffsetDateTime.now()
+        )
+      )
+    )
+
+  val notArchivedPurpose: PurposeManagementDependency.Purpose =
+    purpose.copy(
+      id = UUID.randomUUID(),
+      versions = Seq(
+        purposeVersion.copy(
+          id = UUID.randomUUID,
+          state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
+          createdAt = OffsetDateTime.now()
+        ),
+        purposeVersion.copy(
+          id = UUID.randomUUID,
+          state = PurposeManagementDependency.PurposeVersionState.ARCHIVED,
+          createdAt = OffsetDateTime.now().minus(Duration.ofDays(10))
+        )
+      )
+    )
 
   val operator: Operator = Operator(
     relationshipId = UUID.fromString(relationshipId),

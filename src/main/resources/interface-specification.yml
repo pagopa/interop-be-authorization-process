@@ -845,6 +845,51 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /clients/purposes/{purposeId}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    delete:
+      tags:
+        - client
+      summary: Removes the purpose from all clients only if purpose version has ARCHIVED state
+      description: Removes the purpose from all clients only if purpose version has ARCHIVED state
+      operationId: removeArchivedPurpose
+      parameters:
+        - name: purposeId
+          in: path
+          description: ID of Purpose
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Request succeed
+        '400':
+          description: No Purpose version in Archived state
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Purpose Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'              
   /status:
     get:
       security: []

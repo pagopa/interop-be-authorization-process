@@ -67,4 +67,7 @@ object AuthorizationProcessErrors {
   final case class KeysAlreadyExist(message: String)
       extends ComponentError("0018", s"One or more keys already exist: $message")
 
+  final case class PurposeNotInExpectedState(purposeId: UUID)
+      extends ComponentError("0019", s"Purpose $purposeId not in expected state")
+
 }
