@@ -23,7 +23,8 @@ object Adapters {
       consumerId = p.consumerId,
       purposes = p.purposes.map(p => ClientPurpose(states = p.toApi)),
       relationshipsIds = if (showRelationShips) p.relationships else Set.empty,
-      kind = p.kind.toApi
+      kind = p.kind.toApi,
+      createdAt = p.createdAt
     )
   }
 
@@ -37,7 +38,8 @@ object Adapters {
           consumerId = rmck.consumerId,
           purposes = rmck.purposes.map(p => ClientPurpose(states = p.toApi)),
           relationshipsIds = if (showRelationShips) rmck.relationships else Set.empty,
-          kind = rmck.kind.toApi
+          kind = rmck.kind.toApi,
+          createdAt = rmck.createdAt
         ),
         keys = rmck.keys.map(_.toApi)
       )
@@ -69,7 +71,8 @@ object Adapters {
       consumerId = p.consumerId,
       purposes = p.purposes.map(_.toApi),
       relationshipsIds = if (showRelationShips) p.relationships else Set.empty,
-      kind = p.kind.toApi
+      kind = p.kind.toApi,
+      createdAt = p.createdAt
     )
   }
 
