@@ -35,12 +35,13 @@ class KeyOperationSpec
     mockPurposeManagementService,
     mockUserRegistryManagementService,
     mockTenantManagementService,
-    mockReadModel
+    mockReadModel,
+    mockDateTimeSupplier
   )(ExecutionContext.global)
 
   val apiClientKey: ClientKey = ClientKey(
     name = "test",
-    createdAt = OffsetDateTime.now(),
+    createdAt = timestamp,
     key = Key(
       kty = createdKey.key.kty,
       key_ops = createdKey.key.keyOps,
@@ -127,7 +128,8 @@ class KeyOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel
+        mockReadModel,
+        mockDateTimeSupplier
       )(ExecutionContext.global)
       val kid                                      = "some-kid"
       Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
@@ -216,7 +218,8 @@ class KeyOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel
+        mockReadModel,
+        mockDateTimeSupplier
       )(ExecutionContext.global)
       Get() ~> service.getClientKeys(relationshipIds, client.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -247,6 +250,8 @@ class KeyOperationSpec
   "Create client keys" should {
     "succeed" in {
       val keySeeds: Seq[KeySeed] = Seq(KeySeed(key = "key", use = KeyUse.SIG, alg = "123", name = "test"))
+
+      (() => service.dateTimeSupplier.get()).expects().returning(timestamp).once()
 
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: Seq[(String, String)]))
@@ -297,7 +302,8 @@ class KeyOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel
+        mockReadModel,
+        mockDateTimeSupplier
       )(ExecutionContext.global)
       Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.Forbidden

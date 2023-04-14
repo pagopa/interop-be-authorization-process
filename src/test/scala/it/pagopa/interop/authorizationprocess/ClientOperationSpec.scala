@@ -34,11 +34,15 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     mockPurposeManagementService,
     mockUserRegistryManagementService,
     mockTenantManagementService,
-    mockReadModel
+    mockReadModel,
+    mockDateTimeSupplier
   )(ExecutionContext.global)
 
   "Client creation" should {
     "succeed" in {
+
+      (() => service.dateTimeSupplier.get()).expects().returning(timestamp).once()
+
       (mockAuthorizationManagementService
         .createClient(_: UUID, _: String, _: Option[String], _: authorizationmanagement.client.model.ClientKind)(
           _: Seq[(String, String)]
@@ -60,7 +64,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         purposes = Seq(clientPurposeProcess),
         relationshipsIds = Set.empty,
         description = client.description,
-        kind = ClientKind.CONSUMER
+        kind = ClientKind.CONSUMER,
+        createdAt = timestamp
       )
 
       Get() ~> service.createConsumerClient(clientSeed) ~> check {
@@ -84,7 +89,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel
+        mockReadModel,
+        mockDateTimeSupplier
       )(ExecutionContext.global)
       Get() ~> service.createConsumerClient(clientSeed) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -108,7 +114,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           purposes = Seq(clientPurposeProcess),
           description = client.description,
           relationshipsIds = Set.empty,
-          kind = ClientKind.CONSUMER
+          kind = ClientKind.CONSUMER,
+          createdAt = timestamp
         )
 
       Get() ~> service.getClient(client.id.toString) ~> check {
@@ -146,7 +153,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           purposes = Seq(clientPurposeProcess),
           description = client.description,
           relationshipsIds = Set.empty,
-          kind = ClientKind.CONSUMER
+          kind = ClientKind.CONSUMER,
+          createdAt = timestamp
         )
 
       Get() ~> service.getClient(client.id.toString) ~> check {

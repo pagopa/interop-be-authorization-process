@@ -8,9 +8,11 @@ import it.pagopa.interop.authorizationprocess.util.FakeDependencies._
 import it.pagopa.interop.authorizationprocess.util.{AuthorizedRoutes, AuthzScalatestRouteTest}
 import it.pagopa.interop.commons.cqrs.service.{MongoDbReadModelService, ReadModelService}
 import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.ExecutionContext
 
@@ -23,8 +25,10 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
   val fakePurposeManagementService: PurposeManagementService             = new FakePurposeManagementService()
   val fakeUserRegistryManagementService: UserRegistryManagementService   = new FakeUserRegistryManagementService()
   val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
-
-  val fakeReadModel: ReadModelService = new MongoDbReadModelService(
+  val fakeDateTimeSupplier: OffsetDateTimeSupplier                       = new OffsetDateTimeSupplier {
+    override def get: OffsetDateTime = OffsetDateTime.now()
+  }
+  val fakeReadModel: ReadModelService                                    = new MongoDbReadModelService(
     ReadModelConfig(
       "mongodb://localhost/?socketTimeoutMS=1&serverSelectionTimeoutMS=1&connectTimeoutMS=1&&autoReconnect=false&keepAlive=false",
       "db"
@@ -39,7 +43,8 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
     fakePurposeManagementService,
     fakeUserRegistryManagementService,
     fakeTenantManagementService,
-    fakeReadModel
+    fakeReadModel,
+    fakeDateTimeSupplier
   )(ExecutionContext.global)
 
   "Client operation authorization spec" should {

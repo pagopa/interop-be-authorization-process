@@ -54,8 +54,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockPurposeManagementService: PurposeManagementService             = mock[PurposeManagementService]
   val mockUserRegistryManagementService: UserRegistryManagementService   = mock[UserRegistryManagementService]
   val mockTenantManagementService: TenantManagementService               = mock[TenantManagementService]
-
-  val mockReadModel: ReadModelService = mock[ReadModelService]
+  val mockDateTimeSupplier: OffsetDateTimeSupplier                       = mock[OffsetDateTimeSupplier]
+  val mockReadModel: ReadModelService                                    = mock[ReadModelService]
 
   val timestamp: OffsetDateTime = OffsetDateTime.now()
 
@@ -242,7 +242,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     purposes = Seq(clientPurpose),
     description = clientSeed.description,
     relationships = Set.empty,
-    kind = AuthorizationManagementDependency.ClientKind.CONSUMER
+    kind = AuthorizationManagementDependency.ClientKind.CONSUMER,
+    createdAt = timestamp
   )
 
   val consumer: Tenant = Tenant(
@@ -331,7 +332,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val createdKey: AuthorizationManagementDependency.ClientKey = AuthorizationManagementDependency.ClientKey(
     relationshipId = UUID.randomUUID(),
     name = "test",
-    createdAt = OffsetDateTime.now(),
+    createdAt = timestamp,
     key = AuthorizationManagementDependency.Key(
       kty = "1",
       keyOps = Some(Seq("2")),

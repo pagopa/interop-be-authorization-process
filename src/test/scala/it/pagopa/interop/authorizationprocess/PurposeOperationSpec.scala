@@ -29,7 +29,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
     mockPurposeManagementService,
     mockUserRegistryManagementService,
     mockTenantManagementService,
-    mockReadModel
+    mockReadModel,
+    mockDateTimeSupplier
   )(ExecutionContext.global)
 
   "Purpose add to Client" should {
