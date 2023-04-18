@@ -1,20 +1,15 @@
 package it.pagopa.interop.authorizationprocess.service.impl
 
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError, ApiRequest, BearerToken}
 import it.pagopa.interop.authorizationmanagement.client.model._
-import it.pagopa.interop.commons.utils.withHeaders
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.service.{AuthorizationManagementInvoker, AuthorizationManagementService}
-import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{
-  ClientKeyNotFound,
-  ClientNotFound,
-  ClientRelationshipNotFound,
-  CreateKeysBadRequest,
-  KeysAlreadyExist
-}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
+import it.pagopa.interop.commons.utils.withHeaders
 
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -29,15 +24,20 @@ final case class AuthorizationManagementServiceImpl(
   implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
-  override def createClient(consumerId: UUID, name: String, description: Option[String], kind: ClientKind)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Client] = withHeaders[Client] { (bearerToken, correlationId, ip) =>
-    val request: ApiRequest[Client] = clientApi.createClient(
-      xCorrelationId = correlationId,
-      ClientSeed(consumerId = consumerId, name = name, description = description, kind = kind),
-      xForwardedFor = ip
-    )(BearerToken(bearerToken))
-    invoker.invoke(request, "Client creation")
+  override def createClient(
+    consumerId: UUID,
+    name: String,
+    description: Option[String],
+    kind: ClientKind,
+    createdAt: OffsetDateTime
+  )(implicit contexts: Seq[(String, String)]): Future[Client] = withHeaders[Client] {
+    (bearerToken, correlationId, ip) =>
+      val request: ApiRequest[Client] = clientApi.createClient(
+        xCorrelationId = correlationId,
+        ClientSeed(consumerId = consumerId, name = name, description = description, kind = kind, createdAt = createdAt),
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
+      invoker.invoke(request, "Client creation")
   }
 
   override def getClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Client] =

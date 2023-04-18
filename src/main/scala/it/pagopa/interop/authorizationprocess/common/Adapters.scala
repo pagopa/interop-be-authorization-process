@@ -5,13 +5,15 @@ import it.pagopa.interop.authorizationmanagement.model.client._
 import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientComponentState.Active
 import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientComponentState.Inactive
 import it.pagopa.interop.authorizationmanagement.model.client.{Api, Consumer}
-import it.pagopa.interop.authorizationmanagement.model.key.{Sig, Enc}
+import it.pagopa.interop.authorizationmanagement.model.key.{Enc, Sig}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationmanagement.model.key.PersistentKey
 
 import java.util.UUID
 import it.pagopa.interop.authorizationmanagement.model.key.PersistentKeyUse
+
+import java.time.OffsetDateTime
 
 object Adapters {
 
@@ -23,7 +25,8 @@ object Adapters {
       consumerId = p.consumerId,
       purposes = p.purposes.map(p => ClientPurpose(states = p.toApi)),
       relationshipsIds = if (showRelationShips) p.relationships else Set.empty,
-      kind = p.kind.toApi
+      kind = p.kind.toApi,
+      createdAt = p.createdAt
     )
   }
 
@@ -37,7 +40,8 @@ object Adapters {
           consumerId = rmck.consumerId,
           purposes = rmck.purposes.map(p => ClientPurpose(states = p.toApi)),
           relationshipsIds = if (showRelationShips) rmck.relationships else Set.empty,
-          kind = rmck.kind.toApi
+          kind = rmck.kind.toApi,
+          createdAt = rmck.createdAt
         ),
         keys = rmck.keys.map(_.toApi)
       )
@@ -51,7 +55,7 @@ object Adapters {
         use = k.use.toApi,
         alg = k.algorithm,
         name = k.name,
-        createdAt = k.creationTimestamp,
+        createdAt = k.createdAt,
         relationshipId = k.relationshipId
       )
   }
@@ -69,7 +73,8 @@ object Adapters {
       consumerId = p.consumerId,
       purposes = p.purposes.map(_.toApi),
       relationshipsIds = if (showRelationShips) p.relationships else Set.empty,
-      kind = p.kind.toApi
+      kind = p.kind.toApi,
+      createdAt = p.createdAt
     )
   }
 
@@ -132,13 +137,14 @@ object Adapters {
   }
 
   implicit class KeySeedWrapper(private val keySeed: KeySeed) extends AnyVal {
-    def toDependency(relationshipId: UUID): AuthorizationManagementDependency.KeySeed =
+    def toDependency(relationshipId: UUID, createdAt: OffsetDateTime): AuthorizationManagementDependency.KeySeed =
       AuthorizationManagementDependency.KeySeed(
         relationshipId = relationshipId,
         key = keySeed.key,
         use = keySeed.use.toDependency,
         alg = keySeed.alg,
-        name = keySeed.name
+        name = keySeed.name,
+        createdAt = createdAt
       )
   }
 

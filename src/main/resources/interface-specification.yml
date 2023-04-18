@@ -945,6 +945,9 @@ components:
         consumerId:
           type: string
           format: uuid
+        createdAt:
+          type: string
+          format: date-time
         purposes:
           type: array
           items:
@@ -967,6 +970,7 @@ components:
         - purposes
         - relationshipsIds
         - kind
+        - createdAt
     ClientPurpose:
       type: object
       description: Models Client purposes

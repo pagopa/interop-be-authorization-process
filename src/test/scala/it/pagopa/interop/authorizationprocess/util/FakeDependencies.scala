@@ -1,20 +1,20 @@
 package it.pagopa.interop.authorizationprocess.util
 
+import cats.syntax.all._
 import it.pagopa.interop.agreementmanagement.client.model.Agreement
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.catalogmanagement.client.model.{Attributes, EService, EServiceTechnology}
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.purposemanagement.client.model
 import it.pagopa.interop.purposemanagement.client.model.PurposeVersion
 import it.pagopa.interop.selfcare.partymanagement.client.model._
 import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
-import cats.syntax.all._
+import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant}
+
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import it.pagopa.interop.tenantmanagement.client.model.Tenant
-import it.pagopa.interop.tenantmanagement.client.model.ExternalId
-import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 
 /**
  * Holds fake implementation of dependencies for tests not requiring neither mocks or stubs
@@ -40,16 +40,21 @@ object FakeDependencies {
       )
   }
   class FakeAuthorizationManagementService extends AuthorizationManagementService {
-    override def createClient(consumerId: UUID, name: String, description: Option[String], kind: ClientKind)(implicit
-      contexts: Seq[(String, String)]
-    ): Future[ManagementClient] = Future.successful(
+    override def createClient(
+      consumerId: UUID,
+      name: String,
+      description: Option[String],
+      kind: ClientKind,
+      createdAt: OffsetDateTime
+    )(implicit contexts: Seq[(String, String)]): Future[ManagementClient] = Future.successful(
       Client(
         id = UUID.randomUUID(),
         consumerId = UUID.randomUUID(),
         name = "fake",
         purposes = Seq.empty,
         relationships = Set.empty,
-        kind = ClientKind.API
+        kind = ClientKind.API,
+        createdAt = createdAt
       )
     )
 
@@ -61,7 +66,8 @@ object FakeDependencies {
           name = "fake",
           purposes = Seq.empty,
           relationships = Set.empty,
-          kind = ClientKind.API
+          kind = ClientKind.API,
+          createdAt = OffsetDateTime.now()
         )
       )
 
@@ -77,7 +83,8 @@ object FakeDependencies {
         name = "fake",
         purposes = Seq.empty,
         relationships = Set.empty,
-        kind = ClientKind.API
+        kind = ClientKind.API,
+        createdAt = OffsetDateTime.now()
       )
     )
 

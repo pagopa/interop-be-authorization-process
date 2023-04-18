@@ -4,8 +4,8 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationmanagement.client.model.{KeysResponse, KeySeed => KeyMgmtSeed}
-import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiMarshallerImpl._
+import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{ClientKeyNotFound, ClientNotFound}
 import it.pagopa.interop.authorizationprocess.model._
@@ -16,7 +16,6 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -35,12 +34,13 @@ class KeyOperationSpec
     mockPurposeManagementService,
     mockUserRegistryManagementService,
     mockTenantManagementService,
-    mockReadModel
+    mockReadModel,
+    mockDateTimeSupplier
   )(ExecutionContext.global)
 
   val apiClientKey: ClientKey = ClientKey(
     name = "test",
-    createdAt = OffsetDateTime.now(),
+    createdAt = timestamp,
     key = Key(
       kty = createdKey.key.kty,
       key_ops = createdKey.key.keyOps,
@@ -127,7 +127,8 @@ class KeyOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel
+        mockReadModel,
+        mockDateTimeSupplier
       )(ExecutionContext.global)
       val kid                                      = "some-kid"
       Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
@@ -216,7 +217,8 @@ class KeyOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel
+        mockReadModel,
+        mockDateTimeSupplier
       )(ExecutionContext.global)
       Get() ~> service.getClientKeys(relationshipIds, client.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -247,6 +249,8 @@ class KeyOperationSpec
   "Create client keys" should {
     "succeed" in {
       val keySeeds: Seq[KeySeed] = Seq(KeySeed(key = "key", use = KeyUse.SIG, alg = "123", name = "test"))
+
+      (() => service.dateTimeSupplier.get()).expects().returning(timestamp).once()
 
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: Seq[(String, String)]))
@@ -297,7 +301,8 @@ class KeyOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel
+        mockReadModel,
+        mockDateTimeSupplier
       )(ExecutionContext.global)
       Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.Forbidden

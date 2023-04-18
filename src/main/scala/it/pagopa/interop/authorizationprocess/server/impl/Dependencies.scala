@@ -43,6 +43,7 @@ import it.pagopa.interop.commons.cqrs.service.{MongoDbReadModelService, ReadMode
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 
 trait Dependencies {
 
@@ -50,7 +51,8 @@ trait Dependencies {
     Logger.takingImplicit[ContextFieldsToLog]("OAuth2JWTValidatorAsContexts")
 
   implicit val partyManagementApiKeyValue: PartyManagementApiKeyValue = PartyManagementApiKeyValue()
-  val readModelService: ReadModelService = new MongoDbReadModelService(ApplicationConfiguration.readModelConfig)
+  val readModelService: ReadModelService       = new MongoDbReadModelService(ApplicationConfiguration.readModelConfig)
+  val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplier
 
   def partyManagementService()(implicit actorSystem: ActorSystem[_]): PartyManagementService =
     PartyManagementServiceImpl(
@@ -128,7 +130,8 @@ trait Dependencies {
       purposeManagementService(blockingEc),
       userRegistryManagementService(),
       tenantManagement(blockingEc),
-      readModelService
+      readModelService,
+      dateTimeSupplier
     ),
     ClientApiMarshallerImpl,
     jwtReader.OAuth2JWTValidatorAsContexts

@@ -45,7 +45,8 @@ class OperatorOperationSpec
     mockPurposeManagementService,
     mockUserRegistryManagementService,
     mockTenantManagementService,
-    mockReadModel
+    mockReadModel,
+    mockDateTimeSupplier
   )(ExecutionContext.global)
 
   "Operator addition" should {
@@ -80,7 +81,8 @@ class OperatorOperationSpec
         purposes = Seq(clientPurposeProcess),
         description = client.description,
         relationshipsIds = Set(relationship.id),
-        kind = ClientKind.CONSUMER
+        kind = ClientKind.CONSUMER,
+        createdAt = timestamp
       )
 
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, relationshipId) ~> check {
@@ -105,7 +107,8 @@ class OperatorOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel
+        mockReadModel,
+        mockDateTimeSupplier
       )(ExecutionContext.global)
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, seed) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -185,7 +188,8 @@ class OperatorOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel
+        mockReadModel,
+        mockDateTimeSupplier
       )(ExecutionContext.global)
       Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationship.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -343,7 +347,8 @@ class OperatorOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel
+        mockReadModel,
+        mockDateTimeSupplier
       )(ExecutionContext.global)
       Get() ~> service.getClientOperators(client.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden

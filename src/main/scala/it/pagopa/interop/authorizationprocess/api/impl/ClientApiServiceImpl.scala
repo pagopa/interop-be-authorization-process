@@ -10,6 +10,9 @@ import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagemen
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.api.ClientApiService
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiHandlers._
+import it.pagopa.interop.authorizationprocess.common.Adapters._
+import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
+import it.pagopa.interop.authorizationprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
@@ -18,21 +21,19 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipStateToApi
 }
 import it.pagopa.interop.authorizationprocess.service._
-import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, SECURITY_ROLE, authorize}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils._
+import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.selfcare._
 import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
 import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
-import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
-import it.pagopa.interop.commons.cqrs.service.ReadModelService
-import it.pagopa.interop.authorizationprocess.common.readmodel.ReadModelQueries
-import it.pagopa.interop.authorizationprocess.common.Adapters._
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -45,7 +46,8 @@ final case class ClientApiServiceImpl(
   purposeManagementService: PurposeManagementService,
   userRegistryManagementService: UserRegistryManagementService,
   tenantManagementService: TenantManagementService,
-  readModel: ReadModelService
+  readModel: ReadModelService,
+  dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext)
     extends ClientApiService {
 
@@ -71,7 +73,8 @@ final case class ClientApiServiceImpl(
         organizationId,
         clientSeed.name,
         clientSeed.description,
-        authorizationmanagement.client.model.ClientKind.CONSUMER
+        authorizationmanagement.client.model.ClientKind.CONSUMER,
+        dateTimeSupplier.get()
       )(contexts)
     } yield client.toApi(organizationId == client.consumerId)
 
@@ -95,7 +98,8 @@ final case class ClientApiServiceImpl(
         organizationId,
         clientSeed.name,
         clientSeed.description,
-        authorizationmanagement.client.model.ClientKind.API
+        authorizationmanagement.client.model.ClientKind.API,
+        dateTimeSupplier.get()
       )(contexts)
     } yield client.toApi(organizationId == client.consumerId)
 
@@ -275,7 +279,7 @@ final case class ClientApiServiceImpl(
         .getClient(clientUuid)(contexts)
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
       relationshipId <- securityOperatorRelationship(client.consumerId, userId).map(_.id)
-      seeds = keysSeeds.map(_.toDependency(relationshipId))
+      seeds = keysSeeds.map(_.toDependency(relationshipId, dateTimeSupplier.get()))
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
     } yield ClientKeys(keysResponse.keys.map(_.toApi))
 
