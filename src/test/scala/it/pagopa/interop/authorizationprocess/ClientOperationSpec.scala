@@ -7,7 +7,7 @@ import it.pagopa.interop.authorizationprocess.common.readmodel.TotalCountResult
 import org.mongodb.scala.bson.conversions.Bson
 import spray.json.JsonReader
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
-import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, Api}
+import it.pagopa.interop.authorizationmanagement.model.client.{Api, PersistentClient}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{ClientNotFound, PurposeNotFound}
 import it.pagopa.interop.authorizationprocess.model._
@@ -19,6 +19,7 @@ import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 import it.pagopa.interop.commons.utils.USER_ROLES
 
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -44,14 +45,19 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       (() => service.dateTimeSupplier.get()).expects().returning(timestamp).once()
 
       (mockAuthorizationManagementService
-        .createClient(_: UUID, _: String, _: Option[String], _: authorizationmanagement.client.model.ClientKind)(
-          _: Seq[(String, String)]
-        ))
+        .createClient(
+          _: UUID,
+          _: String,
+          _: Option[String],
+          _: authorizationmanagement.client.model.ClientKind,
+          _: OffsetDateTime
+        )(_: Seq[(String, String)]))
         .expects(
           consumerId,
           clientSeed.name,
           clientSeed.description,
           authorizationmanagement.client.model.ClientKind.CONSUMER,
+          timestamp,
           *
         )
         .once()
@@ -209,7 +215,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         purposes = Seq.empty,
         description = None,
         relationships = Set.empty,
-        kind = Api
+        kind = Api,
+        createdAt = timestamp
       )
 
       val clients: Seq[PersistentClient] = Seq(client)
@@ -260,7 +267,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         purposes = Seq.empty,
         description = None,
         relationships = Set.empty,
-        kind = Api
+        kind = Api,
+        createdAt = timestamp
       )
 
       val clients: Seq[PersistentClient] = Seq(client)

@@ -73,8 +73,8 @@ final case class ClientApiServiceImpl(
         organizationId,
         clientSeed.name,
         clientSeed.description,
-        dateTimeSupplier.get(),
-        authorizationmanagement.client.model.ClientKind.CONSUMER
+        authorizationmanagement.client.model.ClientKind.CONSUMER,
+        dateTimeSupplier.get()
       )(contexts)
     } yield client.toApi(organizationId == client.consumerId)
 
@@ -98,7 +98,8 @@ final case class ClientApiServiceImpl(
         organizationId,
         clientSeed.name,
         clientSeed.description,
-        authorizationmanagement.client.model.ClientKind.API
+        authorizationmanagement.client.model.ClientKind.API,
+        dateTimeSupplier.get()
       )(contexts)
     } yield client.toApi(organizationId == client.consumerId)
 

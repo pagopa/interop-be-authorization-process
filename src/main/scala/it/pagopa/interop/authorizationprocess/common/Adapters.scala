@@ -55,7 +55,7 @@ object Adapters {
         use = k.use.toApi,
         alg = k.algorithm,
         name = k.name,
-        createdAt = k.creationTimestamp,
+        createdAt = k.createdAt,
         relationshipId = k.relationshipId
       )
   }

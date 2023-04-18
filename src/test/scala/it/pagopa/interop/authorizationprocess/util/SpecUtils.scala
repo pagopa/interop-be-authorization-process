@@ -232,7 +232,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     purposes = Seq(persistentClientPurpose),
     description = clientSeed.description,
     relationships = Set.empty,
-    kind = AuthorizationPersistentModel.Consumer
+    kind = AuthorizationPersistentModel.Consumer,
+    createdAt = timestamp
   )
 
   val client: AuthorizationManagementDependency.Client = AuthorizationManagementDependency.Client(
@@ -248,7 +249,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val consumer: Tenant = Tenant(
     id = client.consumerId,
-    selfcareId = UUID.randomUUID.toString().some,
+    selfcareId = UUID.randomUUID.toString.some,
     externalId = ExternalId("IPA", "value"),
     features = Nil,
     attributes = Nil,

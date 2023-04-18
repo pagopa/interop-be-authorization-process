@@ -1,14 +1,20 @@
 package it.pagopa.interop.authorizationprocess.service
 
 import it.pagopa.interop.authorizationmanagement.client.model._
+
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.Future
 
 trait AuthorizationManagementService {
 
-  def createClient(consumerId: UUID, name: String, description: Option[String], kind: ClientKind)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[ManagementClient]
+  def createClient(
+    consumerId: UUID,
+    name: String,
+    description: Option[String],
+    kind: ClientKind,
+    createdAt: OffsetDateTime
+  )(implicit contexts: Seq[(String, String)]): Future[ManagementClient]
 
   def getClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[ManagementClient]
 
