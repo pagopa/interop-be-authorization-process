@@ -23,7 +23,7 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
-import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, SECURITY_ROLE, authorize}
+import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, SECURITY_ROLE, SUPPORT_ROLE, authorize}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils._
 import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
@@ -112,7 +112,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
     val operationLabel: String = s"Retrieving client $clientId"
     logger.info(operationLabel)
 
@@ -227,7 +227,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerReadClientKey: ToEntityMarshaller[ReadClientKey]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
     val operationLabel: String = s"Getting Key $keyId of Client $clientId"
     logger.info(operationLabel)
 
@@ -292,7 +292,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKeys: ToEntityMarshaller[ReadClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
     val operationLabel: String = s"Retrieving keys for client $clientId"
     logger.info(operationLabel)
 
@@ -319,7 +319,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerOperatorarray: ToEntityMarshaller[Seq[Operator]],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, SUPPORT_ROLE) {
     val operationLabel: String = s"Retrieving operators of client $clientId"
     logger.info(operationLabel)
 
@@ -523,7 +523,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerEncodedClientKey: ToEntityMarshaller[EncodedClientKey],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
     val operationLabel = s"Retrieving encoded Key $keyId of Client $clientId"
     logger.info(operationLabel)
 
@@ -551,7 +551,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerClients: ToEntityMarshaller[Clients],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE,SUPPORT_ROLE) {
     val operationLabel =
       s"Retrieving clients by name $name , relationship $relationshipIds"
     logger.info(operationLabel)
@@ -604,7 +604,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerClientsWithKeys: ToEntityMarshaller[ClientsWithKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
 
     val operationLabel =
       s"Retrieving clients with keys by name $name , relationship $relationshipIds"

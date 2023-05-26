@@ -13,7 +13,7 @@
     {
       "route": "getClient",
       "verb": "GET",
-      "roles": ["admin", "security", "m2m"]
+      "roles": ["admin", "security", "m2m", "support"]
     },
     {
       "route": "deleteClient",
@@ -33,12 +33,12 @@
     {
       "route": "getClientKeyById",
       "verb": "GET",
-      "roles": ["admin", "security", "m2m"]
+      "roles": ["admin", "security", "m2m", "support"]
     },
     {
       "route": "getClients",
       "verb": "GET",
-      "roles": ["admin", "security", "m2m"]
+      "roles": ["admin", "security", "m2m", "support"]
     },
     {
       "route": "deleteClientKeyById",
@@ -53,12 +53,12 @@
     {
       "route": "getClientKeys",
       "verb": "GET",
-      "roles": ["admin", "security", "m2m"]
+      "roles": ["admin", "security", "m2m", "support"]
     },
     {
       "route": "getClientOperators",
       "verb": "GET",
-      "roles": ["admin", "security"]
+      "roles": ["admin", "security", "support"]
     },
     {
       "route": "addClientPurpose",
@@ -78,12 +78,12 @@
     {
       "route": "getEncodedClientKeyById",
       "verb": "GET",
-      "roles": ["admin", "security", "m2m"]
+      "roles": ["admin", "security", "m2m", "support"]
     },
     {
       "route": "getClientOperatorKeys",
       "verb": "GET",
-      "roles": ["admin", "security"]
+      "roles": ["admin", "security", "support"]
     }
   ]
 }
