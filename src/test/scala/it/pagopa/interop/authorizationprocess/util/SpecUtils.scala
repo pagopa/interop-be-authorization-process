@@ -270,7 +270,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     description = "Purpose?",
     riskAnalysisForm = None,
     createdAt = timestamp,
-    updatedAt = None
+    updatedAt = None,
+    isFreeOfCharge = true
   )
 
   val archivedPurpose: PurposeManagementDependency.Purpose =

@@ -184,7 +184,8 @@ object FakeDependencies {
           versions = Seq.empty[PurposeVersion],
           title = "fake",
           description = "fake",
-          createdAt = OffsetDateTime.now()
+          createdAt = OffsetDateTime.now(),
+          isFreeOfCharge = true
         )
       )
   }
