@@ -9,11 +9,12 @@ import it.pagopa.interop.authorizationprocess.api.OperatorApiService
 import OperatorApiHandlers._
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
-import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, SECURITY_ROLE, authorize}
+import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, SECURITY_ROLE, SUPPORT_ROLE, authorize}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.TypeConversions.StringOps
 import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _}
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
+
 import scala.concurrent.{ExecutionContext, Future}
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.authorizationprocess.common.Adapters._
@@ -31,7 +32,7 @@ final case class OperatorApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, SUPPORT_ROLE) {
     val operationLabel: String = s"Getting client keys $clientId for operator $operatorId"
     logger.info(operationLabel)
 
