@@ -15,7 +15,11 @@ import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
 import it.pagopa.interop.authorizationprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
-import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{relationshipProductToApi, relationshipRoleToApi, relationshipStateToApi}
+import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
+  relationshipProductToApi,
+  relationshipRoleToApi,
+  relationshipStateToApi
+}
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
@@ -600,7 +604,7 @@ final case class ClientApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerClientsWithKeys: ToEntityMarshaller[ClientsWithKeys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE,SUPPORT_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
 
     val operationLabel =
       s"Retrieving clients with keys by name $name , relationship $relationshipIds"

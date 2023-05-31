@@ -36,6 +36,11 @@
       "roles": ["admin", "security", "m2m", "support"]
     },
     {
+      "route": "getClientsWithKeys",
+      "verb": "GET",
+      "roles": ["admin", "security", "m2m", "support"]
+    },
+    {
       "route": "getClients",
       "verb": "GET",
       "roles": ["admin", "security", "m2m", "support"]
