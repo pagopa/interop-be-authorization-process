@@ -75,6 +75,17 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
         }
       )
     }
+
+    "accept authorized roles for getClientsWithKeys" in {
+      val endpoint = AuthorizedRoutes.endpoints("getClientsWithKeys")
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] =>
+          service.getClientsWithKeys(Some("name"), "relationshipIds", "consumerId", Some("purposeId"), None, 0, 0)
+        }
+      )
+    }
+
     "accept authorized roles for clientOperatorRelationshipBinding" in {
       val endpoint = AuthorizedRoutes.endpoints("clientOperatorRelationshipBinding")
       validateAuthorization(
