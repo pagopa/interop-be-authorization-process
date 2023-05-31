@@ -281,7 +281,7 @@ class KeyOperationSpec
       val expected = apiClientKey
 
       Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
-        status shouldEqual StatusCodes.Created
+        status shouldEqual StatusCodes.OK
         entityAs[ClientKeys] should haveTheSameKeys(ClientKeys(Seq(expected)))
       }
     }

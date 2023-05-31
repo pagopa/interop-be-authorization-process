@@ -86,7 +86,7 @@ class OperatorOperationSpec
       )
 
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, relationshipId) ~> check {
-        status shouldEqual StatusCodes.Created
+        status shouldEqual StatusCodes.OK
         entityAs[Client] shouldEqual expected
       }
     }

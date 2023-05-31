@@ -50,7 +50,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ClientSeed'
       responses:
-        '201':
+        '200':
           description: Client created
           content:
             application/json:
@@ -79,7 +79,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ClientSeed'
       responses:
-        '201':
+        '200':
           description: Client created
           content:
             application/json:
@@ -435,7 +435,7 @@ paths:
       summary: Binds an Operator relationship to a Client
       operationId: clientOperatorRelationshipBinding
       responses:
-        '201':
+        '200':
           description: Operator added
           content:
             application/json:
@@ -476,7 +476,7 @@ paths:
       summary: Create Keys for the specific clientId.
       operationId: createKeys
       responses:
-        '201':
+        '200':
           description: Keys created
           content:
             application/json:
