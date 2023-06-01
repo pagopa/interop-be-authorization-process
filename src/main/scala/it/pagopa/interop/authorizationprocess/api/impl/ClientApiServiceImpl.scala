@@ -79,7 +79,7 @@ final case class ClientApiServiceImpl(
     } yield client.toApi(organizationId == client.consumerId)
 
     onComplete(result) {
-      createConsumerClientResponse[Client](operationLabel)(createConsumerClient201)
+      createConsumerClientResponse[Client](operationLabel)(createConsumerClient200)
     }
   }
 
@@ -104,7 +104,7 @@ final case class ClientApiServiceImpl(
     } yield client.toApi(organizationId == client.consumerId)
 
     onComplete(result) {
-      createApiClientResponse[Client](operationLabel)(createApiClient201)
+      createApiClientResponse[Client](operationLabel)(createApiClient200)
     }
   }
 
@@ -187,7 +187,7 @@ final case class ClientApiServiceImpl(
     } yield updatedClient.toApi(organizationId == updatedClient.consumerId)
 
     onComplete(result) {
-      clientOperatorRelationshipBindingResponse[Client](operationLabel)(clientOperatorRelationshipBinding201)
+      clientOperatorRelationshipBindingResponse[Client](operationLabel)(clientOperatorRelationshipBinding200)
     }
   }
 
@@ -284,7 +284,7 @@ final case class ClientApiServiceImpl(
     } yield ClientKeys(keysResponse.keys.map(_.toApi))
 
     onComplete(result) {
-      createKeysResponse[ClientKeys](operationLabel)(createKeys201)
+      createKeysResponse[ClientKeys](operationLabel)(createKeys200)
     }
   }
 

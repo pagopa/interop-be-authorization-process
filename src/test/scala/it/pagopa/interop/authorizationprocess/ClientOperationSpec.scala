@@ -75,7 +75,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       )
 
       Get() ~> service.createConsumerClient(clientSeed) ~> check {
-        status shouldEqual StatusCodes.Created
+        status shouldEqual StatusCodes.OK
         entityAs[Client] shouldEqual expected
       }
     }
