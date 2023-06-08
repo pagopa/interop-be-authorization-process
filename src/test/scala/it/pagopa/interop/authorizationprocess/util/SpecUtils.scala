@@ -325,7 +325,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     role = PartyManagementDependency.PartyRole.OPERATOR,
     product = PartyManagementDependency.RelationshipProduct("Interop", "aPlatformRole", timestamp),
     state = PartyManagementDependency.RelationshipState.ACTIVE,
-    createdAt = timestamp
+    createdAt = timestamp.some
   )
 
   val relationships: PartyManagementDependency.Relationships =
