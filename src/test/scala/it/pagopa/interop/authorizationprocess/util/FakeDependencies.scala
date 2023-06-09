@@ -170,7 +170,7 @@ object FakeDependencies {
         role = PartyRole.MANAGER,
         product = RelationshipProduct(id = "fake", role = "fake", createdAt = OffsetDateTime.now()),
         state = RelationshipState.ACTIVE,
-        createdAt = OffsetDateTime.now()
+        createdAt = OffsetDateTime.now().some
       )
     )
   }
