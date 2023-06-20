@@ -25,7 +25,7 @@ object Dependencies {
   }
 
   private[this] object pagopa {
-    lazy val namespace               = "it.pagopa"
+    lazy val namespace                     = "it.pagopa"
     lazy val authorizationManagementClient =
       namespace %% "interop-be-authorization-management-client" % authorizationManagementVersion
     lazy val authorizationManagementModels =
@@ -114,42 +114,42 @@ object Dependencies {
       )
     lazy val `server`: Seq[ModuleID]  = Seq(
       // For making Java 12 happy
-      "javax.annotation"             % "javax.annotation-api" % "1.3.2" % "compile",
+      "javax.annotation"                   % "javax.annotation-api" % "1.3.2" % "compile",
       //
-      akka.actor                            % Compile,
-      akka.actorTyped                       % Compile,
-      akka.clusterTools                     % Compile,
-      akka.http                             % Compile,
-      akka.httpJson                         % Compile,
-      akka.management                       % Compile,
-      akka.managementLogLevels              % Compile,
-      akka.serialization                    % Compile,
-      akka.slf4j                            % Compile,
-      akka.stream                           % Compile,
-      bouncycastle.kix                      % Compile,
-      bouncycastle.provider                 % Compile,
-      cats.core                             % Compile,
-      logback.classic                       % Compile,
-      mustache.mustache                     % Compile,
-      nimbus.joseJwt                        % Compile,
-      pagopa.agreementManagement            % Compile,
-      pagopa.commonsUtils                   % Compile,
-      pagopa.catalogManagement              % Compile,
-      pagopa.commonsJwt                     % Compile,
-      pagopa.commonsCqrs                    % Compile,
-      pagopa.authorizationManagementClient  % Compile,
-      pagopa.authorizationManagementModels  % Compile,
-      pagopa.partyManagement                % Compile,
-      pagopa.purposeManagementClient        % Compile,
-      pagopa.purposeManagementModels        % Compile,
-      pagopa.tenantManagement               % Compile,
-      pagopa.userRegistryManagement         % Compile,
-      scalpb.core                           % "protobuf",
-      akka.httpTestkit                      % Test,
-      akka.streamTestkit                    % Test,
-      akka.testkit                          % Test,
-      scalatest.core                        % Test,
-      scalamock.core                        % Test
+      akka.actor                           % Compile,
+      akka.actorTyped                      % Compile,
+      akka.clusterTools                    % Compile,
+      akka.http                            % Compile,
+      akka.httpJson                        % Compile,
+      akka.management                      % Compile,
+      akka.managementLogLevels             % Compile,
+      akka.serialization                   % Compile,
+      akka.slf4j                           % Compile,
+      akka.stream                          % Compile,
+      bouncycastle.kix                     % Compile,
+      bouncycastle.provider                % Compile,
+      cats.core                            % Compile,
+      logback.classic                      % Compile,
+      mustache.mustache                    % Compile,
+      nimbus.joseJwt                       % Compile,
+      pagopa.agreementManagement           % Compile,
+      pagopa.commonsUtils                  % Compile,
+      pagopa.catalogManagement             % Compile,
+      pagopa.commonsJwt                    % Compile,
+      pagopa.commonsCqrs                   % Compile,
+      pagopa.authorizationManagementClient % Compile,
+      pagopa.authorizationManagementModels % Compile,
+      pagopa.partyManagement               % Compile,
+      pagopa.purposeManagementClient       % Compile,
+      pagopa.purposeManagementModels       % Compile,
+      pagopa.tenantManagement              % Compile,
+      pagopa.userRegistryManagement        % Compile,
+      scalpb.core                          % "protobuf",
+      akka.httpTestkit                     % Test,
+      akka.streamTestkit                   % Test,
+      akka.testkit                         % Test,
+      scalatest.core                       % Test,
+      scalamock.core                       % Test
     )
     lazy val client: Seq[ModuleID]    =
       Seq(akka.stream, akka.http, akka.httpJson4s, akka.slf4j, json4s.jackson, json4s.ext, pagopa.commonsUtils).map(
