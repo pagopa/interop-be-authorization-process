@@ -4,25 +4,24 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
-import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationprocess.api.OperatorApiService
 import OperatorApiHandlers._
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, SECURITY_ROLE, SUPPORT_ROLE, authorize}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.TypeConversions.StringOps
 import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _}
+import it.pagopa.interop.commons.utils.TypeConversions._
+import it.pagopa.interop.authorizationprocess.common.Adapters._
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
 
 import scala.concurrent.{ExecutionContext, Future}
-import it.pagopa.interop.commons.utils.TypeConversions._
-import it.pagopa.interop.authorizationprocess.common.Adapters._
 
 final case class OperatorApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
   partyManagementService: PartyManagementService
-)(implicit ec: ExecutionContext)
+)(implicit ec: ExecutionContext, readModel: ReadModelService)
     extends OperatorApiService {
 
   implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
@@ -37,16 +36,17 @@ final case class OperatorApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[ClientKeys] = for {
-      clientUuid    <- clientId.toFutureUUID
-      client        <- authorizationManagementService.getClient(clientUuid)(contexts)
-      _             <- assertIsClientConsumer(client).toFuture
-      operatorUuid  <- operatorId.toFutureUUID
-      relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)
-      clientUuid    <- clientId.toFutureUUID
-      clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)(contexts)
-      operatorKeys = clientKeys.keys.filter(key => relationships.items.exists(_.id == key.relationshipId))
-      keysResponse = authorizationmanagement.client.model.KeysResponse(operatorKeys)
-    } yield ClientKeys(keysResponse.keys.map(_.toApi))
+      clientUuid     <- clientId.toFutureUUID
+      client         <- authorizationManagementService.getClient(clientUuid)
+      _              <- assertIsClientConsumer(client).toFuture
+      operatorUuid   <- operatorId.toFutureUUID
+      relationships  <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)
+      clientUuid     <- clientId.toFutureUUID
+      persistentKeys <- authorizationManagementService.getClientKeys(clientUuid)
+      clientKeys     <- Future.traverse(
+        persistentKeys.filter(key => relationships.items.exists(_.id == key.relationshipId))
+      )(f => f.toClientKeyApi.toFuture)
+    } yield ClientKeys(clientKeys)
 
     onComplete(result) {
       getClientOperatorKeysResponse[ClientKeys](operationLabel)(getClientOperatorKeys200)

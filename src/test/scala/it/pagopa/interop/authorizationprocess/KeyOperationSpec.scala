@@ -12,6 +12,7 @@ import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
 import it.pagopa.interop.authorizationprocess.service.{AuthorizationManagementInvoker, PartyManagementService}
 import it.pagopa.interop.authorizationprocess.util.{CustomMatchers, SpecUtilsWithImplicit}
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -34,9 +35,8 @@ class KeyOperationSpec
     mockPurposeManagementService,
     mockUserRegistryManagementService,
     mockTenantManagementService,
-    mockReadModel,
     mockDateTimeSupplier
-  )(ExecutionContext.global)
+  )(ExecutionContext.global, mockReadModel)
 
   val apiClientKey: ClientKey = ClientKey(
     name = "test",
@@ -69,19 +69,18 @@ class KeyOperationSpec
 
   "Retrieve key" should {
     "succeed" in {
-      val kid = "some-kid"
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       (mockAuthorizationManagementService
-        .getKey(_: UUID, _: String)(_: Seq[(String, String)]))
-        .expects(client.id, kid, *)
+        .getClientKey(_: UUID, _: String)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, persistentKey.kid, *, *)
         .once()
-        .returns(Future.successful(createdKey))
+        .returns(Future.successful(persistentKey))
 
       (mockPartyManagementService
         .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
@@ -106,7 +105,7 @@ class KeyOperationSpec
         )
       )
 
-      Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
+      Get() ~> service.getClientKeyById(persistentClient.id.toString, persistentKey.kid) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[ReadClientKey] should haveTheSameReadKey(expected)
       }
@@ -127,9 +126,8 @@ class KeyOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel,
         mockDateTimeSupplier
-      )(ExecutionContext.global)
+      )(ExecutionContext.global, mockReadModel)
       val kid                                      = "some-kid"
       Get() ~> service.getClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -139,14 +137,14 @@ class KeyOperationSpec
     "fail if client or key do not exist" in {
       val kid = "some-kid"
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       (mockAuthorizationManagementService
-        .getKey(_: UUID, _: String)(_: Seq[(String, String)]))
-        .expects(*, *, *)
+        .getClientKey(_: UUID, _: String)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *, *)
         .once()
         .returns(Future.failed(ClientKeyNotFound(client.id, kid)))
 
@@ -159,16 +157,16 @@ class KeyOperationSpec
   "Retrieve all client keys" should {
     "succeed" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
+        .returns(Future.successful(persistentClient.copy(relationships = Set(relationship.id))))
 
       (mockAuthorizationManagementService
-        .getClientKeys(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClientKeys(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(KeysResponse(Seq(createdKey.copy(relationshipId = relationship.id)))))
+        .returns(Future.successful(Seq(persistentKey.copy(relationshipId = relationship.id))))
 
       (mockPartyManagementService
         .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
@@ -195,7 +193,7 @@ class KeyOperationSpec
 
       val relationshipIds = relationship.id.toString
 
-      Get() ~> service.getClientKeys(relationshipIds, client.id.toString) ~> check {
+      Get() ~> service.getClientKeys(relationshipIds, persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[ReadClientKeys] should haveTheSameReadKeys(ReadClientKeys(Seq(expected)))
       }
@@ -217,30 +215,29 @@ class KeyOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel,
         mockDateTimeSupplier
-      )(ExecutionContext.global)
-      Get() ~> service.getClientKeys(relationshipIds, client.id.toString) ~> check {
+      )(ExecutionContext.global, mockReadModel)
+      Get() ~> service.getClientKeys(relationshipIds, UUID.randomUUID.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
     }
 
     "fail if client or key do not exist" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       (mockAuthorizationManagementService
-        .getClientKeys(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClientKeys(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.failed(ClientNotFound(client.id)))
+        .returns(Future.failed(ClientNotFound(persistentClient.id)))
 
       val relationshipIds = UUID.randomUUID.toString
 
-      Get() ~> service.getClientKeys(relationshipIds, client.id.toString) ~> check {
+      Get() ~> service.getClientKeys(relationshipIds, persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -253,10 +250,10 @@ class KeyOperationSpec
       (() => service.dateTimeSupplier.get()).expects().returning(timestamp).once()
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       mockGetTenant()
 
@@ -274,13 +271,13 @@ class KeyOperationSpec
 
       (mockAuthorizationManagementService
         .createKeys(_: UUID, _: Seq[KeyMgmtSeed])(_: Seq[(String, String)]))
-        .expects(client.id, *, *)
+        .expects(persistentClient.id, *, *)
         .once()
         .returns(Future.successful(KeysResponse(Seq(createdKey))))
 
       val expected = apiClientKey
 
-      Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
+      Get() ~> service.createKeys(persistentClient.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[ClientKeys] should haveTheSameKeys(ClientKeys(Seq(expected)))
       }
@@ -301,9 +298,8 @@ class KeyOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel,
         mockDateTimeSupplier
-      )(ExecutionContext.global)
+      )(ExecutionContext.global, mockReadModel)
       Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
@@ -313,10 +309,10 @@ class KeyOperationSpec
       val keySeeds: Seq[KeySeed] = Seq(KeySeed(key = "key", use = KeyUse.SIG, alg = "123", name = "test"))
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(client.id, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       mockGetTenant()
 
@@ -340,8 +336,8 @@ class KeyOperationSpec
 
     "fail if client or key do not exist" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(client.id, *, *)
         .once()
         .returns(Future.failed(ClientNotFound(client.id)))
 
@@ -356,10 +352,10 @@ class KeyOperationSpec
       val kid = "some-kid"
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       (mockAuthorizationManagementService
         .deleteKey(_: UUID, _: String)(_: Seq[(String, String)]))
@@ -376,10 +372,10 @@ class KeyOperationSpec
       val kid = "some-kid"
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       (mockAuthorizationManagementService
         .deleteKey(_: UUID, _: String)(_: Seq[(String, String)]))
@@ -392,5 +388,4 @@ class KeyOperationSpec
       }
     }
   }
-
 }

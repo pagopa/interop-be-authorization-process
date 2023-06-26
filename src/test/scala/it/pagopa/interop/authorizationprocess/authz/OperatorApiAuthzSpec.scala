@@ -5,6 +5,8 @@ import it.pagopa.interop.authorizationprocess.api.impl.OperatorApiServiceImpl
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.util.FakeDependencies._
 import it.pagopa.interop.authorizationprocess.util.{AuthorizedRoutes, AuthzScalatestRouteTest}
+import it.pagopa.interop.commons.cqrs.service.{MongoDbReadModelService, ReadModelService}
+import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -18,9 +20,18 @@ class OperatorApiAuthzSpec extends AnyWordSpecLike with MockFactory with AuthzSc
   val fakePartyManagementService: PartyManagementService                 = new FakePartyManagementService()
   val fakePurposeManagementService: PurposeManagementService             = new FakePurposeManagementService()
   val fakeUserRegistryManagementService: UserRegistryManagementService   = new FakeUserRegistryManagementService()
+  implicit val fakeReadModel: ReadModelService                           = new MongoDbReadModelService(
+    ReadModelConfig(
+      "mongodb://localhost/?socketTimeoutMS=1&serverSelectionTimeoutMS=1&connectTimeoutMS=1&&autoReconnect=false&keepAlive=false",
+      "db"
+    )
+  )
 
   val service: OperatorApiServiceImpl =
-    OperatorApiServiceImpl(fakeAuthorizationManagementService, fakePartyManagementService)(ExecutionContext.global)
+    OperatorApiServiceImpl(fakeAuthorizationManagementService, fakePartyManagementService)(
+      ExecutionContext.global,
+      fakeReadModel
+    )
 
   "Operator api authorization spec" should {
     "accept authorized roles for getClientOperatorKeys" in {

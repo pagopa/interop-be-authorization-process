@@ -9,6 +9,7 @@ import it.pagopa.interop.authorizationmanagement.model.key.{Enc, Sig}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationmanagement.model.key.PersistentKey
+import it.pagopa.interop.authorizationprocess.service.impl.KeyProcessor
 
 import java.util.UUID
 import it.pagopa.interop.authorizationmanagement.model.key.PersistentKeyUse
@@ -48,7 +49,7 @@ object Adapters {
   }
 
   implicit class PersistentKeyWrapper(private val k: PersistentKey) extends AnyVal {
-    def toApi: KeyEntry =
+    def toApi: KeyEntry                                              =
       KeyEntry(
         id = k.kid,
         key = k.encodedPem,
@@ -58,6 +59,22 @@ object Adapters {
         createdAt = k.createdAt,
         relationshipId = k.relationshipId
       )
+    def toReadKeyApi(op: Operator): Either[Throwable, ReadClientKey] =
+      KeyProcessor
+        .fromBase64encodedPEMToAPIKey(k.kid, k.encodedPem, k.use, k.algorithm)
+        .map(key =>
+          ReadClientKey(
+            name = k.name,
+            createdAt = k.createdAt,
+            operator = OperatorDetails(op.relationshipId, op.name, op.familyName),
+            key = key
+          )
+        )
+
+    def toClientKeyApi: Either[Throwable, ClientKey] =
+      KeyProcessor
+        .fromBase64encodedPEMToAPIKey(k.kid, k.encodedPem, k.use, k.algorithm)
+        .map(key => ClientKey(name = k.name, createdAt = k.createdAt, key = key))
   }
 
   implicit class ManagementClientPurposeWrapper(private val cp: AuthorizationManagementDependency.Purpose)
@@ -156,22 +173,19 @@ object Adapters {
   }
 
   implicit class PersistentKeyUseWrapper(private val use: PersistentKeyUse) extends AnyVal {
-    def toApi: KeyUse = use match {
+    def toApi: KeyUse      = use match {
       case Sig => KeyUse.SIG
       case Enc => KeyUse.ENC
+    }
+    def toRfcValue: String = use match {
+      case Sig => "sig"
+      case Enc => "enc"
     }
   }
 
   implicit class ClientKeyWrapper(private val k: AuthorizationManagementDependency.ClientKey) extends AnyVal {
-    def toApi: ClientKey                          =
+    def toApi: ClientKey =
       ClientKey(name = k.name, createdAt = k.createdAt, key = k.key.toApi)
-    def toReadKeyApi(op: Operator): ReadClientKey =
-      ReadClientKey(
-        name = k.name,
-        createdAt = k.createdAt,
-        operator = OperatorDetails(op.relationshipId, op.name, op.familyName),
-        key = k.key.toApi
-      )
   }
 
   implicit class KeyWrapper(private val key: AuthorizationManagementDependency.Key) extends AnyVal {

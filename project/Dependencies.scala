@@ -30,16 +30,16 @@ object Dependencies {
       namespace %% "interop-be-authorization-management-client" % authorizationManagementVersion
     lazy val authorizationManagementModels =
       namespace %% "interop-be-authorization-management-models" % authorizationManagementVersion
-    lazy val agreementManagement =
-      namespace %% "interop-be-agreement-management-client" % agreementManagementVersion
-    lazy val catalogManagement =
-      namespace %% "interop-be-catalog-management-client" % catalogManagementVersion
+    lazy val agreementManagementModels =
+      namespace %% "interop-be-agreement-management-models" % agreementManagementVersion
+    lazy val catalogManagementModels =
+      namespace %% "interop-be-catalog-management-models" % catalogManagementVersion
     lazy val partyManagement =
       namespace %% "interop-selfcare-party-management-client" % partyManagementVersion
-    lazy val tenantManagement =
-      namespace %% "interop-be-tenant-management-client" % tenantManagementVersion
-    lazy val purposeManagementClient =
-      namespace %% "interop-be-purpose-management-client" % purposeManagementVersion
+    lazy val tenantManagementModels =
+      namespace %% "interop-be-tenant-management-models" % tenantManagementVersion
+    // lazy val purposeManagementClient =
+    //   namespace %% "interop-be-purpose-management-client" % purposeManagementVersion
     lazy val purposeManagementModels =
       namespace %% "interop-be-purpose-management-models" % purposeManagementVersion
     lazy val userRegistryManagement =
@@ -132,17 +132,16 @@ object Dependencies {
       logback.classic                       % Compile,
       mustache.mustache                     % Compile,
       nimbus.joseJwt                        % Compile,
-      pagopa.agreementManagement            % Compile,
+      pagopa.agreementManagementModels      % Compile,
       pagopa.commonsUtils                   % Compile,
-      pagopa.catalogManagement              % Compile,
+      pagopa.catalogManagementModels        % Compile,
       pagopa.commonsJwt                     % Compile,
       pagopa.commonsCqrs                    % Compile,
       pagopa.authorizationManagementClient  % Compile,
       pagopa.authorizationManagementModels  % Compile,
       pagopa.partyManagement                % Compile,
-      pagopa.purposeManagementClient        % Compile,
       pagopa.purposeManagementModels        % Compile,
-      pagopa.tenantManagement               % Compile,
+      pagopa.tenantManagementModels         % Compile,
       pagopa.userRegistryManagement         % Compile,
       scalpb.core                           % "protobuf",
       akka.httpTestkit                      % Test,

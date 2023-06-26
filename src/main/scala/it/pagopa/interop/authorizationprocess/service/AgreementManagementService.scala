@@ -1,6 +1,7 @@
 package it.pagopa.interop.authorizationprocess.service
 
-import it.pagopa.interop.agreementmanagement.client.model.Agreement
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.agreementmanagement.model.agreement.PersistentAgreement
 import it.pagopa.interop.authorizationprocess.model.{
   Agreement => ApiAgreement,
   EService => ApiEService,
@@ -8,17 +9,21 @@ import it.pagopa.interop.authorizationprocess.model.{
 }
 
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{Future, ExecutionContext}
 
 trait AgreementManagementService {
-  def getAgreements(eServiceId: UUID, consumerId: UUID)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Seq[Agreement]]
-
+  def getAgreements(eserviceId: UUID, consumerId: UUID)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[Seq[PersistentAgreement]]
 }
 
 object AgreementManagementService {
-  def agreementToApi(agreement: Agreement, eService: ApiEService, descriptor: ApiEServiceDescriptor): ApiAgreement =
+  def agreementToApi(
+    agreement: PersistentAgreement,
+    eService: ApiEService,
+    descriptor: ApiEServiceDescriptor
+  ): ApiAgreement =
     ApiAgreement(id = agreement.id, eservice = eService, descriptor = descriptor)
 
 }

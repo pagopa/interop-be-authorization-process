@@ -8,7 +8,6 @@ import akka.http.scaladsl.server.directives.SecurityDirectives
 import com.atlassian.oai.validator.report.ValidationReport
 import com.nimbusds.jose.proc.SecurityContext
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
-import it.pagopa.interop.agreementmanagement.client.api.{AgreementApi => AgreementManagementApi}
 import it.pagopa.interop.authorizationmanagement.client.api.{
   ClientApi => AuthorizationClientApi,
   KeyApi => AuthorizationKeyApi,
@@ -27,14 +26,12 @@ import it.pagopa.interop.authorizationprocess.common.system.ApplicationConfigura
 import it.pagopa.interop.authorizationprocess.api.impl.serviceCode
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.service.impl._
-import it.pagopa.interop.catalogmanagement.client.api.{EServiceApi => CatalogManagementApi}
 import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
 import it.pagopa.interop.commons.utils.TypeConversions.TryOps
 import it.pagopa.interop.commons.utils.errors.{Problem => CommonProblem}
 import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
-import it.pagopa.interop.purposemanagement.client.api.{PurposeApi => PurposeManagementApi}
 import it.pagopa.interop.selfcare.partymanagement.client.api.{PartyApi => PartyManagementApi}
 import it.pagopa.interop.selfcare.userregistry.client.api.{UserApi => UserRegistryManagementApi}
 import it.pagopa.interop.selfcare.userregistry.client.invoker.ApiKeyValue
@@ -51,8 +48,10 @@ trait Dependencies {
     Logger.takingImplicit[ContextFieldsToLog]("OAuth2JWTValidatorAsContexts")
 
   implicit val partyManagementApiKeyValue: PartyManagementApiKeyValue = PartyManagementApiKeyValue()
-  val readModelService: ReadModelService       = new MongoDbReadModelService(ApplicationConfiguration.readModelConfig)
-  val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplier
+  implicit val readModelService: ReadModelService                     = new MongoDbReadModelService(
+    ApplicationConfiguration.readModelConfig
+  )
+  val dateTimeSupplier: OffsetDateTimeSupplier                        = OffsetDateTimeSupplier
 
   def partyManagementService()(implicit actorSystem: ActorSystem[_]): PartyManagementService =
     PartyManagementServiceImpl(
@@ -83,40 +82,11 @@ trait Dependencies {
     AuthorizationPurposeApi(ApplicationConfiguration.getAuthorizationManagementURL)
   )(blockingEc)
 
-  def agreementManagementService(
-    blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_]): AgreementManagementService = AgreementManagementServiceImpl(
-    AgreementManagementInvoker(blockingEc)(actorSystem.classicSystem),
-    AgreementManagementApi(ApplicationConfiguration.getAgreementManagementURL)
-  )
-
-  def catalogManagementService(
-    blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_]): CatalogManagementService = CatalogManagementServiceImpl(
-    CatalogManagementInvoker(blockingEc)(actorSystem.classicSystem),
-    CatalogManagementApi(ApplicationConfiguration.getCatalogManagementURL)
-  )
-
-  def purposeManagementService(
-    blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_]): PurposeManagementService = PurposeManagementServiceImpl(
-    PurposeManagementInvoker(blockingEc)(actorSystem.classicSystem),
-    PurposeManagementApi(ApplicationConfiguration.getPurposeManagementURL)
-  )(blockingEc)
-
   val validationExceptionToRoute: ValidationReport => Route = report => {
     val error =
       CommonProblem(StatusCodes.BadRequest, OpenapiUtils.errorFromRequestValidationReport(report), serviceCode, None)
     complete(error.status, error)
   }
-
-  def tenantManagement(
-    blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_]): TenantManagementService =
-    new TenantManagementServiceImpl(ApplicationConfiguration.getTenantManagementURL, blockingEc)(
-      actorSystem,
-      blockingEc
-    )
 
   def clientApi(jwtReader: JWTReader, blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_],
@@ -124,13 +94,12 @@ trait Dependencies {
   ): ClientApi = new ClientApi(
     ClientApiServiceImpl(
       authorizationManagementService(blockingEc),
-      agreementManagementService(blockingEc),
-      catalogManagementService(blockingEc),
+      AgreementManagementServiceImpl,
+      CatalogManagementServiceImpl,
       partyManagementService(),
-      purposeManagementService(blockingEc),
+      PurposeManagementServiceImpl,
       userRegistryManagementService(),
-      tenantManagement(blockingEc),
-      readModelService,
+      TenantManagementServiceImpl,
       dateTimeSupplier
     ),
     ClientApiMarshallerImpl,

@@ -16,7 +16,32 @@ import scala.concurrent.{ExecutionContext, Future}
 import java.util.UUID
 import spray.json._
 
-object ReadModelQueries {
+object ReadModelAuthorizationQueries extends ReadModelQuery {
+
+  def getClientById(
+    clientId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Option[PersistentClient]] = readModel
+    .findOne[PersistentClient]("clients", Filters.eq("data.id", clientId.toString))
+
+  def getClientKey(clientId: UUID, kid: Option[String])(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[Option[ReadModelClientWithKeys]] = {
+
+    val clientFilter = Filters.eq("data.id", clientId.toString)
+    val kidFilter    = kid.map(Filters.eq("data.keys.kid", _))
+
+    val filter = mapToVarArgs(kidFilter.toList :+ clientFilter)(Filters.and).getOrElse(Filters.empty())
+
+    readModel
+      .findOne[ReadModelClientWithKeys]("clients", filter)
+  }
+
+  def getClientKeys(
+    clientId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Option[ReadModelClientWithKeys]] =
+    readModel
+      .findOne[ReadModelClientWithKeys]("clients", Filters.eq("data.id", clientId.toString))
 
   def listClients(
     name: Option[String],
@@ -26,7 +51,7 @@ object ReadModelQueries {
     kind: Option[PersistentClientKind],
     offset: Int,
     limit: Int
-  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentClient]] =
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[PersistentClient]] =
     listGenericClients[PersistentClient](
       name = name,
       relationshipIds = relationshipIds,
@@ -35,7 +60,7 @@ object ReadModelQueries {
       kind = kind,
       offset = offset,
       limit = limit
-    )(readModel)
+    )
 
   def listClientsWithKeys(
     name: Option[String],
@@ -45,7 +70,7 @@ object ReadModelQueries {
     kind: Option[PersistentClientKind],
     offset: Int,
     limit: Int
-  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[ReadModelClientWithKeys]] =
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[ReadModelClientWithKeys]] =
     listGenericClients[ReadModelClientWithKeys](
       name = name,
       relationshipIds = relationshipIds,
@@ -54,7 +79,7 @@ object ReadModelQueries {
       kind = kind,
       offset = offset,
       limit = limit
-    )(readModel)
+    )
 
   private def listGenericClients[A: JsonReader](
     name: Option[String],
@@ -64,7 +89,7 @@ object ReadModelQueries {
     kind: Option[PersistentClientKind],
     offset: Int,
     limit: Int
-  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[A]] = {
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[A]] = {
 
     val query: Bson =
       listClientsFilters(name, relationshipIds.map(_.toString), consumerId.toString, purposeId.map(_.toString), kind)
@@ -112,14 +137,11 @@ object ReadModelQueries {
 
   def listClientsByPurpose(
     purposeId: UUID
-  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[Seq[PersistentClient]] = {
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentClient]] = {
 
     val query: Bson = Filters
       .and(Filters.eq("data.purposes.purpose.purposeId", purposeId.toString))
 
     readModel.find[PersistentClient]("clients", query, offset = 0, limit = Int.MaxValue)
   }
-
-  def mapToVarArgs[A, B](l: Seq[A])(f: Seq[A] => B): Option[B] = Option.when(l.nonEmpty)(f(l))
-
 }
