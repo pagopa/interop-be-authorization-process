@@ -307,15 +307,15 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[ReadClientKeys] = for {
-      clientUuid     <- clientId.toFutureUUID
-      relationships  <- parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
-      client         <- authorizationManagementService.getClient(clientUuid)
-      _              <- assertIsClientConsumer(client).toFuture
-      persistentKeys <- authorizationManagementService.getClientKeys(clientUuid)
+      clientUuid    <- clientId.toFutureUUID
+      relationships <- parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+      client        <- authorizationManagementService.getClient(clientUuid)
+      _             <- assertIsClientConsumer(client).toFuture
+      clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)
       operatorKeys =
-        if (relationships.isEmpty) persistentKeys
+        if (relationships.isEmpty) clientKeys
         else
-          persistentKeys.filter(key => relationships.contains(key.relationshipId))
+          clientKeys.filter(key => relationships.contains(key.relationshipId))
       keys <- Future.traverse(operatorKeys)(k =>
         operatorFromRelationship(k.relationshipId).flatMap(op => k.toReadKeyApi(op).toFuture)
       )

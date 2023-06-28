@@ -36,21 +36,20 @@ final case class OperatorApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[ClientKeys] = for {
-      clientUuid     <- clientId.toFutureUUID
-      client         <- authorizationManagementService.getClient(clientUuid)
-      _              <- assertIsClientConsumer(client).toFuture
-      operatorUuid   <- operatorId.toFutureUUID
-      relationships  <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)
-      clientUuid     <- clientId.toFutureUUID
-      persistentKeys <- authorizationManagementService.getClientKeys(clientUuid)
-      clientKeys     <- Future.traverse(
-        persistentKeys.filter(key => relationships.items.exists(_.id == key.relationshipId))
-      )(f => f.toClientKeyApi.toFuture)
-    } yield ClientKeys(clientKeys)
+      clientUuid    <- clientId.toFutureUUID
+      client        <- authorizationManagementService.getClient(clientUuid)
+      _             <- assertIsClientConsumer(client).toFuture
+      operatorUuid  <- operatorId.toFutureUUID
+      relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)
+      clientUuid    <- clientId.toFutureUUID
+      clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)
+      keys <- Future.traverse(clientKeys.filter(key => relationships.items.exists(_.id == key.relationshipId)))(f =>
+        f.toClientKeyApi.toFuture
+      )
+    } yield ClientKeys(keys)
 
     onComplete(result) {
       getClientOperatorKeysResponse[ClientKeys](operationLabel)(getClientOperatorKeys200)
     }
   }
-
 }

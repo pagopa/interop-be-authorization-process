@@ -124,7 +124,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     publishedAt = timestamp.some,
     suspendedAt = None,
     deprecatedAt = None,
-    archivedAt = None
+    archivedAt = None,
+    attributes = CatalogAttributes.empty
   )
 
   val eService: CatalogItem = CatalogItem(
@@ -133,7 +134,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     name = "Service name",
     description = "Service description",
     technology = Rest,
-    attributes = CatalogAttributes(Seq.empty, Seq.empty, Seq.empty),
+    attributes = CatalogAttributes.empty.some,
     descriptors = Seq(activeDescriptor),
     createdAt = timestamp
   )
