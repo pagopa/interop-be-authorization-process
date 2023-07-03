@@ -4,7 +4,7 @@ import cats.syntax.all._
 import it.pagopa.interop.agreementmanagement.client.model.Agreement
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.authorizationprocess.service._
-import it.pagopa.interop.catalogmanagement.client.model.{Attributes, EService, EServiceTechnology}
+import it.pagopa.interop.catalogmanagement.client.model.{EService, EServiceTechnology}
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.purposemanagement.client.model
 import it.pagopa.interop.purposemanagement.client.model.PurposeVersion
@@ -34,7 +34,6 @@ object FakeDependencies {
           name = "fake",
           description = "fake",
           technology = EServiceTechnology.REST,
-          attributes = Attributes(Seq.empty, Seq.empty, Seq.empty),
           descriptors = Seq.empty
         )
       )

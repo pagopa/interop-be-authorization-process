@@ -108,7 +108,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     dailyCallsPerConsumer = 1000,
     dailyCallsTotal = 20,
     agreementApprovalPolicy = CatalogManagementDependency.AgreementApprovalPolicy.AUTOMATIC,
-    serverUrls = Nil
+    serverUrls = Nil,
+    attributes = CatalogManagementDependency.Attributes(Nil, Nil, Nil)
   )
 
   val eService: CatalogManagementDependency.EService = CatalogManagementDependency.EService(
@@ -117,7 +118,6 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     name = "Service name",
     description = "Service description",
     technology = CatalogManagementDependency.EServiceTechnology.REST,
-    attributes = CatalogManagementDependency.Attributes(Seq.empty, Seq.empty, Seq.empty),
     descriptors = Seq(activeDescriptor)
   )
 
