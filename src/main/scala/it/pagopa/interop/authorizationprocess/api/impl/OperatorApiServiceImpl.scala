@@ -1,5 +1,6 @@
 package it.pagopa.interop.authorizationprocess.api.impl
 
+import cats.syntax.all._
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
@@ -43,9 +44,10 @@ final case class OperatorApiServiceImpl(
       relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)
       clientUuid    <- clientId.toFutureUUID
       clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)
-      keys <- Future.traverse(clientKeys.filter(key => relationships.items.exists(_.id == key.relationshipId)))(f =>
-        f.toClientKeyApi.toFuture
-      )
+      keys          <- clientKeys
+        .filter(key => relationships.items.exists(_.id == key.relationshipId))
+        .traverse(_.toClientKeyApi)
+        .toFuture
     } yield ClientKeys(keys)
 
     onComplete(result) {

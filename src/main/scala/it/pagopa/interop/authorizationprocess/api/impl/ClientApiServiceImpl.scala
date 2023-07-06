@@ -11,7 +11,6 @@ import it.pagopa.interop.authorizationprocess.api.ClientApiService
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiHandlers._
 import it.pagopa.interop.authorizationprocess.common.Adapters._
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
-import it.pagopa.interop.authorizationprocess.common.readmodel.ReadModelAuthorizationQueries
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
@@ -574,7 +573,7 @@ final case class ClientApiServiceImpl(
       roles         <- getUserRolesFuture(contexts)
       relationships <- checkAuthorizationForRoles(roles, relationshipIds, requesterUuid, userUuid)(contexts)
       clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
-      clients       <- ReadModelAuthorizationQueries.listClients(
+      clients       <- authorizationManagementService.getClients(
         name,
         relationships,
         consumerUuid,
@@ -628,7 +627,7 @@ final case class ClientApiServiceImpl(
       roles         <- getUserRolesFuture(contexts)
       relationships <- checkAuthorizationForRoles(roles, relationshipIds, requesterUuid, userUuid)(contexts)
       clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
-      clientsKeys   <- ReadModelAuthorizationQueries.listClientsWithKeys(
+      clientsKeys   <- authorizationManagementService.getClientsWithKeys(
         name,
         relationships,
         consumerUuid,
@@ -658,7 +657,7 @@ final case class ClientApiServiceImpl(
           .maxByOption(_.createdAt)
           .find(_.state == Archived)
           .toFuture(PurposeNotInExpectedState(purpose.id))
-        clients     <- ReadModelAuthorizationQueries.listClientsByPurpose(purposeUuid)
+        clients     <- authorizationManagementService.getClientsByPurpose(purposeUuid)
         _           <- Future.traverse(clients)(c =>
           authorizationManagementService.removeClientPurpose(c.id, purposeUuid)(contexts)
         )

@@ -10,7 +10,7 @@ import it.pagopa.interop.commons.utils.TypeConversions._
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-final object TenantManagementServiceImpl extends TenantManagementService {
+object TenantManagementServiceImpl extends TenantManagementService {
   override def getTenantById(
     tenantId: UUID
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] = {

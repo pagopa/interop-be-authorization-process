@@ -11,7 +11,7 @@ import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.E
 import java.util.UUID
 import scala.concurrent.{Future, ExecutionContext}
 
-final object CatalogManagementServiceImpl extends CatalogManagementService {
+object CatalogManagementServiceImpl extends CatalogManagementService {
 
   override def getEServiceById(
     eServiceId: UUID

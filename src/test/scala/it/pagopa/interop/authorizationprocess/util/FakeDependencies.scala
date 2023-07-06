@@ -8,11 +8,13 @@ import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.selfcare.partymanagement.client.model._
 import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
 import it.pagopa.interop.catalogmanagement.model.{CatalogItem, CatalogAttributes, Rest}
-import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, Api}
+import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClientKind, PersistentClient, Api}
 import it.pagopa.interop.authorizationmanagement.model.key.{PersistentKey, Sig}
 import it.pagopa.interop.agreementmanagement.model.agreement.PersistentAgreement
 import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
 import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentTenantKind, PersistentExternalId}
+import it.pagopa.interop.authorizationprocess.common.readmodel.PaginatedResult
+import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -160,6 +162,33 @@ object FakeDependencies {
     override def removeClientPurpose(clientId: UUID, purposeId: UUID)(implicit
       contexts: Seq[(String, String)]
     ): Future[Unit] = Future.successful(())
+
+    override def getClients(
+      name: Option[String],
+      relationshipIds: List[UUID],
+      consumerId: UUID,
+      purposeId: Option[UUID],
+      kind: Option[PersistentClientKind],
+      offset: Int,
+      limit: Int
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[PersistentClient]] =
+      Future.successful(PaginatedResult(results = Seq.empty, totalCount = 0))
+
+    override def getClientsByPurpose(
+      purposeId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentClient]] =
+      Future.successful(Seq.empty)
+
+    override def getClientsWithKeys(
+      name: Option[String],
+      relationshipIds: List[UUID],
+      consumerId: UUID,
+      purposeId: Option[UUID],
+      kind: Option[PersistentClientKind],
+      offset: Int,
+      limit: Int
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[ReadModelClientWithKeys]] =
+      Future.successful(PaginatedResult(results = Seq.empty, totalCount = 0))
   }
   class FakePartyManagementService         extends PartyManagementService         {
 

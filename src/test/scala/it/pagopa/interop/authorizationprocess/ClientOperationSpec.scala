@@ -3,14 +3,14 @@ package it.pagopa.interop.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
-import it.pagopa.interop.authorizationprocess.common.readmodel.TotalCountResult
-import org.mongodb.scala.bson.conversions.Bson
-import spray.json.JsonReader
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
-import it.pagopa.interop.authorizationmanagement.model.client.{Api, PersistentClient}
+import it.pagopa.interop.authorizationmanagement.model.client.{Api, PersistentClient, PersistentClientKind}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{ClientNotFound, PurposeNotFound}
 import it.pagopa.interop.authorizationprocess.model._
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.authorizationprocess.common.readmodel.PaginatedResult
+import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
 import it.pagopa.interop.authorizationprocess.service.AuthorizationManagementInvoker
 import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
@@ -22,7 +22,6 @@ import it.pagopa.interop.commons.utils.USER_ROLES
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import it.pagopa.interop.commons.cqrs.service.ReadModelService
 
 class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsWithImplicit with ScalatestRouteTest {
 
@@ -223,17 +222,19 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val offset: Int = 0
       val limit: Int  = 50
 
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("clients", *, offset, limit, *, *)
+      (mockAuthorizationManagementService
+        .getClients(
+          _: Option[String],
+          _: List[UUID],
+          _: UUID,
+          _: Option[UUID],
+          _: Option[PersistentClientKind],
+          _: Int,
+          _: Int
+        )(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *, *, *, *, *, *, *)
         .once()
-        .returns(Future.successful(clients))
-
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("clients", *, offset, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(TotalCountResult(1))))
+        .returns(Future.successful(PaginatedResult(results = clients, totalCount = clients.size)))
 
       Get() ~> service.getClients(
         Option("name"),
@@ -287,17 +288,19 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(relationships))
 
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("clients", *, offset, limit, *, *)
+      (mockAuthorizationManagementService
+        .getClients(
+          _: Option[String],
+          _: List[UUID],
+          _: UUID,
+          _: Option[UUID],
+          _: Option[PersistentClientKind],
+          _: Int,
+          _: Int
+        )(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *, *, *, *, *, *, *)
         .once()
-        .returns(Future.successful(clients))
-
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("clients", *, offset, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(TotalCountResult(1))))
+        .returns(Future.successful(PaginatedResult(results = clients, totalCount = clients.size)))
 
       Get() ~> service.getClients(
         Option("name"),
@@ -312,7 +315,123 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       }
     }
   }
+  "Client Keys list" should {
+    "succeed with ADMIN role" in {
+      val consumerId     = UUID.randomUUID()
+      val clientId       = UUID.randomUUID()
+      val relationshipId = UUID.randomUUID()
 
+      val offset: Int = 0
+      val limit: Int  = 50
+
+      val keys: Seq[ReadModelClientWithKeys] = Seq(
+        ReadModelClientWithKeys(
+          id = clientId,
+          consumerId = consumerId,
+          createdAt = OffsetDateTime.now(),
+          name = "name",
+          purposes = Seq.empty,
+          description = None,
+          relationships = Set(relationshipId),
+          kind = Api,
+          keys = Seq.empty
+        )
+      )
+      (mockAuthorizationManagementService
+        .getClientsWithKeys(
+          _: Option[String],
+          _: List[UUID],
+          _: UUID,
+          _: Option[UUID],
+          _: Option[PersistentClientKind],
+          _: Int,
+          _: Int
+        )(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *, *, *, *, *, *, *)
+        .once()
+        .returns(Future.successful(PaginatedResult(results = keys, totalCount = keys.size)))
+
+      Get() ~> service.getClientsWithKeys(
+        Option("name"),
+        relationshipId.toString,
+        consumerId.toString,
+        None,
+        None,
+        offset,
+        limit
+      ) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+    "succeed with SECURITY role" in {
+      val consumerId = UUID.randomUUID()
+
+      implicit val contexts: Seq[(String, String)] =
+        Seq(
+          "bearer"         -> bearerToken,
+          "uid"            -> personId.toString,
+          USER_ROLES       -> "security",
+          "organizationId" -> consumerId.toString
+        )
+
+      val clientId       = UUID.randomUUID()
+      val relationshipId = UUID.randomUUID()
+
+      val offset: Int                        = 0
+      val limit: Int                         = 50
+      val keys: Seq[ReadModelClientWithKeys] = Seq(
+        ReadModelClientWithKeys(
+          id = clientId,
+          consumerId = consumerId,
+          createdAt = OffsetDateTime.now(),
+          name = "name",
+          purposes = Seq.empty,
+          description = None,
+          relationships = Set(relationshipId),
+          kind = Api,
+          keys = Seq.empty
+        )
+      )
+
+      (mockTenantManagementService
+        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
+        .once()
+        .returns(Future.successful(consumer))
+
+      (mockPartyManagementService
+        .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(consumer.selfcareId.get, *, *, *, *)
+        .once()
+        .returns(Future.successful(relationships))
+
+      (mockAuthorizationManagementService
+        .getClientsWithKeys(
+          _: Option[String],
+          _: List[UUID],
+          _: UUID,
+          _: Option[UUID],
+          _: Option[PersistentClientKind],
+          _: Int,
+          _: Int
+        )(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *, *, *, *, *, *, *)
+        .once()
+        .returns(Future.successful(PaginatedResult(results = keys, totalCount = keys.size)))
+
+      Get() ~> service.getClientsWithKeys(
+        Option("name"),
+        relationshipId.toString,
+        consumerId.toString,
+        None,
+        None,
+        offset,
+        limit
+      ) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+  }
   "Client delete" should {
     "succeed" in {
       (mockAuthorizationManagementService
@@ -355,21 +474,15 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     "succeed" in {
       val clients: Seq[PersistentClient] = Seq(persistentClient)
 
-      val offset: Int = 0
-      val limit: Int  = Int.MaxValue
-
       (mockPurposeManagementService
         .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(purpose.id, *, *)
         .once()
         .returns(Future.successful(archivedPurpose))
 
-      (mockReadModel
-        .find[PersistentClient](_: String, _: Bson, _: Int, _: Int)(
-          _: JsonReader[PersistentClient],
-          _: ExecutionContext
-        ))
-        .expects("clients", *, offset, limit, *, *)
+      (mockAuthorizationManagementService
+        .getClientsByPurpose(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
         .returns(Future.successful(clients))
 

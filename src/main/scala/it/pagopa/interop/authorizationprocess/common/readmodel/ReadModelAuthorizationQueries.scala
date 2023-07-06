@@ -43,7 +43,7 @@ object ReadModelAuthorizationQueries extends ReadModelQuery {
     readModel
       .findOne[ReadModelClientWithKeys]("clients", Filters.eq("data.id", clientId.toString))
 
-  def listClients(
+  def getClients(
     name: Option[String],
     relationshipIds: List[UUID],
     consumerId: UUID,
@@ -62,7 +62,7 @@ object ReadModelAuthorizationQueries extends ReadModelQuery {
       limit = limit
     )
 
-  def listClientsWithKeys(
+  def getClientsWithKeys(
     name: Option[String],
     relationshipIds: List[UUID],
     consumerId: UUID,
@@ -135,7 +135,7 @@ object ReadModelAuthorizationQueries extends ReadModelQuery {
     )(Filters.and).getOrElse(Filters.empty())
   }
 
-  def listClientsByPurpose(
+  def getClientsByPurpose(
     purposeId: UUID
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentClient]] = {
 

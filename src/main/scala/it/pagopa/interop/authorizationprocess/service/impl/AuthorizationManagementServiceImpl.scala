@@ -4,8 +4,10 @@ import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError, ApiRequest, BearerToken}
 import it.pagopa.interop.authorizationmanagement.client.model._
-import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
+import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, PersistentClientKind}
 import it.pagopa.interop.authorizationmanagement.model.key.PersistentKey
+import it.pagopa.interop.authorizationprocess.common.readmodel.PaginatedResult
+import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.service.{AuthorizationManagementInvoker, AuthorizationManagementService}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
@@ -150,4 +152,31 @@ final case class AuthorizationManagementServiceImpl(
         case err: ApiError[_] if err.code == 404 => Future.failed(ClientNotFound(clientId))
       }
   }
+
+  override def getClientsByPurpose(
+    purposeId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentClient]] =
+    ReadModelAuthorizationQueries.getClientsByPurpose(purposeId)
+
+  override def getClientsWithKeys(
+    name: Option[String],
+    relationshipIds: List[UUID],
+    consumerId: UUID,
+    purposeId: Option[UUID],
+    kind: Option[PersistentClientKind],
+    offset: Int,
+    limit: Int
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[ReadModelClientWithKeys]] =
+    ReadModelAuthorizationQueries.getClientsWithKeys(name, relationshipIds, consumerId, purposeId, kind, offset, limit)
+
+  override def getClients(
+    name: Option[String],
+    relationshipIds: List[UUID],
+    consumerId: UUID,
+    purposeId: Option[UUID],
+    kind: Option[PersistentClientKind],
+    offset: Int,
+    limit: Int
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[PersistentClient]] =
+    ReadModelAuthorizationQueries.getClients(name, relationshipIds, consumerId, purposeId, kind, offset, limit)
 }
