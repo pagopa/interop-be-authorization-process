@@ -10,10 +10,8 @@ import it.pagopa.interop.authorizationmanagement.model.key.{Enc, Sig}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationmanagement.model.key.{PersistentKeyUse, PersistentKey}
-import it.pagopa.interop.authorizationmanagement.processor.key.KeyProcessor
-import com.nimbusds.jose.jwk._
-import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
-import scala.annotation.nowarn
+import it.pagopa.interop.authorizationmanagement.jwk.model.Models._
+import it.pagopa.interop.authorizationmanagement.jwk.converter.KeyConverter
 
 import java.util.UUID
 import java.time.OffsetDateTime
@@ -62,19 +60,21 @@ object Adapters {
         relationshipId = k.relationshipId
       )
     def toReadKeyApi(op: Operator): Either[Throwable, ReadClientKey] =
-      fromBase64encodedPEMToAPIKey(k.kid, k.encodedPem, k.use, k.algorithm)
+      KeyConverter
+        .fromBase64encodedPEMToAPIKey(k.kid, k.encodedPem, k.use.toJwk, k.algorithm)
         .map(key =>
           ReadClientKey(
             name = k.name,
             createdAt = k.createdAt,
             operator = OperatorDetails(op.relationshipId, op.name, op.familyName),
-            key = key
+            key = key.toApi
           )
         )
 
     def toClientKeyApi: Either[Throwable, ClientKey] =
-      fromBase64encodedPEMToAPIKey(k.kid, k.encodedPem, k.use, k.algorithm)
-        .map(key => ClientKey(name = k.name, createdAt = k.createdAt, key = key))
+      KeyConverter
+        .fromBase64encodedPEMToAPIKey(k.kid, k.encodedPem, k.use.toJwk, k.algorithm)
+        .map(key => ClientKey(name = k.name, createdAt = k.createdAt, key = key.toApi))
   }
 
   implicit class ManagementClientPurposeWrapper(private val cp: AuthorizationManagementDependency.Purpose)
@@ -177,9 +177,9 @@ object Adapters {
       case Sig => ProcessKeyUse.SIG
       case Enc => ProcessKeyUse.ENC
     }
-    def toRfcValue: String   = use match {
-      case Sig => "sig"
-      case Enc => "enc"
+    def toJwk: JwkKeyUse     = use match {
+      case Sig => JwkSig
+      case Enc => JwkEnc
     }
   }
 
@@ -276,144 +276,33 @@ object Adapters {
     }
   }
 
-  def fromBase64encodedPEMToAPIKey(
-    kid: String,
-    base64PEM: String,
-    use: PersistentKeyUse,
-    algorithm: String
-  ): Either[Throwable, Key] = {
-    val key = for {
-      jwk <- KeyProcessor.fromBase64encodedPEM(base64PEM)
-    } yield jwk.getKeyType match {
-      case KeyType.RSA => rsa(kid, jwk.toRSAKey)
-      case KeyType.EC  => ec(kid, jwk.toECKey)
-      case KeyType.OKP => okp(kid, jwk.toOctetKeyPair)
-      case KeyType.OCT => oct(kid, jwk.toOctetSequenceKey)
-      case _           => throw new RuntimeException(s"Unknown KeyType ${jwk.getKeyType}")
-    }
-
-    key.map(_.copy(alg = Some(algorithm), use = Some(use.toRfcValue)))
-  }
-
-  private def rsa(kid: String, key: RSAKey): Key           = {
-    val otherPrimes = Option(key.getOtherPrimes)
-      .map(list =>
-        list.asScala
-          .map(entry =>
-            OtherPrimeInfo(
-              r = entry.getPrimeFactor.toString,
-              d = entry.getFactorCRTExponent.toString,
-              t = entry.getFactorCRTCoefficient.toString
-            )
-          )
-          .toSeq
-      )
-      .filter(_.nonEmpty)
-
-    Key(
-      use = None,
-      alg = None,
-      kty = key.getKeyType.getValue,
-      key_ops = Option(key.getKeyOperations).map(list => list.asScala.map(op => op.toString).toSeq),
-      kid = kid,
-      x5u = Option(key.getX509CertURL).map(_.toString),
-      x5t = getX5T(key),
-      x5tS256 = Option(key.getX509CertSHA256Thumbprint).map(_.toString),
-      x5c = Option(key.getX509CertChain).map(list => list.asScala.map(op => op.toString).toSeq),
-      crv = None,
-      x = None,
-      y = None,
-      d = Option(key.getPrivateExponent).map(_.toString),
-      k = None,
-      n = Option(key.getModulus).map(_.toString),
-      e = Option(key.getPublicExponent).map(_.toString),
-      p = Option(key.getFirstPrimeFactor).map(_.toString),
-      q = Option(key.getSecondPrimeFactor).map(_.toString),
-      dp = Option(key.getFirstFactorCRTExponent).map(_.toString),
-      dq = Option(key.getSecondFactorCRTExponent).map(_.toString),
-      qi = Option(key.getFirstCRTCoefficient).map(_.toString),
-      oth = otherPrimes
+  implicit class JwkKeyWrapper(private val p: JwkKey)                       extends AnyVal {
+    def toApi: Key = Key(
+      kty = p.kty,
+      key_ops = p.keyOps,
+      use = p.use,
+      alg = p.alg,
+      kid = p.kid,
+      x5u = p.x5u,
+      x5t = p.x5t,
+      x5tS256 = p.x5tS256,
+      x5c = p.x5c,
+      crv = p.crv,
+      x = p.x,
+      y = p.y,
+      d = p.d,
+      k = p.k,
+      n = p.n,
+      e = p.e,
+      p = p.p,
+      q = p.q,
+      dp = p.dp,
+      dq = p.dq,
+      qi = p.qi,
+      oth = p.oth.map(_.map(_.toApi))
     )
   }
-  private def ec(kid: String, key: ECKey): Key             = Key(
-    use = None,
-    alg = None,
-    kty = key.getKeyType.getValue,
-    key_ops = Option(key.getKeyOperations).map(list => list.asScala.map(op => op.toString).toSeq),
-    kid = kid,
-    x5u = Option(key.getX509CertURL).map(_.toString),
-    x5t = getX5T(key),
-    x5tS256 = Option(key.getX509CertSHA256Thumbprint).map(_.toString),
-    x5c = Option(key.getX509CertChain).map(list => list.asScala.map(op => op.toString).toSeq),
-    crv = Option(key.getCurve).map(_.toString),
-    x = Option(key.getX).map(_.toString),
-    y = Option(key.getY).map(_.toString),
-    d = Option(key.getD).map(_.toString),
-    k = None,
-    n = None,
-    e = None,
-    p = None,
-    q = None,
-    dp = None,
-    dq = None,
-    qi = None,
-    oth = None
-  )
-  private def okp(kid: String, key: OctetKeyPair): Key     = {
-    Key(
-      use = None,
-      alg = None,
-      kty = key.getKeyType.getValue,
-      key_ops = Option(key.getKeyOperations).map(list => list.asScala.map(op => op.toString).toSeq),
-      kid = kid,
-      x5u = Option(key.getX509CertURL).map(_.toString),
-      x5t = getX5T(key),
-      x5tS256 = Option(key.getX509CertSHA256Thumbprint).map(_.toString),
-      x5c = Option(key.getX509CertChain).map(list => list.asScala.map(op => op.toString).toSeq),
-      crv = Option(key.getCurve).map(_.toString),
-      x = Option(key.getX).map(_.toString),
-      y = None,
-      d = Option(key.getD).map(_.toString),
-      k = None,
-      n = None,
-      e = None,
-      p = None,
-      q = None,
-      dp = None,
-      dq = None,
-      qi = None,
-      oth = None
-    )
+  implicit class JwkOtherPrimeInfoWrapper(private val o: JwkOtherPrimeInfo) extends AnyVal {
+    def toApi: OtherPrimeInfo = OtherPrimeInfo(r = o.r, d = o.d, t = o.t)
   }
-  private def oct(kid: String, key: OctetSequenceKey): Key = {
-    Key(
-      use = None,
-      alg = None,
-      kty = key.getKeyType.getValue,
-      key_ops = Option(key.getKeyOperations).map(list => list.asScala.map(op => op.toString).toSeq),
-      kid = kid,
-      x5u = Option(key.getX509CertURL).map(_.toString),
-      x5t = getX5T(key),
-      x5tS256 = Option(key.getX509CertSHA256Thumbprint).map(_.toString),
-      x5c = Option(key.getX509CertChain).map(list => list.asScala.map(op => op.toString).toSeq),
-      crv = None,
-      x = None,
-      y = None,
-      d = None,
-      k = Option(key.getKeyValue).map(_.toString),
-      n = None,
-      e = None,
-      p = None,
-      q = None,
-      dp = None,
-      dq = None,
-      qi = None,
-      oth = None
-    )
-
-  }
-
-  // encapsulating in a method to avoid compilation errors because of Nimbus deprecated method
-  @nowarn
-  @inline private def getX5T(key: JWK): Option[String] = Option(key.getX509CertThumbprint).map(_.toString)
 }

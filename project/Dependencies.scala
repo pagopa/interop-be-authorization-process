@@ -30,8 +30,8 @@ object Dependencies {
       namespace %% "interop-be-authorization-management-client" % authorizationManagementVersion
     lazy val authorizationManagementModels =
       namespace %% "interop-be-authorization-management-models" % authorizationManagementVersion
-    lazy val authorizationManagementProcessor =
-      namespace %% "interop-be-authorization-management-processor" % authorizationManagementVersion
+    lazy val authorizationManagementKeyConverter=
+      namespace %% "interop-be-authorization-management-keyconverter" % authorizationManagementVersion
     lazy val agreementManagementModels =
       namespace %% "interop-be-agreement-management-models" % agreementManagementVersion
     lazy val catalogManagementModels =
@@ -139,7 +139,7 @@ object Dependencies {
       pagopa.commonsCqrs                    % Compile,
       pagopa.authorizationManagementClient  % Compile,
       pagopa.authorizationManagementModels  % Compile,
-      pagopa.authorizationManagementProcessor  % Compile,
+      pagopa.authorizationManagementKeyConverter  % Compile,
       pagopa.partyManagement                % Compile,
       pagopa.purposeManagementModels        % Compile,
       pagopa.tenantManagementModels         % Compile,
