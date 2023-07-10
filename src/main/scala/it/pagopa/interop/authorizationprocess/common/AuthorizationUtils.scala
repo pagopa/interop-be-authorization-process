@@ -3,12 +3,12 @@ package it.pagopa.interop.authorizationprocess.common
 import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdUUID
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import java.util.UUID
-import it.pagopa.interop.authorizationprocess.service.ManagementClient
+import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
 
 object AuthorizationUtils {
 
   def assertIsClientConsumer(
-    client: ManagementClient
+    client: PersistentClient
   )(implicit contexts: Seq[(String, String)]): Either[Throwable, Unit] =
     for {
       organizationId <- getOrganizationIdUUID(contexts)

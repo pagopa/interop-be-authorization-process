@@ -3,14 +3,14 @@ package it.pagopa.interop.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
-import it.pagopa.interop.authorizationprocess.common.readmodel.TotalCountResult
-import org.mongodb.scala.bson.conversions.Bson
-import spray.json.JsonReader
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
-import it.pagopa.interop.authorizationmanagement.model.client.{Api, PersistentClient}
+import it.pagopa.interop.authorizationmanagement.model.client.{Api, PersistentClient, PersistentClientKind}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{ClientNotFound, PurposeNotFound}
 import it.pagopa.interop.authorizationprocess.model._
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.authorizationprocess.common.readmodel.PaginatedResult
+import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
 import it.pagopa.interop.authorizationprocess.service.AuthorizationManagementInvoker
 import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
@@ -35,9 +35,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     mockPurposeManagementService,
     mockUserRegistryManagementService,
     mockTenantManagementService,
-    mockReadModel,
     mockDateTimeSupplier
-  )(ExecutionContext.global)
+  )(ExecutionContext.global, mockReadModel)
 
   "Client creation" should {
     "succeed" in {
@@ -95,9 +94,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel,
         mockDateTimeSupplier
-      )(ExecutionContext.global)
+      )(ExecutionContext.global, mockReadModel)
       Get() ~> service.createConsumerClient(clientSeed) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
@@ -107,24 +105,24 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
   "Client retrieve" should {
     "succeed in case of requester is the consumer" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient.copy(consumerId = consumerId)))
 
       val expected =
         Client(
-          id = client.id,
+          id = persistentClient.id,
           consumerId = consumerId,
-          name = client.name,
+          name = persistentClient.name,
           purposes = Seq(clientPurposeProcess),
-          description = client.description,
+          description = persistentClient.description,
           relationshipsIds = Set.empty,
           kind = ClientKind.CONSUMER,
           createdAt = timestamp
         )
 
-      Get() ~> service.getClient(client.id.toString) ~> check {
+      Get() ~> service.getClient(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Client] shouldEqual expected
       }
@@ -140,30 +138,30 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         )
       val anotherConsumerId                        = UUID.randomUUID()
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client.copy(consumerId = anotherConsumerId)))
+        .returns(Future.successful(persistentClient.copy(consumerId = anotherConsumerId)))
 
       (mockCatalogManagementService
-        .getEService(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
         .returns(Future.successful(eService))
 
       val expected =
         Client(
-          id = client.id,
+          id = persistentClient.id,
           consumerId = anotherConsumerId,
-          name = client.name,
+          name = persistentClient.name,
           purposes = Seq(clientPurposeProcess),
-          description = client.description,
+          description = persistentClient.description,
           relationshipsIds = Set.empty,
           kind = ClientKind.CONSUMER,
           createdAt = timestamp
         )
 
-      Get() ~> service.getClient(client.id.toString) ~> check {
+      Get() ~> service.getClient(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Client] shouldEqual expected
       }
@@ -174,19 +172,19 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val anotherProducerId = UUID.randomUUID()
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.successful(client.copy(consumerId = anotherConsumerId)))
+        .returns(Future.successful(persistentClient.copy(consumerId = anotherConsumerId)))
 
       (mockCatalogManagementService
-        .getEService(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
         .returns(Future.successful(eService.copy(producerId = anotherProducerId)))
 
       Get() ~> service
-        .getClient(client.id.toString) ~> check {
+        .getClient(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
         entityAs[Problem].errors.head.code shouldBe "007-0008"
       }
@@ -194,12 +192,12 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.failed(ClientNotFound(client.id)))
+        .returns(Future.failed(ClientNotFound(persistentClient.id)))
 
-      Get() ~> service.getClient(client.id.toString) ~> check {
+      Get() ~> service.getClient(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -224,17 +222,19 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val offset: Int = 0
       val limit: Int  = 50
 
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("clients", *, offset, limit, *, *)
+      (mockAuthorizationManagementService
+        .getClients(
+          _: Option[String],
+          _: List[UUID],
+          _: UUID,
+          _: Option[UUID],
+          _: Option[PersistentClientKind],
+          _: Int,
+          _: Int
+        )(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *, *, *, *, *, *, *)
         .once()
-        .returns(Future.successful(clients))
-
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("clients", *, offset, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(TotalCountResult(1))))
+        .returns(Future.successful(PaginatedResult(results = clients, totalCount = clients.size)))
 
       Get() ~> service.getClients(
         Option("name"),
@@ -277,8 +277,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val limit: Int  = 50
 
       (mockTenantManagementService
-        .getTenant(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
         .returns(Future.successful(consumer))
 
@@ -288,17 +288,19 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(relationships))
 
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("clients", *, offset, limit, *, *)
+      (mockAuthorizationManagementService
+        .getClients(
+          _: Option[String],
+          _: List[UUID],
+          _: UUID,
+          _: Option[UUID],
+          _: Option[PersistentClientKind],
+          _: Int,
+          _: Int
+        )(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *, *, *, *, *, *, *)
         .once()
-        .returns(Future.successful(clients))
-
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("clients", *, offset, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(TotalCountResult(1))))
+        .returns(Future.successful(PaginatedResult(results = clients, totalCount = clients.size)))
 
       Get() ~> service.getClients(
         Option("name"),
@@ -313,14 +315,130 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       }
     }
   }
+  "Client Keys list" should {
+    "succeed with ADMIN role" in {
+      val consumerId     = UUID.randomUUID()
+      val clientId       = UUID.randomUUID()
+      val relationshipId = UUID.randomUUID()
 
+      val offset: Int = 0
+      val limit: Int  = 50
+
+      val keys: Seq[ReadModelClientWithKeys] = Seq(
+        ReadModelClientWithKeys(
+          id = clientId,
+          consumerId = consumerId,
+          createdAt = OffsetDateTime.now(),
+          name = "name",
+          purposes = Seq.empty,
+          description = None,
+          relationships = Set(relationshipId),
+          kind = Api,
+          keys = Seq.empty
+        )
+      )
+      (mockAuthorizationManagementService
+        .getClientsWithKeys(
+          _: Option[String],
+          _: List[UUID],
+          _: UUID,
+          _: Option[UUID],
+          _: Option[PersistentClientKind],
+          _: Int,
+          _: Int
+        )(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *, *, *, *, *, *, *)
+        .once()
+        .returns(Future.successful(PaginatedResult(results = keys, totalCount = keys.size)))
+
+      Get() ~> service.getClientsWithKeys(
+        Option("name"),
+        relationshipId.toString,
+        consumerId.toString,
+        None,
+        None,
+        offset,
+        limit
+      ) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+    "succeed with SECURITY role" in {
+      val consumerId = UUID.randomUUID()
+
+      implicit val contexts: Seq[(String, String)] =
+        Seq(
+          "bearer"         -> bearerToken,
+          "uid"            -> personId.toString,
+          USER_ROLES       -> "security",
+          "organizationId" -> consumerId.toString
+        )
+
+      val clientId       = UUID.randomUUID()
+      val relationshipId = UUID.randomUUID()
+
+      val offset: Int                        = 0
+      val limit: Int                         = 50
+      val keys: Seq[ReadModelClientWithKeys] = Seq(
+        ReadModelClientWithKeys(
+          id = clientId,
+          consumerId = consumerId,
+          createdAt = OffsetDateTime.now(),
+          name = "name",
+          purposes = Seq.empty,
+          description = None,
+          relationships = Set(relationshipId),
+          kind = Api,
+          keys = Seq.empty
+        )
+      )
+
+      (mockTenantManagementService
+        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
+        .once()
+        .returns(Future.successful(consumer))
+
+      (mockPartyManagementService
+        .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(consumer.selfcareId.get, *, *, *, *)
+        .once()
+        .returns(Future.successful(relationships))
+
+      (mockAuthorizationManagementService
+        .getClientsWithKeys(
+          _: Option[String],
+          _: List[UUID],
+          _: UUID,
+          _: Option[UUID],
+          _: Option[PersistentClientKind],
+          _: Int,
+          _: Int
+        )(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *, *, *, *, *, *, *)
+        .once()
+        .returns(Future.successful(PaginatedResult(results = keys, totalCount = keys.size)))
+
+      Get() ~> service.getClientsWithKeys(
+        Option("name"),
+        relationshipId.toString,
+        consumerId.toString,
+        None,
+        None,
+        offset,
+        limit
+      ) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+  }
   "Client delete" should {
     "succeed" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       (mockAuthorizationManagementService
         .deleteClient(_: UUID)(_: Seq[(String, String)]))
@@ -328,25 +446,25 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(()))
 
-      Get() ~> service.deleteClient(client.id.toString) ~> check {
+      Get() ~> service.deleteClient(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       (mockAuthorizationManagementService
         .deleteClient(_: UUID)(_: Seq[(String, String)]))
         .expects(*, *)
         .once()
-        .returns(Future.failed(ClientNotFound(client.id)))
+        .returns(Future.failed(ClientNotFound(persistentClient.id)))
 
-      Get() ~> service.deleteClient(client.id.toString) ~> check {
+      Get() ~> service.deleteClient(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -356,21 +474,15 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     "succeed" in {
       val clients: Seq[PersistentClient] = Seq(persistentClient)
 
-      val offset: Int = 0
-      val limit: Int  = Int.MaxValue
-
       (mockPurposeManagementService
-        .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(purpose.id, *)
+        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(purpose.id, *, *)
         .once()
         .returns(Future.successful(archivedPurpose))
 
-      (mockReadModel
-        .find[PersistentClient](_: String, _: Bson, _: Int, _: Int)(
-          _: JsonReader[PersistentClient],
-          _: ExecutionContext
-        ))
-        .expects("clients", *, offset, limit, *, *)
+      (mockAuthorizationManagementService
+        .getClientsByPurpose(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
         .returns(Future.successful(clients))
 
@@ -387,8 +499,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
     "fail if purpose does not exist" in {
       (mockPurposeManagementService
-        .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(purpose.id, *)
+        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(purpose.id, *, *)
         .once()
         .returns(Future.failed(PurposeNotFound(purpose.id)))
 
@@ -400,8 +512,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
     "fail if purpose version is not in archived state" in {
       (mockPurposeManagementService
-        .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(purpose.id, *)
+        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(purpose.id, *, *)
         .once()
         .returns(Future.successful(notArchivedPurpose))
 

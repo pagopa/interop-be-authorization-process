@@ -4,18 +4,16 @@ import cats.syntax.all._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
-import it.pagopa.interop.agreementmanagement.client.model.{Stamps, Agreement => AgreementManagerAgreement}
-import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.interop.authorizationprocess.{model => AuthorizationProcessModel}
 import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationmanagement.model.{client => AuthorizationPersistentModel}
+import it.pagopa.interop.authorizationmanagement.model.{key => AuthorizationPersistentKeyModel}
+
 import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiMarshallerImpl, _}
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
-import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.interop.commons.utils.USER_ROLES
-import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
 import it.pagopa.interop.selfcare.userregistry.client.model.{
   CertifiableFieldResourceOfstring,
@@ -23,15 +21,28 @@ import it.pagopa.interop.selfcare.userregistry.client.model.{
   UserResource
 }
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
+import it.pagopa.interop.catalogmanagement.model.{
+  CatalogDescriptor,
+  CatalogItem,
+  CatalogAttributes,
+  Rest,
+  Published,
+  Automatic
+}
+import it.pagopa.interop.agreementmanagement.model.agreement.{PersistentAgreement, PersistentStamps, Active}
+import it.pagopa.interop.purposemanagement.model.purpose.{
+  PersistentPurpose,
+  PersistentPurposeVersion,
+  Active => PurposeActive,
+  Archived
+}
+import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenantKind, PersistentTenant, PersistentExternalId}
 import org.scalamock.scalatest.MockFactory
-
 import java.time.{OffsetDateTime, Duration}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
-import it.pagopa.interop.tenantmanagement.client.model.Tenant
-import it.pagopa.interop.tenantmanagement.client.model.ExternalId
-import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 
 trait SpecUtilsWithImplicit extends SpecUtils {
   self: MockFactory =>
@@ -96,38 +107,45 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val relationshipId: String = UUID.randomUUID().toString
 
-  val activeDescriptor: CatalogManagementDependency.EServiceDescriptor = CatalogManagementDependency.EServiceDescriptor(
+  val activeDescriptor: CatalogDescriptor = CatalogDescriptor(
     id = UUID.randomUUID(),
     version = "1",
     description = None,
     interface = None,
     docs = Seq.empty,
-    state = CatalogManagementDependency.EServiceDescriptorState.PUBLISHED,
+    state = Published,
     audience = Seq.empty,
     voucherLifespan = 10,
     dailyCallsPerConsumer = 1000,
     dailyCallsTotal = 20,
-    agreementApprovalPolicy = CatalogManagementDependency.AgreementApprovalPolicy.AUTOMATIC,
+    agreementApprovalPolicy = Automatic.some,
     serverUrls = Nil,
-    attributes = CatalogManagementDependency.Attributes(Nil, Nil, Nil)
+    createdAt = timestamp,
+    publishedAt = timestamp.some,
+    suspendedAt = None,
+    deprecatedAt = None,
+    archivedAt = None,
+    attributes = CatalogAttributes.empty
   )
 
-  val eService: CatalogManagementDependency.EService = CatalogManagementDependency.EService(
+  val eService: CatalogItem = CatalogItem(
     id = eServiceId,
     producerId = organizationId,
     name = "Service name",
     description = "Service description",
-    technology = CatalogManagementDependency.EServiceTechnology.REST,
-    descriptors = Seq(activeDescriptor)
+    technology = Rest,
+    attributes = CatalogAttributes.empty.some,
+    descriptors = Seq(activeDescriptor),
+    createdAt = timestamp
   )
 
-  val agreement: AgreementManagerAgreement = AgreementManagerAgreement(
+  val agreement: PersistentAgreement = PersistentAgreement(
     id = agreementId,
     eserviceId = eServiceId,
     descriptorId = activeDescriptor.id,
     producerId = organizationId,
     consumerId = consumerId,
-    state = AgreementManagementDependency.AgreementState.ACTIVE,
+    state = Active,
     verifiedAttributes = List.empty,
     certifiedAttributes = List.empty,
     declaredAttributes = List.empty,
@@ -138,18 +156,22 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     createdAt = timestamp,
     updatedAt = None,
     consumerNotes = None,
-    stamps = Stamps()
+    stamps = PersistentStamps(),
+    contract = None,
+    rejectionReason = None,
+    suspendedAt = None
   )
 
-  val purposeVersion: PurposeManagementDependency.PurposeVersion = PurposeManagementDependency.PurposeVersion(
+  val purposeVersion: PersistentPurposeVersion = PersistentPurposeVersion(
     id = UUID.randomUUID(),
-    state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
+    state = PurposeActive,
     createdAt = timestamp,
     updatedAt = None,
     firstActivationAt = None,
     expectedApprovalDate = None,
     dailyCalls = 10,
-    riskAnalysis = None
+    riskAnalysis = None,
+    suspendedAt = None
   )
 
   val clientStateId = UUID.randomUUID()
@@ -204,13 +226,13 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val persistentClientPurpose: AuthorizationPersistentModel.PersistentClientStatesChain =
     AuthorizationPersistentModel.PersistentClientStatesChain(
-      id = UUID.randomUUID(),
+      id = clientStateId,
       eService = AuthorizationPersistentModel.PersistentClientEServiceDetails(
         eServiceId = eServiceId,
         descriptorId = descriptorId,
         state = AuthorizationPersistentModel.PersistentClientComponentState.Active,
         audience = Seq("audience"),
-        voucherLifespan = 0
+        voucherLifespan = 10
       ),
       agreement = AuthorizationPersistentModel.PersistentClientAgreementDetails(
         eServiceId = eServiceId,
@@ -236,6 +258,17 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     createdAt = timestamp
   )
 
+  val persistentKey: AuthorizationPersistentKeyModel.PersistentKey = AuthorizationPersistentKeyModel.PersistentKey(
+    kid = "QyiGZU3L-bbyWpJvp3UG5jSFXEuxoYlRdZeuf5o6ULI",
+    encodedPem =
+      "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUF2RElqdVN4UkJtaEdudjE5MUlSTQpnbEVXblRFMXdmOXdMRzdwQStxQlBjckVyM3dQQWJoTzJab1ZpVFNLS1crWGlZbW15cS8zaVlkYlhXNVNLc1NqCnNEN1NWTEhzZ0YzWU85MjZpV0tLTGVWdThhOEdEcUx1K1ZrQjlDNGMxUWZLajJRRG1rNTN1OGlKOU12Mi84c28KVzY2VXM2NVM0TTlzc1Jka0ZzMUoxVWhQSVgxT1I3UjlBSnZKWFN2ZmtMekhvOHdveTVkM3JZdmJNMzErWk0wbwplL0tQdUdCVWRnRitreXNLZVE3eVgxM3NFK1NCaVZaRkJFYzdzd0xXRDIxeEZJSVlpWHdWTEFteC9lajBMMFNTCkVSUEsvSVpmRlN6UW92bE5vNVhsR3BGcStTWk5ZdlVyWTBRRndtK3M0UnN5R3lUOTJnWHBmaVpJeHZMMUI1TmgKZndJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t",
+    algorithm = "RS256",
+    use = AuthorizationPersistentKeyModel.Sig,
+    relationshipId = UUID.randomUUID(),
+    name = "test",
+    createdAt = timestamp
+  )
+
   val client: AuthorizationManagementDependency.Client = AuthorizationManagementDependency.Client(
     id = UUID.randomUUID(),
     consumerId = consumerId,
@@ -247,19 +280,20 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     createdAt = timestamp
   )
 
-  val consumer: Tenant = Tenant(
+  val consumer: PersistentTenant = PersistentTenant(
     id = client.consumerId,
     selfcareId = UUID.randomUUID.toString.some,
-    externalId = ExternalId("IPA", "value"),
+    externalId = PersistentExternalId("IPA", "value"),
     features = Nil,
     attributes = Nil,
     createdAt = OffsetDateTimeSupplier.get(),
     updatedAt = None,
     mails = Nil,
-    name = "test_name"
+    name = "test_name",
+    kind = PersistentTenantKind.PA.some
   )
 
-  val purpose: PurposeManagementDependency.Purpose = PurposeManagementDependency.Purpose(
+  val purpose: PersistentPurpose = PersistentPurpose(
     id = UUID.randomUUID(),
     eserviceId = eService.id,
     consumerId = consumer.id,
@@ -271,52 +305,35 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     riskAnalysisForm = None,
     createdAt = timestamp,
     updatedAt = None,
-    isFreeOfCharge = true
+    isFreeOfCharge = true,
+    freeOfChargeReason = None
   )
 
-  val archivedPurpose: PurposeManagementDependency.Purpose =
+  val archivedPurpose: PersistentPurpose =
     purpose.copy(
       id = UUID.randomUUID(),
       versions = Seq(
         purposeVersion.copy(
           id = UUID.randomUUID,
-          state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
+          state = PurposeActive,
           createdAt = OffsetDateTime.now().minus(Duration.ofDays(10))
         ),
-        purposeVersion.copy(
-          id = UUID.randomUUID,
-          state = PurposeManagementDependency.PurposeVersionState.ARCHIVED,
-          createdAt = OffsetDateTime.now()
-        )
+        purposeVersion.copy(id = UUID.randomUUID, state = Archived, createdAt = OffsetDateTime.now())
       )
     )
 
-  val notArchivedPurpose: PurposeManagementDependency.Purpose =
+  val notArchivedPurpose: PersistentPurpose =
     purpose.copy(
       id = UUID.randomUUID(),
       versions = Seq(
+        purposeVersion.copy(id = UUID.randomUUID, state = PurposeActive, createdAt = OffsetDateTime.now()),
         purposeVersion.copy(
           id = UUID.randomUUID,
-          state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
-          createdAt = OffsetDateTime.now()
-        ),
-        purposeVersion.copy(
-          id = UUID.randomUUID,
-          state = PurposeManagementDependency.PurposeVersionState.ARCHIVED,
+          state = Archived,
           createdAt = OffsetDateTime.now().minus(Duration.ofDays(10))
         )
       )
     )
-
-  val operator: Operator = Operator(
-    relationshipId = UUID.fromString(relationshipId),
-    taxCode = user.fiscalCode.get,
-    name = user.name.get.value,
-    familyName = user.familyName.get.value,
-    role = OperatorRole.OPERATOR,
-    product = RelationshipProduct("Interop", "aPlatformRole", timestamp),
-    state = OperatorState.ACTIVE
-  )
 
   val relationship: PartyManagementDependency.Relationship = PartyManagementDependency.Relationship(
     id = UUID.fromString(relationshipId),
@@ -336,34 +353,36 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     name = "test",
     createdAt = timestamp,
     key = AuthorizationManagementDependency.Key(
-      kty = "1",
-      keyOps = Some(Seq("2")),
-      use = Some("3"),
-      alg = Some("4"),
-      kid = "5",
-      x5u = Some("6"),
-      x5t = Some("7"),
-      x5tS256 = Some("8"),
-      x5c = Some(Seq("9")),
-      crv = Some("10"),
-      x = Some("11"),
-      y = Some("12"),
-      d = Some("13"),
-      k = Some("14"),
-      n = Some("15"),
-      e = Some("16"),
-      p = Some("17"),
-      q = Some("18"),
-      dp = Some("19"),
-      dq = Some("20"),
-      qi = Some("21"),
-      oth = Some(Seq(AuthorizationManagementDependency.OtherPrimeInfo("22", "23", "24")))
+      kty = "RSA",
+      keyOps = None,
+      use = Some("sig"),
+      alg = Some("RS256"),
+      kid = "QyiGZU3L-bbyWpJvp3UG5jSFXEuxoYlRdZeuf5o6ULI",
+      x5u = None,
+      x5t = None,
+      x5tS256 = None,
+      x5c = None,
+      crv = None,
+      x = None,
+      y = None,
+      d = None,
+      k = None,
+      n = Some(
+        "vDIjuSxRBmhGnv191IRMglEWnTE1wf9wLG7pA-qBPcrEr3wPAbhO2ZoViTSKKW-XiYmmyq_3iYdbXW5SKsSjsD7SVLHsgF3YO926iWKKLeVu8a8GDqLu-VkB9C4c1QfKj2QDmk53u8iJ9Mv2_8soW66Us65S4M9ssRdkFs1J1UhPIX1OR7R9AJvJXSvfkLzHo8woy5d3rYvbM31-ZM0oe_KPuGBUdgF-kysKeQ7yX13sE-SBiVZFBEc7swLWD21xFIIYiXwVLAmx_ej0L0SSERPK_IZfFSzQovlNo5XlGpFq-SZNYvUrY0QFwm-s4RsyGyT92gXpfiZIxvL1B5Nhfw"
+      ),
+      e = Some("AQAB"),
+      p = None,
+      q = None,
+      dp = None,
+      dq = None,
+      qi = None,
+      oth = None
     )
   )
 
   def mockGetTenant(): Unit = (mockTenantManagementService
-    .getTenant(_: UUID)(_: Seq[(String, String)]))
-    .expects(client.consumerId, *)
+    .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+    .expects(client.consumerId, *, *)
     .once()
     .returns(Future.successful(consumer)): Unit
 
@@ -371,30 +390,30 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     withOperators: Boolean,
     client: authorizationmanagement.client.model.Client = client,
     relationship: PartyManagementDependency.Relationship = relationship
-  )(implicit contexts: Seq[(String, String)]): Unit = {
+  ): Unit = {
 
     (mockTenantManagementService
-      .getTenant(_: UUID)(_: Seq[(String, String)]))
-      .expects(client.consumerId, *)
+      .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+      .expects(client.consumerId, *, *)
       .once()
       .returns(Future.successful(consumer))
 
     (mockAgreementManagementService
-      .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
-      .expects(client.purposes.head.states.eservice.eserviceId, client.consumerId, contexts)
+      .getAgreements(_: UUID, _: UUID)(_: ExecutionContext, _: ReadModelService))
+      .expects(client.purposes.head.states.eservice.eserviceId, client.consumerId, *, *)
       .once()
       .returns(Future.successful(Seq(agreement)))
 
     client.purposes.foreach { clientPurpose =>
       (mockPurposeManagementService
-        .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(clientPurpose.states.purpose.purposeId, contexts)
+        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(clientPurpose.states.purpose.purposeId, *, *)
         .once()
         .returns(Future.successful(purpose.copy(eserviceId = eService.id, consumerId = consumer.id)))
 
       (mockCatalogManagementService
-        .getEService(_: UUID)(_: Seq[(String, String)]))
-        .expects(agreement.eserviceId, contexts)
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(agreement.eserviceId, *, *)
         .once()
         .returns(
           Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(id = agreement.descriptorId))))

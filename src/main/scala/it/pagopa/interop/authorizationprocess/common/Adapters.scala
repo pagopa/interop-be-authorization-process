@@ -1,6 +1,7 @@
 package it.pagopa.interop.authorizationprocess.common
 
 import it.pagopa.interop.authorizationprocess.model._
+import it.pagopa.interop.authorizationprocess.model.{KeyUse => ProcessKeyUse}
 import it.pagopa.interop.authorizationmanagement.model.client._
 import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientComponentState.Active
 import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientComponentState.Inactive
@@ -8,11 +9,11 @@ import it.pagopa.interop.authorizationmanagement.model.client.{Api, Consumer}
 import it.pagopa.interop.authorizationmanagement.model.key.{Enc, Sig}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
-import it.pagopa.interop.authorizationmanagement.model.key.PersistentKey
+import it.pagopa.interop.authorizationmanagement.model.key.{PersistentKeyUse, PersistentKey}
+import it.pagopa.interop.authorizationmanagement.jwk.model.Models._
+import it.pagopa.interop.authorizationmanagement.jwk.converter.KeyConverter
 
 import java.util.UUID
-import it.pagopa.interop.authorizationmanagement.model.key.PersistentKeyUse
-
 import java.time.OffsetDateTime
 
 object Adapters {
@@ -48,7 +49,7 @@ object Adapters {
   }
 
   implicit class PersistentKeyWrapper(private val k: PersistentKey) extends AnyVal {
-    def toApi: KeyEntry =
+    def toApi: KeyEntry                                              =
       KeyEntry(
         id = k.kid,
         key = k.encodedPem,
@@ -58,6 +59,22 @@ object Adapters {
         createdAt = k.createdAt,
         relationshipId = k.relationshipId
       )
+    def toReadKeyApi(op: Operator): Either[Throwable, ReadClientKey] =
+      KeyConverter
+        .fromBase64encodedPEMToAPIKey(k.kid, k.encodedPem, k.use.toJwk, k.algorithm)
+        .map(key =>
+          ReadClientKey(
+            name = k.name,
+            createdAt = k.createdAt,
+            operator = OperatorDetails(op.relationshipId, op.name, op.familyName),
+            key = key.toApi
+          )
+        )
+
+    def toClientKeyApi: Either[Throwable, ClientKey] =
+      KeyConverter
+        .fromBase64encodedPEMToAPIKey(k.kid, k.encodedPem, k.use.toJwk, k.algorithm)
+        .map(key => ClientKey(name = k.name, createdAt = k.createdAt, key = key.toApi))
   }
 
   implicit class ManagementClientPurposeWrapper(private val cp: AuthorizationManagementDependency.Purpose)
@@ -148,30 +165,27 @@ object Adapters {
       )
   }
 
-  implicit class KeyUseWrapper(private val use: KeyUse) extends AnyVal {
+  implicit class KeyUseWrapper(private val use: ProcessKeyUse) extends AnyVal {
     def toDependency: AuthorizationManagementDependency.KeyUse = use match {
-      case KeyUse.SIG => AuthorizationManagementDependency.KeyUse.SIG
-      case KeyUse.ENC => AuthorizationManagementDependency.KeyUse.ENC
+      case ProcessKeyUse.SIG => AuthorizationManagementDependency.KeyUse.SIG
+      case ProcessKeyUse.ENC => AuthorizationManagementDependency.KeyUse.ENC
     }
   }
 
   implicit class PersistentKeyUseWrapper(private val use: PersistentKeyUse) extends AnyVal {
-    def toApi: KeyUse = use match {
-      case Sig => KeyUse.SIG
-      case Enc => KeyUse.ENC
+    def toApi: ProcessKeyUse = use match {
+      case Sig => ProcessKeyUse.SIG
+      case Enc => ProcessKeyUse.ENC
+    }
+    def toJwk: JwkKeyUse     = use match {
+      case Sig => JwkSig
+      case Enc => JwkEnc
     }
   }
 
   implicit class ClientKeyWrapper(private val k: AuthorizationManagementDependency.ClientKey) extends AnyVal {
-    def toApi: ClientKey                          =
+    def toApi: ClientKey =
       ClientKey(name = k.name, createdAt = k.createdAt, key = k.key.toApi)
-    def toReadKeyApi(op: Operator): ReadClientKey =
-      ReadClientKey(
-        name = k.name,
-        createdAt = k.createdAt,
-        operator = OperatorDetails(op.relationshipId, op.name, op.familyName),
-        key = k.key.toApi
-      )
   }
 
   implicit class KeyWrapper(private val key: AuthorizationManagementDependency.Key) extends AnyVal {
@@ -260,5 +274,35 @@ object Adapters {
       case AuthorizationManagementDependency.ClientComponentState.ACTIVE   => ClientComponentState.ACTIVE
       case AuthorizationManagementDependency.ClientComponentState.INACTIVE => ClientComponentState.INACTIVE
     }
+  }
+
+  implicit class JwkKeyWrapper(private val p: JwkKey)                       extends AnyVal {
+    def toApi: Key = Key(
+      kty = p.kty,
+      key_ops = p.keyOps,
+      use = p.use,
+      alg = p.alg,
+      kid = p.kid,
+      x5u = p.x5u,
+      x5t = p.x5t,
+      x5tS256 = p.x5tS256,
+      x5c = p.x5c,
+      crv = p.crv,
+      x = p.x,
+      y = p.y,
+      d = p.d,
+      k = p.k,
+      n = p.n,
+      e = p.e,
+      p = p.p,
+      q = p.q,
+      dp = p.dp,
+      dq = p.dq,
+      qi = p.qi,
+      oth = p.oth.map(_.map(_.toApi))
+    )
+  }
+  implicit class JwkOtherPrimeInfoWrapper(private val o: JwkOtherPrimeInfo) extends AnyVal {
+    def toApi: OtherPrimeInfo = OtherPrimeInfo(r = o.r, d = o.d, t = o.t)
   }
 }

@@ -6,13 +6,11 @@ import akka.http.scaladsl.server.Route
 import cats.syntax.all._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop._
-import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.api.ClientApiService
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiHandlers._
 import it.pagopa.interop.authorizationprocess.common.Adapters._
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
-import it.pagopa.interop.authorizationprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
@@ -21,7 +19,20 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipStateToApi
 }
 import it.pagopa.interop.authorizationprocess.service._
-import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
+import it.pagopa.interop.agreementmanagement.model.agreement.{
+  PersistentAgreement,
+  PersistentAgreementState,
+  Active,
+  Suspended
+}
+import it.pagopa.interop.catalogmanagement.model.{CatalogDescriptor, Published, Deprecated => DeprecatedState}
+import it.pagopa.interop.purposemanagement.model.purpose.{
+  PersistentPurposeVersionState,
+  Archived,
+  PersistentPurposeVersion,
+  Active => ActiveState
+}
+import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, SECURITY_ROLE, SUPPORT_ROLE, authorize}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
@@ -29,7 +40,6 @@ import it.pagopa.interop.commons.utils.AkkaUtils._
 import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
-import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.selfcare._
 import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
@@ -46,9 +56,8 @@ final case class ClientApiServiceImpl(
   purposeManagementService: PurposeManagementService,
   userRegistryManagementService: UserRegistryManagementService,
   tenantManagementService: TenantManagementService,
-  readModel: ReadModelService,
   dateTimeSupplier: OffsetDateTimeSupplier
-)(implicit ec: ExecutionContext)
+)(implicit ec: ExecutionContext, readModel: ReadModelService)
     extends ClientApiService {
 
   implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
@@ -116,12 +125,11 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Retrieving client $clientId"
     logger.info(operationLabel)
 
-    def isConsumerOrProducer(organizationId: UUID, client: ManagementClient)(implicit
-      ec: ExecutionContext,
-      contexts: Seq[(String, String)]
+    def isConsumerOrProducer(organizationId: UUID, client: PersistentClient)(implicit
+      ec: ExecutionContext
     ): Future[Boolean] = {
       def isProducer(): Future[Boolean] = Future
-        .traverse(client.purposes.map(_.states.eservice.eserviceId))(catalogManagementService.getEService)
+        .traverse(client.purposes.map(_.eService.eServiceId))(catalogManagementService.getEServiceById)
         .map(eservices => eservices.map(_.producerId).contains(organizationId))
 
       if (client.consumerId == organizationId) Future.successful(true) else isProducer()
@@ -131,7 +139,7 @@ final case class ClientApiServiceImpl(
     val result: Future[Client] = for {
       requesterUuid        <- getOrganizationIdFutureUUID(contexts)
       clientUuid           <- clientId.toFutureUUID
-      client               <- authorizationManagementService.getClient(clientUuid)(contexts)
+      client               <- authorizationManagementService.getClient(clientUuid)
       isConsumerOrProducer <- isConsumerOrProducer(requesterUuid, client)
       _                    <- Future
         .failed(OrganizationNotAllowedOnClient(client.id.toString, requesterUuid))
@@ -153,7 +161,7 @@ final case class ClientApiServiceImpl(
 
       val result = for {
         clientUuid <- clientId.toFutureUUID
-        client     <- authorizationManagementService.getClient(clientUuid)(contexts)
+        client     <- authorizationManagementService.getClient(clientUuid)
         _          <- assertIsClientConsumer(client).toFuture
         _          <- authorizationManagementService.deleteClient(clientUuid)(contexts)
       } yield ()
@@ -172,16 +180,16 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Client] = for {
-      clientUUID       <- clientId.toFutureUUID
+      clientUuid       <- clientId.toFutureUUID
       relationshipUUID <- relationshipId.toFutureUUID
       organizationId   <- getOrganizationIdFutureUUID(contexts)
       client           <- authorizationManagementService
-        .getClient(clientUUID)(contexts)
+        .getClient(clientUuid)
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
       relationship     <- getSecurityRelationship(relationshipUUID)
       updatedClient    <- client.relationships
         .find(_ === relationship.id)
-        .fold(authorizationManagementService.addRelationship(clientUUID, relationship.id)(contexts))(_ =>
+        .fold(authorizationManagementService.addRelationship(clientUuid, relationship.id)(contexts))(_ =>
           Future.failed(OperatorRelationshipAlreadyAssigned(client.id, relationship.id))
         )
     } yield updatedClient.toApi(organizationId == updatedClient.consumerId)
@@ -201,7 +209,7 @@ final case class ClientApiServiceImpl(
     val result: Future[Unit] = for {
       userUUID               <- getUidFutureUUID(contexts)
       clientUUID             <- clientId.toFutureUUID
-      client                 <- authorizationManagementService.getClient(clientUUID)(contexts)
+      client                 <- authorizationManagementService.getClient(clientUUID)
       _                      <- assertIsClientConsumer(client).toFuture
       relationshipUUID       <- relationshipId.toFutureUUID
       requesterRelationships <- partyManagementService.getRelationshipsByPersonId(userUUID, Seq.empty)
@@ -232,12 +240,13 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[ReadClientKey] = for {
-      clientUuid <- clientId.toFutureUUID
-      client     <- authorizationManagementService.getClient(clientUuid)(contexts)
-      _          <- assertIsClientConsumer(client).toFuture
-      key        <- authorizationManagementService.getKey(clientUuid, keyId)
-      operator   <- operatorFromRelationship(key.relationshipId)
-    } yield key.toReadKeyApi(operator)
+      clientUuid    <- clientId.toFutureUUID
+      client        <- authorizationManagementService.getClient(clientUuid)
+      _             <- assertIsClientConsumer(client).toFuture
+      key           <- authorizationManagementService.getClientKey(clientUuid, keyId)
+      operator      <- operatorFromRelationship(key.relationshipId)
+      readClientKey <- key.toReadKeyApi(operator).toFuture
+    } yield readClientKey
 
     onComplete(result) {
       getClientKeyByIdResponse[ReadClientKey](operationLabel)(getClientKeyById200)
@@ -253,7 +262,7 @@ final case class ClientApiServiceImpl(
 
     val result: Future[Unit] = for {
       clientUuid <- clientId.toFutureUUID
-      client     <- authorizationManagementService.getClient(clientUuid)(contexts)
+      client     <- authorizationManagementService.getClient(clientUuid)
       _          <- assertIsClientConsumer(client).toFuture
       _          <- authorizationManagementService.deleteKey(clientUuid, keyId)(contexts)
     } yield ()
@@ -276,7 +285,7 @@ final case class ClientApiServiceImpl(
       clientUuid     <- clientId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
       client         <- authorizationManagementService
-        .getClient(clientUuid)(contexts)
+        .getClient(clientUuid)
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
       relationshipId <- securityOperatorRelationship(client.consumerId, userId).map(_.id)
       seeds = keysSeeds.map(_.toDependency(relationshipId, dateTimeSupplier.get()))
@@ -299,15 +308,16 @@ final case class ClientApiServiceImpl(
     val result: Future[ReadClientKeys] = for {
       clientUuid    <- clientId.toFutureUUID
       relationships <- parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
-      client        <- authorizationManagementService.getClient(clientUuid)(contexts)
+      client        <- authorizationManagementService.getClient(clientUuid)
       _             <- assertIsClientConsumer(client).toFuture
-      clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)(contexts)
+      clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)
       operatorKeys =
-        if (relationships.isEmpty) clientKeys.keys
+        if (relationships.isEmpty) clientKeys
         else
-          clientKeys.keys.filter(key => relationships.contains(key.relationshipId))
-      keysResponse = authorizationmanagement.client.model.KeysResponse(operatorKeys)
-      keys <- Future.traverse(keysResponse.keys)(k => operatorFromRelationship(k.relationshipId).map(k.toReadKeyApi))
+          clientKeys.filter(key => relationships.contains(key.relationshipId))
+      keys <- Future.traverse(operatorKeys)(k =>
+        operatorFromRelationship(k.relationshipId).flatMap(op => k.toReadKeyApi(op).toFuture)
+      )
     } yield ReadClientKeys(keys)
 
     onComplete(result) {
@@ -327,7 +337,7 @@ final case class ClientApiServiceImpl(
       clientUuid     <- clientId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
       client         <- authorizationManagementService
-        .getClient(clientUuid)(contexts)
+        .getClient(clientUuid)
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
       operators      <- operatorsFromClient(client)
     } yield operators
@@ -344,47 +354,46 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Adding Purpose ${details.purposeId} to Client $clientId"
     logger.info(operationLabel)
 
-    val validAgreementsStates: Set[AgreementManagementDependency.AgreementState] =
-      Set[AgreementManagementDependency.AgreementState](
-        AgreementManagementDependency.AgreementState.ACTIVE,
-        AgreementManagementDependency.AgreementState.SUSPENDED
-      )
+    val validAgreementsStates: Set[PersistentAgreementState] =
+      Set[PersistentAgreementState](Active, Suspended)
 
-    val invalidPurposeStates: Set[PurposeManagementDependency.PurposeVersionState] =
-      Set(PurposeManagementDependency.PurposeVersionState.ARCHIVED)
+    val invalidPurposeStates: Set[PersistentPurposeVersionState] =
+      Set(Archived)
 
     def descriptorToComponentState(
-      descriptor: CatalogManagementDependency.EServiceDescriptor
-    ): AuthorizationManagementDependency.ClientComponentState = descriptor.state match {
-      case CatalogManagementDependency.EServiceDescriptorState.PUBLISHED |
-          CatalogManagementDependency.EServiceDescriptorState.DEPRECATED =>
-        AuthorizationManagementDependency.ClientComponentState.ACTIVE
-      case _ => AuthorizationManagementDependency.ClientComponentState.INACTIVE
-    }
+      descriptor: CatalogDescriptor
+    ): AuthorizationManagementDependency.ClientComponentState =
+      descriptor.state match {
+        case Published | DeprecatedState =>
+          AuthorizationManagementDependency.ClientComponentState.ACTIVE
+        case _                           => AuthorizationManagementDependency.ClientComponentState.INACTIVE
+      }
 
     def agreementToComponentState(
-      agreement: AgreementManagementDependency.Agreement
-    ): AuthorizationManagementDependency.ClientComponentState = agreement.state match {
-      case AgreementManagementDependency.AgreementState.ACTIVE =>
-        AuthorizationManagementDependency.ClientComponentState.ACTIVE
-      case _ => AuthorizationManagementDependency.ClientComponentState.INACTIVE
-    }
+      agreement: PersistentAgreement
+    ): AuthorizationManagementDependency.ClientComponentState =
+      agreement.state match {
+        case Active =>
+          AuthorizationManagementDependency.ClientComponentState.ACTIVE
+        case _      => AuthorizationManagementDependency.ClientComponentState.INACTIVE
+      }
 
     def purposeVersionToComponentState(
-      purposeVersion: PurposeManagementDependency.PurposeVersion
-    ): AuthorizationManagementDependency.ClientComponentState = purposeVersion.state match {
-      case PurposeManagementDependency.PurposeVersionState.ACTIVE =>
-        AuthorizationManagementDependency.ClientComponentState.ACTIVE
-      case _ => AuthorizationManagementDependency.ClientComponentState.INACTIVE
-    }
+      purposeVersion: PersistentPurposeVersion
+    ): AuthorizationManagementDependency.ClientComponentState =
+      purposeVersion.state match {
+        case ActiveState =>
+          AuthorizationManagementDependency.ClientComponentState.ACTIVE
+        case _           => AuthorizationManagementDependency.ClientComponentState.INACTIVE
+      }
 
     val result: Future[Unit] = for {
       clientUuid <- clientId.toFutureUUID
-      client     <- authorizationManagementService.getClient(clientUuid)(contexts)
+      client     <- authorizationManagementService.getClient(clientUuid)
       _          <- assertIsClientConsumer(client).toFuture
-      purpose    <- purposeManagementService.getPurpose(details.purposeId)
+      purpose    <- purposeManagementService.getPurposeById(details.purposeId)
       _          <- assertIsPurposeConsumer(purpose.id, purpose.consumerId).toFuture
-      eService   <- catalogManagementService.getEService(purpose.eserviceId)
+      eService   <- catalogManagementService.getEServiceById(purpose.eserviceId)
       agreements <- agreementManagementService.getAgreements(purpose.eserviceId, purpose.consumerId)
       agreement  <- agreements
         .filter(agreement => validAgreementsStates.contains(agreement.state))
@@ -436,7 +445,7 @@ final case class ClientApiServiceImpl(
 
     val result: Future[Unit] = for {
       clientUuid  <- clientId.toFutureUUID
-      client      <- authorizationManagementService.getClient(clientUuid)(contexts)
+      client      <- authorizationManagementService.getClient(clientUuid)
       _           <- assertIsClientConsumer(client).toFuture
       purposeUuid <- purposeId.toFutureUUID
       _           <- authorizationManagementService.removeClientPurpose(clientUuid, purposeUuid)(contexts)
@@ -477,7 +486,7 @@ final case class ClientApiServiceImpl(
     roles: Seq[String] =
       Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
   )(implicit contexts: Seq[(String, String)]): Future[PartyManagementDependency.Relationship] = for {
-    selfcareId    <- tenantManagementService.getTenant(requesterId).flatMap(_.selfcareId.toFuture(MissingSelfcareId))
+    selfcareId <- tenantManagementService.getTenantById(requesterId).flatMap(_.selfcareId.toFuture(MissingSelfcareId))
     relationships <- partyManagementService
       .getRelationships(selfcareId, userId, roles)
     activeRelationShips = relationships.items.toList.filter(
@@ -486,7 +495,7 @@ final case class ClientApiServiceImpl(
     relationShip <- activeRelationShips.headOption.toFuture(SecurityOperatorRelationshipNotFound(requesterId, userId))
   } yield relationShip
 
-  private[this] def operatorsFromClient(client: AuthorizationManagementDependency.Client)(implicit
+  private[this] def operatorsFromClient(client: PersistentClient)(implicit
     contexts: Seq[(String, String)]
   ): Future[Seq[Operator]] = Future.traverse(client.relationships.toList)(operatorFromRelationship)
 
@@ -529,10 +538,10 @@ final case class ClientApiServiceImpl(
 
     val result: Future[EncodedClientKey] = for {
       clientUuid <- clientId.toFutureUUID
-      client     <- authorizationManagementService.getClient(clientUuid)(contexts)
+      client     <- authorizationManagementService.getClient(clientUuid)
       _          <- assertIsClientConsumer(client).toFuture
-      encodedKey <- authorizationManagementService.getEncodedClientKey(clientUuid, keyId)(contexts)
-    } yield EncodedClientKey(key = encodedKey.key)
+      key        <- authorizationManagementService.getClientKey(clientUuid, keyId)
+    } yield EncodedClientKey(key = key.encodedPem)
 
     onComplete(result) {
       getEncodedClientKeyByIdResponse[EncodedClientKey](operationLabel)(getEncodedClientKeyById200)
@@ -564,7 +573,7 @@ final case class ClientApiServiceImpl(
       roles         <- getUserRolesFuture(contexts)
       relationships <- checkAuthorizationForRoles(roles, relationshipIds, requesterUuid, userUuid)(contexts)
       clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
-      clients       <- ReadModelQueries.listClients(
+      clients       <- authorizationManagementService.getClients(
         name,
         relationships,
         consumerUuid,
@@ -572,7 +581,7 @@ final case class ClientApiServiceImpl(
         clientKind.map(_.toProcess),
         offset,
         limit
-      )(readModel)
+      )
       apiClients = clients.results.map(_.toApi(requesterUuid == consumerUuid))
     } yield Clients(results = apiClients, totalCount = clients.totalCount)
 
@@ -618,7 +627,7 @@ final case class ClientApiServiceImpl(
       roles         <- getUserRolesFuture(contexts)
       relationships <- checkAuthorizationForRoles(roles, relationshipIds, requesterUuid, userUuid)(contexts)
       clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
-      clientsKeys   <- ReadModelQueries.listClientsWithKeys(
+      clientsKeys   <- authorizationManagementService.getClientsWithKeys(
         name,
         relationships,
         consumerUuid,
@@ -626,7 +635,7 @@ final case class ClientApiServiceImpl(
         clientKind.map(_.toProcess),
         offset,
         limit
-      )(readModel)
+      )
       apiClientsKeys = clientsKeys.results.map(_.toApi(requesterUuid == consumerUuid))
     } yield ClientsWithKeys(results = apiClientsKeys, totalCount = clientsKeys.totalCount)
 
@@ -643,12 +652,12 @@ final case class ClientApiServiceImpl(
 
       val result: Future[Unit] = for {
         purposeUuid <- purposeId.toFutureUUID
-        purpose     <- purposeManagementService.getPurpose(purposeUuid)
+        purpose     <- purposeManagementService.getPurposeById(purposeUuid)
         _           <- purpose.versions
           .maxByOption(_.createdAt)
-          .find(_.state == PurposeManagementDependency.PurposeVersionState.ARCHIVED)
+          .find(_.state == Archived)
           .toFuture(PurposeNotInExpectedState(purpose.id))
-        clients     <- ReadModelQueries.listClientsByPurpose(purposeUuid)(readModel)
+        clients     <- authorizationManagementService.getClientsByPurpose(purposeUuid)
         _           <- Future.traverse(clients)(c =>
           authorizationManagementService.removeClientPurpose(c.id, purposeUuid)(contexts)
         )

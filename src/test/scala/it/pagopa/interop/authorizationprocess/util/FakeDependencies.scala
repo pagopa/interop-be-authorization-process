@@ -1,16 +1,20 @@
 package it.pagopa.interop.authorizationprocess.util
 
 import cats.syntax.all._
-import it.pagopa.interop.agreementmanagement.client.model.Agreement
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.authorizationprocess.service._
-import it.pagopa.interop.catalogmanagement.client.model.{EService, EServiceTechnology}
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
-import it.pagopa.interop.purposemanagement.client.model
-import it.pagopa.interop.purposemanagement.client.model.PurposeVersion
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.selfcare.partymanagement.client.model._
 import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
-import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant}
+import it.pagopa.interop.catalogmanagement.model.{CatalogItem, CatalogAttributes, Rest}
+import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClientKind, PersistentClient, Api}
+import it.pagopa.interop.authorizationmanagement.model.key.{PersistentKey, Sig}
+import it.pagopa.interop.agreementmanagement.model.agreement.PersistentAgreement
+import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
+import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentTenantKind, PersistentExternalId}
+import it.pagopa.interop.authorizationprocess.common.readmodel.PaginatedResult
+import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -22,19 +26,24 @@ import scala.concurrent.{ExecutionContext, Future}
 object FakeDependencies {
   class FakeAgreementManagementService     extends AgreementManagementService     {
     override def getAgreements(eServiceId: UUID, consumerId: UUID)(implicit
-      contexts: Seq[(String, String)]
-    ): Future[Seq[Agreement]] = Future.successful(Seq.empty)
+      ec: ExecutionContext,
+      readModel: ReadModelService
+    ): Future[Seq[PersistentAgreement]] = Future.successful(Seq.empty)
   }
   class FakeCatalogManagementService       extends CatalogManagementService       {
-    override def getEService(eServiceId: UUID)(implicit contexts: Seq[(String, String)]): Future[EService] =
+    override def getEServiceById(
+      eServiceId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[CatalogItem] =
       Future.successful(
-        EService(
+        CatalogItem(
           id = UUID.randomUUID(),
           producerId = UUID.randomUUID(),
           name = "fake",
           description = "fake",
-          technology = EServiceTechnology.REST,
-          descriptors = Seq.empty
+          technology = Rest,
+          attributes = CatalogAttributes(Seq.empty, Seq.empty, Seq.empty).some,
+          descriptors = Seq.empty,
+          createdAt = OffsetDateTimeSupplier.get()
         )
       )
   }
@@ -57,16 +66,19 @@ object FakeDependencies {
       )
     )
 
-    override def getClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[ManagementClient] =
+    override def getClient(
+      clientId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentClient] =
       Future.successful(
-        Client(
+        PersistentClient(
           id = UUID.randomUUID(),
           consumerId = UUID.randomUUID(),
           name = "fake",
+          description = Some("description"),
           purposes = Seq.empty,
           relationships = Set.empty,
-          kind = ClientKind.API,
-          createdAt = OffsetDateTime.now()
+          kind = Api,
+          createdAt = OffsetDateTimeSupplier.get()
         )
       )
 
@@ -83,7 +95,7 @@ object FakeDependencies {
         purposes = Seq.empty,
         relationships = Set.empty,
         kind = ClientKind.API,
-        createdAt = OffsetDateTime.now()
+        createdAt = OffsetDateTimeSupplier.get()
       )
     )
 
@@ -91,18 +103,26 @@ object FakeDependencies {
       contexts: Seq[(String, String)]
     ): Future[Unit] = Future.successful(())
 
-    override def getKey(clientId: UUID, kid: String)(implicit contexts: Seq[(String, String)]): Future[ClientKey] =
+    override def getClientKey(clientId: UUID, kid: String)(implicit
+      ec: ExecutionContext,
+      readModel: ReadModelService
+    ): Future[PersistentKey] =
       Future.successful(
-        ClientKey(
-          key = Key(kty = "fake", kid = "fake"),
+        PersistentKey(
           relationshipId = UUID.randomUUID(),
+          kid = "fake",
           name = "fake",
-          createdAt = OffsetDateTime.now()
+          encodedPem = "pem",
+          algorithm = "algorithm",
+          use = Sig,
+          createdAt = OffsetDateTimeSupplier.get()
         )
       )
 
-    override def getClientKeys(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[KeysResponse] =
-      Future.successful(KeysResponse(Seq.empty))
+    override def getClientKeys(
+      clientId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentKey]] =
+      Future.successful(Seq.empty)
 
     override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(implicit
       contexts: Seq[(String, String)]
@@ -110,10 +130,6 @@ object FakeDependencies {
 
     override def deleteKey(clientId: UUID, kid: String)(implicit contexts: Seq[(String, String)]): Future[Unit] =
       Future.successful(())
-
-    override def getEncodedClientKey(clientId: UUID, kid: String)(implicit
-      contexts: Seq[(String, String)]
-    ): Future[EncodedClientKey] = Future.successful(EncodedClientKey("fake"))
 
     override def addClientPurpose(clientId: UUID, purposeSeed: PurposeSeed)(implicit
       contexts: Seq[(String, String)]
@@ -146,6 +162,33 @@ object FakeDependencies {
     override def removeClientPurpose(clientId: UUID, purposeId: UUID)(implicit
       contexts: Seq[(String, String)]
     ): Future[Unit] = Future.successful(())
+
+    override def getClients(
+      name: Option[String],
+      relationshipIds: List[UUID],
+      consumerId: UUID,
+      purposeId: Option[UUID],
+      kind: Option[PersistentClientKind],
+      offset: Int,
+      limit: Int
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[PersistentClient]] =
+      Future.successful(PaginatedResult(results = Seq.empty, totalCount = 0))
+
+    override def getClientsByPurpose(
+      purposeId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentClient]] =
+      Future.successful(Seq.empty)
+
+    override def getClientsWithKeys(
+      name: Option[String],
+      relationshipIds: List[UUID],
+      consumerId: UUID,
+      purposeId: Option[UUID],
+      kind: Option[PersistentClientKind],
+      offset: Int,
+      limit: Int
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[ReadModelClientWithKeys]] =
+      Future.successful(PaginatedResult(results = Seq.empty, totalCount = 0))
   }
   class FakePartyManagementService         extends PartyManagementService         {
 
@@ -167,24 +210,31 @@ object FakeDependencies {
         from = UUID.randomUUID(),
         to = UUID.randomUUID(),
         role = PartyRole.MANAGER,
-        product = RelationshipProduct(id = "fake", role = "fake", createdAt = OffsetDateTime.now()),
+        product = RelationshipProduct(id = "fake", role = "fake", createdAt = OffsetDateTimeSupplier.get()),
         state = RelationshipState.ACTIVE,
-        createdAt = OffsetDateTime.now().some
+        createdAt = OffsetDateTimeSupplier.get().some
       )
     )
   }
   class FakePurposeManagementService      extends PurposeManagementService      {
-    override def getPurpose(purposeId: UUID)(implicit contexts: Seq[(String, String)]): Future[model.Purpose] =
+    override def getPurposeById(
+      purposeId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentPurpose] =
       Future.successful(
-        model.Purpose(
+        PersistentPurpose(
           id = UUID.randomUUID(),
           eserviceId = UUID.randomUUID(),
           consumerId = UUID.randomUUID(),
-          versions = Seq.empty[PurposeVersion],
+          versions = Seq.empty,
           title = "fake",
           description = "fake",
-          createdAt = OffsetDateTime.now(),
-          isFreeOfCharge = true
+          createdAt = OffsetDateTimeSupplier.get(),
+          isFreeOfCharge = true,
+          suspendedByConsumer = None,
+          suspendedByProducer = None,
+          riskAnalysisForm = None,
+          updatedAt = Some(OffsetDateTimeSupplier.get()),
+          freeOfChargeReason = None
         )
       )
   }
@@ -193,18 +243,21 @@ object FakeDependencies {
       Future.successful(UserResource(id = UUID.randomUUID()))
   }
   class FakeTenantManagementService       extends TenantManagementService       {
-    override def getTenant(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[Tenant] =
+    override def getTenantById(
+      tenantId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] =
       Future.successful(
-        Tenant(
+        PersistentTenant(
           id = tenantId,
           selfcareId = UUID.randomUUID().toString.some,
-          externalId = ExternalId("IPA", "foo"),
+          externalId = PersistentExternalId("IPA", "foo"),
           features = Nil,
           attributes = Nil,
           createdAt = OffsetDateTimeSupplier.get(),
           updatedAt = None,
           mails = Nil,
-          name = "test_name"
+          name = "test_name",
+          kind = Some(PersistentTenantKind.PA)
         )
       )
   }

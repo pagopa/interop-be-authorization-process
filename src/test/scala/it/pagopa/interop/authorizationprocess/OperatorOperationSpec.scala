@@ -16,10 +16,10 @@ import it.pagopa.interop.authorizationprocess.service.impl.{
   AuthorizationManagementServiceImpl,
   PartyManagementServiceImpl
 }
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.selfcare.partymanagement.client.api.PartyApi
 import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
-import it.pagopa.interop.authorizationmanagement.client.model.KeysResponse
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -35,7 +35,10 @@ class OperatorOperationSpec
     with ScalatestRouteTest {
 
   val serviceOperator: OperatorApiServiceImpl =
-    OperatorApiServiceImpl(mockAuthorizationManagementService, mockPartyManagementService)(ExecutionContext.global)
+    OperatorApiServiceImpl(mockAuthorizationManagementService, mockPartyManagementService)(
+      ExecutionContext.global,
+      mockReadModel
+    )
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
     mockAuthorizationManagementService,
@@ -45,17 +48,16 @@ class OperatorOperationSpec
     mockPurposeManagementService,
     mockUserRegistryManagementService,
     mockTenantManagementService,
-    mockReadModel,
     mockDateTimeSupplier
-  )(ExecutionContext.global)
+  )(ExecutionContext.global, mockReadModel)
 
   "Operator addition" should {
     "succeed on existing relationship" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       val activeRelationship: PartyManagementDependency.Relationship =
         relationship.copy(product =
@@ -70,12 +72,12 @@ class OperatorOperationSpec
 
       (mockAuthorizationManagementService
         .addRelationship(_: UUID, _: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, relationship.id, *)
+        .expects(persistentClient.id, relationship.id, *)
         .once()
-        .returns(Future.successful(client.copy(relationships = Set(relationship.id))))
+        .returns(Future.successful(client.copy(id = persistentClient.id, relationships = Set(relationship.id))))
 
       val expected = Client(
-        id = client.id,
+        id = persistentClient.id,
         consumerId = consumerId,
         name = client.name,
         purposes = Seq(clientPurposeProcess),
@@ -85,7 +87,7 @@ class OperatorOperationSpec
         createdAt = timestamp
       )
 
-      Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, relationshipId) ~> check {
+      Get() ~> service.clientOperatorRelationshipBinding(persistentClient.id.toString, relationshipId) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Client] shouldEqual expected
       }
@@ -107,9 +109,8 @@ class OperatorOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel,
         mockDateTimeSupplier
-      )(ExecutionContext.global)
+      )(ExecutionContext.global, mockReadModel)
       Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, seed) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
@@ -117,12 +118,12 @@ class OperatorOperationSpec
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.failed(ClientNotFound(client.id)))
+        .returns(Future.failed(ClientNotFound(persistentClient.id)))
 
-      Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, relationshipId) ~> check {
+      Get() ~> service.clientOperatorRelationshipBinding(persistentClient.id.toString, relationshipId) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -135,10 +136,10 @@ class OperatorOperationSpec
       )
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
+        .returns(Future.successful(persistentClient.copy(relationships = Set(operatorRelationship.id))))
 
       (mockPartyManagementService
         .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
@@ -146,7 +147,7 @@ class OperatorOperationSpec
         .once()
         .returns(Future.successful(operatorRelationship))
 
-      Get() ~> service.clientOperatorRelationshipBinding(client.id.toString, relationshipId) ~> check {
+      Get() ~> service.clientOperatorRelationshipBinding(persistentClient.id.toString, relationshipId) ~> check {
         status shouldEqual StatusCodes.BadRequest
       }
     }
@@ -156,10 +157,10 @@ class OperatorOperationSpec
     "succeed" in {
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       (mockPartyManagementService
         .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
@@ -169,11 +170,14 @@ class OperatorOperationSpec
 
       (mockAuthorizationManagementService
         .removeClientRelationship(_: UUID, _: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, relationship.id, *)
+        .expects(persistentClient.id, relationship.id, *)
         .once()
         .returns(Future.successful(()))
 
-      Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationship.id.toString) ~> check {
+      Get() ~> service.removeClientOperatorRelationship(
+        persistentClient.id.toString,
+        relationship.id.toString
+      ) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
@@ -188,9 +192,8 @@ class OperatorOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel,
         mockDateTimeSupplier
-      )(ExecutionContext.global)
+      )(ExecutionContext.global, mockReadModel)
       Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationship.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
@@ -199,10 +202,10 @@ class OperatorOperationSpec
     "succeed if an admin user removes own relationship" in {
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       val relationshipId    = UUID.randomUUID()
       val userRelationships = relationships.copy(items =
@@ -222,11 +225,14 @@ class OperatorOperationSpec
 
       (mockAuthorizationManagementService
         .removeClientRelationship(_: UUID, _: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, relationshipId, *)
+        .expects(persistentClient.id, relationshipId, *)
         .once()
         .returns(Future.unit)
 
-      Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationshipId.toString) ~> check {
+      Get() ~> service.removeClientOperatorRelationship(
+        persistentClient.id.toString,
+        relationshipId.toString
+      ) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
@@ -234,10 +240,10 @@ class OperatorOperationSpec
     "fail if a security user removes own relationship" in {
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       val relationshipId    = UUID.randomUUID()
       val userRelationships = relationships.copy(items =
@@ -255,7 +261,10 @@ class OperatorOperationSpec
         .once()
         .returns(Future.successful(userRelationships))
 
-      Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationshipId.toString) ~> check {
+      Get() ~> service.removeClientOperatorRelationship(
+        persistentClient.id.toString,
+        relationshipId.toString
+      ) ~> check {
         status shouldEqual StatusCodes.Forbidden
         responseAs[Problem].errors.head.code shouldEqual "007-0004"
       }
@@ -264,10 +273,10 @@ class OperatorOperationSpec
     "fail if client does not exist" in {
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       (mockPartyManagementService
         .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
@@ -277,11 +286,14 @@ class OperatorOperationSpec
 
       (mockAuthorizationManagementService
         .removeClientRelationship(_: UUID, _: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, relationship.id, *)
+        .expects(persistentClient.id, relationship.id, *)
         .once()
         .returns(Future.failed(new RuntimeException("error")))
 
-      Get() ~> service.removeClientOperatorRelationship(client.id.toString, relationship.id.toString) ~> check {
+      Get() ~> service.removeClientOperatorRelationship(
+        persistentClient.id.toString,
+        relationship.id.toString
+      ) ~> check {
         status shouldEqual StatusCodes.InternalServerError
       }
     }
@@ -296,10 +308,10 @@ class OperatorOperationSpec
       )
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client.copy(relationships = Set(operatorRelationship.id))))
+        .returns(Future.successful(persistentClient.copy(relationships = Set(operatorRelationship.id))))
 
       (mockPartyManagementService
         .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
@@ -326,7 +338,7 @@ class OperatorOperationSpec
         )
       )
 
-      Get() ~> service.getClientOperators(client.id.toString) ~> check {
+      Get() ~> service.getClientOperators(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Seq[Operator]] shouldEqual expected
       }
@@ -347,9 +359,8 @@ class OperatorOperationSpec
         mockPurposeManagementService,
         mockUserRegistryManagementService,
         mockTenantManagementService,
-        mockReadModel,
         mockDateTimeSupplier
-      )(ExecutionContext.global)
+      )(ExecutionContext.global, mockReadModel)
       Get() ~> service.getClientOperators(client.id.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
@@ -357,12 +368,12 @@ class OperatorOperationSpec
 
     "fail if client does not exist" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.failed(ClientNotFound(client.id)))
+        .returns(Future.failed(ClientNotFound(persistentClient.id)))
 
-      Get() ~> service.getClientOperators(client.id.toString) ~> check {
+      Get() ~> service.getClientOperators(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -372,10 +383,10 @@ class OperatorOperationSpec
     "succeed" in {
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client.copy(consumerId = consumerId)))
+        .returns(Future.successful(persistentClient.copy(consumerId = consumerId)))
 
       (mockPartyManagementService
         .getRelationshipsByPersonId(_: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
@@ -384,12 +395,15 @@ class OperatorOperationSpec
         .returns(Future.successful(relationships.copy(items = Seq.empty)))
 
       (mockAuthorizationManagementService
-        .getClientKeys(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClientKeys(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(KeysResponse(Seq(createdKey))))
+        .returns(Future.successful(Seq(persistentKey)))
 
-      Get() ~> serviceOperator.getClientOperatorKeys(client.id.toString, client.consumerId.toString) ~> check {
+      Get() ~> serviceOperator.getClientOperatorKeys(
+        persistentClient.id.toString,
+        persistentClient.consumerId.toString
+      ) ~> check {
         status shouldEqual StatusCodes.OK
       }
     }
@@ -397,12 +411,15 @@ class OperatorOperationSpec
     "fail if the caller is not the client consumer" in {
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client.copy(consumerId = UUID.randomUUID())))
+        .returns(Future.successful(persistentClient.copy(consumerId = UUID.randomUUID())))
 
-      Get() ~> serviceOperator.getClientOperatorKeys(client.id.toString, UUID.randomUUID().toString) ~> check {
+      Get() ~> serviceOperator.getClientOperatorKeys(
+        persistentClient.id.toString,
+        UUID.randomUUID().toString
+      ) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
     }

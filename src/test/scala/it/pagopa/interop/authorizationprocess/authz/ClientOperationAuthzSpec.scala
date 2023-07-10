@@ -26,7 +26,7 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
   val fakeUserRegistryManagementService: UserRegistryManagementService   = new FakeUserRegistryManagementService()
   val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
   val fakeDateTimeSupplier: OffsetDateTimeSupplier                       = () => OffsetDateTime.now(ZoneOffset.UTC)
-  val fakeReadModel: ReadModelService                                    = new MongoDbReadModelService(
+  implicit val fakeReadModel: ReadModelService                           = new MongoDbReadModelService(
     ReadModelConfig(
       "mongodb://localhost/?socketTimeoutMS=1&serverSelectionTimeoutMS=1&connectTimeoutMS=1&&autoReconnect=false&keepAlive=false",
       "db"
@@ -41,9 +41,8 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
     fakePurposeManagementService,
     fakeUserRegistryManagementService,
     fakeTenantManagementService,
-    fakeReadModel,
     fakeDateTimeSupplier
-  )(ExecutionContext.global)
+  )(ExecutionContext.global, fakeReadModel)
 
   "Client operation authorization spec" should {
     "accept authorized roles for delete Client" in {

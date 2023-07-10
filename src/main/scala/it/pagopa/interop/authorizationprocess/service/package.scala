@@ -11,10 +11,7 @@ import it.pagopa.interop.selfcare.partymanagement
 import scala.concurrent.ExecutionContextExecutor
 
 package object service {
-  type CatalogManagementInvoker       = catalogmanagement.client.invoker.ApiInvoker
-  type AgreementManagementInvoker     = agreementmanagement.client.invoker.ApiInvoker
   type PartyManagementInvoker         = partymanagement.client.invoker.ApiInvoker
-  type PurposeManagementInvoker       = purposemanagement.client.invoker.ApiInvoker
   type AuthorizationManagementInvoker = authorizationmanagement.client.invoker.ApiInvoker
   type UserRegistryManagementInvoker  = userregistry.client.invoker.ApiInvoker
 
@@ -26,25 +23,9 @@ package object service {
     def apply(): PartyManagementApiKeyValue =
       partymanagement.client.invoker.ApiKeyValue(ApplicationConfiguration.partyManagementApiKey)
   }
-
-  object AgreementManagementInvoker {
-    def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): AgreementManagementInvoker =
-      agreementmanagement.client.invoker.ApiInvoker(agreementmanagement.client.api.EnumsSerializers.all, blockingEc)
-  }
-
-  object CatalogManagementInvoker {
-    def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): CatalogManagementInvoker =
-      catalogmanagement.client.invoker.ApiInvoker(catalogmanagement.client.api.EnumsSerializers.all, blockingEc)
-  }
-
-  object PartyManagementInvoker {
+  object PartyManagementInvoker     {
     def apply()(implicit actorSystem: ActorSystem): PartyManagementInvoker =
       partymanagement.client.invoker.ApiInvoker(partymanagement.client.api.EnumsSerializers.all)
-  }
-
-  object PurposeManagementInvoker {
-    def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): PurposeManagementInvoker =
-      purposemanagement.client.invoker.ApiInvoker(purposemanagement.client.api.EnumsSerializers.all, blockingEc)
   }
 
   object AuthorizationManagementInvoker {

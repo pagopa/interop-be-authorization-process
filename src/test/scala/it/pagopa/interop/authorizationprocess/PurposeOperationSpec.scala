@@ -2,23 +2,22 @@ package it.pagopa.interop.authorizationprocess
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiMarshallerImpl._
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
-import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
-
-import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.catalogmanagement.model.Published
+import it.pagopa.interop.purposemanagement.model.purpose.{Draft, Active => ActivePurpose, Archived}
+import it.pagopa.interop.agreementmanagement.model.agreement.{Pending, Active, Suspended}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
-
 class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsWithImplicit with ScalatestRouteTest {
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
@@ -29,9 +28,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
     mockPurposeManagementService,
     mockUserRegistryManagementService,
     mockTenantManagementService,
-    mockReadModel,
     mockDateTimeSupplier
-  )(ExecutionContext.global)
+  )(ExecutionContext.global, mockReadModel)
 
   "Purpose add to Client" should {
     "succeed" in {
@@ -60,50 +58,41 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
       )
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client.copy(consumerId = consumerId)))
+        .returns(Future.successful(persistentClient.copy(consumerId = consumerId)))
 
       (mockPurposeManagementService
-        .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(purpose.id, *)
+        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(purpose.id, *, *)
         .once()
         .returns(
           Future.successful(
             purpose
-              .copy(
-                consumerId = consumerId,
-                versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ACTIVE))
-              )
+              .copy(consumerId = consumerId, versions = Seq(purposeVersion.copy(state = ActivePurpose)))
           )
         )
 
       (mockCatalogManagementService
-        .getEService(_: UUID)(_: Seq[(String, String)]))
-        .expects(eService.id, *)
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eService.id, *, *)
         .once()
-        .returns(
-          Future.successful(
-            eService.copy(descriptors =
-              Seq(activeDescriptor.copy(state = CatalogManagementDependency.EServiceDescriptorState.PUBLISHED))
-            )
-          )
-        )
+        .returns(Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(state = Published)))))
 
       (mockAgreementManagementService
-        .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
-        .expects(eService.id, consumer.id, *)
+        .getAgreements(_: UUID, _: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eService.id, consumer.id, *, *)
         .once()
-        .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.SUSPENDED))))
+        .returns(Future.successful(Seq(agreement.copy(state = Suspended))))
 
       (mockAuthorizationManagementService
         .addClientPurpose(_: UUID, _: AuthorizationManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(client.id, purposeSeed, *)
+        .expects(persistentClient.id, purposeSeed, *)
         .once()
         .returns(Future.successful(clientPurpose))
 
-      Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
+      Get() ~> service.addClientPurpose(persistentClient.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
@@ -111,12 +100,12 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
     "fail if the caller is not the client consumer" in {
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client.copy(consumerId = UUID.randomUUID())))
+        .returns(Future.successful(persistentClient.copy(consumerId = UUID.randomUUID())))
 
-      Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
+      Get() ~> service.addClientPurpose(persistentClient.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
     }
@@ -124,26 +113,23 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
     "fail if the caller is not the purpose consumer" in {
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client))
+        .returns(Future.successful(persistentClient))
 
       (mockPurposeManagementService
-        .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(purpose.id, *)
+        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(purpose.id, *, *)
         .once()
         .returns(
           Future.successful(
             purpose
-              .copy(
-                consumerId = UUID.randomUUID,
-                versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ACTIVE))
-              )
+              .copy(consumerId = UUID.randomUUID, versions = Seq(purposeVersion.copy(state = ActivePurpose)))
           )
         )
 
-      Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
+      Get() ~> service.addClientPurpose(persistentClient.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
     }
@@ -151,44 +137,35 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
     "fail if no valid agreement exists" in {
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client.copy(consumerId = consumerId)))
+        .returns(Future.successful(persistentClient.copy(consumerId = consumerId)))
 
       (mockPurposeManagementService
-        .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(purpose.id, *)
+        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(purpose.id, *, *)
         .once()
         .returns(
           Future.successful(
             purpose
-              .copy(
-                consumerId = consumerId,
-                versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ACTIVE))
-              )
+              .copy(consumerId = consumerId, versions = Seq(purposeVersion.copy(state = ActivePurpose)))
           )
         )
 
       (mockCatalogManagementService
-        .getEService(_: UUID)(_: Seq[(String, String)]))
-        .expects(eService.id, *)
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eService.id, *, *)
         .once()
-        .returns(
-          Future.successful(
-            eService.copy(descriptors =
-              Seq(activeDescriptor.copy(state = CatalogManagementDependency.EServiceDescriptorState.PUBLISHED))
-            )
-          )
-        )
+        .returns(Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(state = Published)))))
 
       (mockAgreementManagementService
-        .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
-        .expects(eService.id, consumer.id, *)
+        .getAgreements(_: UUID, _: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eService.id, consumer.id, *, *)
         .once()
-        .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.PENDING))))
+        .returns(Future.successful(Seq(agreement.copy(state = Pending))))
 
-      Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
+      Get() ~> service.addClientPurpose(persistentClient.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
         status shouldEqual StatusCodes.BadRequest
         responseAs[Problem].errors.head.code shouldEqual "007-0005"
       }
@@ -196,18 +173,18 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
     "fail if Purpose does not exist" in {
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client.copy(consumerId = consumerId)))
+        .returns(Future.successful(persistentClient.copy(consumerId = consumerId)))
 
       (mockPurposeManagementService
-        .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(purpose.id, *)
+        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(purpose.id, *, *)
         .once()
         .returns(Future.failed(PurposeNotFound(purpose.id)))
 
-      Get() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
+      Get() ~> service.addClientPurpose(persistentClient.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -215,50 +192,41 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
     "succeed even if Purpose has only draft versions" in {
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client.copy(consumerId = consumerId)))
+        .returns(Future.successful(persistentClient.copy(consumerId = consumerId)))
 
       (mockPurposeManagementService
-        .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(purpose.id, *)
+        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(purpose.id, *, *)
         .once()
         .returns(
           Future.successful(
             purpose
-              .copy(
-                consumerId = consumerId,
-                versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.DRAFT))
-              )
+              .copy(consumerId = consumerId, versions = Seq(purposeVersion.copy(state = Draft)))
           )
         )
 
       (mockCatalogManagementService
-        .getEService(_: UUID)(_: Seq[(String, String)]))
-        .expects(eService.id, *)
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eService.id, *, *)
         .once()
-        .returns(
-          Future.successful(
-            eService.copy(descriptors =
-              Seq(activeDescriptor.copy(state = CatalogManagementDependency.EServiceDescriptorState.PUBLISHED))
-            )
-          )
-        )
+        .returns(Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(state = Published)))))
 
       (mockAgreementManagementService
-        .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
-        .expects(eService.id, consumer.id, *)
+        .getAgreements(_: UUID, _: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eService.id, consumer.id, *, *)
         .once()
-        .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.ACTIVE))))
+        .returns(Future.successful(Seq(agreement.copy(state = Active))))
 
       (mockAuthorizationManagementService
         .addClientPurpose(_: UUID, _: AuthorizationManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(client.id, *, *)
+        .expects(persistentClient.id, *, *)
         .once()
         .returns(Future.successful(clientPurpose))
 
-      Post() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
+      Post() ~> service.addClientPurpose(persistentClient.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
@@ -266,48 +234,37 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
     "fail if Purpose has only archived versions" in {
 
       (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: Seq[(String, String)]))
-        .expects(client.id, *)
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(client.copy(consumerId = consumerId)))
+        .returns(Future.successful(persistentClient.copy(consumerId = consumerId)))
 
       (mockPurposeManagementService
-        .getPurpose(_: UUID)(_: Seq[(String, String)]))
-        .expects(purpose.id, *)
+        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(purpose.id, *, *)
         .once()
         .returns(
           Future.successful(
             purpose
-              .copy(
-                consumerId = consumerId,
-                versions = Seq(purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.ARCHIVED))
-              )
+              .copy(consumerId = consumerId, versions = Seq(purposeVersion.copy(state = Archived)))
           )
         )
 
       (mockCatalogManagementService
-        .getEService(_: UUID)(_: Seq[(String, String)]))
-        .expects(eService.id, *)
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eService.id, *, *)
         .once()
-        .returns(
-          Future.successful(
-            eService.copy(descriptors =
-              Seq(activeDescriptor.copy(state = CatalogManagementDependency.EServiceDescriptorState.PUBLISHED))
-            )
-          )
-        )
+        .returns(Future.successful(eService.copy(descriptors = Seq(activeDescriptor.copy(state = Published)))))
 
       (mockAgreementManagementService
-        .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
-        .expects(eService.id, consumer.id, *)
+        .getAgreements(_: UUID, _: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eService.id, consumer.id, *, *)
         .once()
-        .returns(Future.successful(Seq(agreement.copy(state = AgreementManagementDependency.AgreementState.ACTIVE))))
+        .returns(Future.successful(Seq(agreement.copy(state = Active))))
 
-      Post() ~> service.addClientPurpose(client.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
+      Post() ~> service.addClientPurpose(persistentClient.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
         status shouldEqual StatusCodes.BadRequest
       }
     }
-
   }
-
 }
