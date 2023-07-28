@@ -491,19 +491,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       }
     }
 
-    "fail if clients not exist for a given purpose" in {
-      (mockAuthorizationManagementService
-        .getClientsByPurpose(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(Seq.empty))
-
-      Get() ~> service.removePurposeFromClients(purpose.id.toString) ~> check {
-        status shouldEqual StatusCodes.NotFound
-        entityAs[Problem].errors.head.code shouldBe "007-0019"
-      }
-    }
-
   }
 
 }

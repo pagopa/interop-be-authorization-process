@@ -67,10 +67,7 @@ object AuthorizationProcessErrors {
   final case class KeysAlreadyExist(message: String)
       extends ComponentError("0018", s"One or more keys already exist: $message")
 
-  final case class ClientsByPurposeNotFound(purposeId: UUID)
-      extends ComponentError("0019", s"No clients has been found for purpose ${purposeId.toString}")
-
   final case class EServiceNotFound(eServiceId: UUID)
-      extends ComponentError("0020", s"EService ${eServiceId.toString} not found")
+      extends ComponentError("0019", s"EService ${eServiceId.toString} not found")
 
 }
