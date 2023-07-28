@@ -6,18 +6,18 @@ import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationmanagement.model.client.{Api, PersistentClient, PersistentClientKind}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{ClientNotFound, PurposeNotFound}
-import it.pagopa.interop.authorizationprocess.model._
-import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.authorizationprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
-import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.ClientNotFound
+import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service.AuthorizationManagementInvoker
+import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
 import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.commons.utils.USER_ROLES
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
-import it.pagopa.interop.commons.utils.USER_ROLES
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -470,15 +470,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
   }
 
-  "Client purpose in archived state delete" should {
+  "Client purpose delete" should {
     "succeed" in {
       val clients: Seq[PersistentClient] = Seq(persistentClient)
-
-      (mockPurposeManagementService
-        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(purpose.id, *, *)
-        .once()
-        .returns(Future.successful(archivedPurpose))
 
       (mockAuthorizationManagementService
         .getClientsByPurpose(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -492,36 +486,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(()))
 
-      Get() ~> service.removeArchivedPurpose(purpose.id.toString) ~> check {
+      Get() ~> service.removePurposeFromClients(purpose.id.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
       }
     }
 
-    "fail if purpose does not exist" in {
-      (mockPurposeManagementService
-        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(purpose.id, *, *)
-        .once()
-        .returns(Future.failed(PurposeNotFound(purpose.id)))
-
-      Get() ~> service.removeArchivedPurpose(purpose.id.toString) ~> check {
-        status shouldEqual StatusCodes.NotFound
-        entityAs[Problem].errors.head.code shouldBe "007-0014"
-      }
-    }
-
-    "fail if purpose version is not in archived state" in {
-      (mockPurposeManagementService
-        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(purpose.id, *, *)
-        .once()
-        .returns(Future.successful(notArchivedPurpose))
-
-      Get() ~> service.removeArchivedPurpose(purpose.id.toString) ~> check {
-        status shouldEqual StatusCodes.BadRequest
-        entityAs[Problem].errors.head.code shouldBe "007-0019"
-      }
-    }
   }
 
 }

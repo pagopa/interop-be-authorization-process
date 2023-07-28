@@ -6,7 +6,14 @@ import akka.http.scaladsl.server.Route
 import cats.syntax.all._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop._
+import it.pagopa.interop.agreementmanagement.model.agreement.{
+  Active,
+  PersistentAgreement,
+  PersistentAgreementState,
+  Suspended
+}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
 import it.pagopa.interop.authorizationprocess.api.ClientApiService
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiHandlers._
 import it.pagopa.interop.authorizationprocess.common.Adapters._
@@ -19,27 +26,20 @@ import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
   relationshipStateToApi
 }
 import it.pagopa.interop.authorizationprocess.service._
-import it.pagopa.interop.agreementmanagement.model.agreement.{
-  PersistentAgreement,
-  PersistentAgreementState,
-  Active,
-  Suspended
-}
 import it.pagopa.interop.catalogmanagement.model.{CatalogDescriptor, Published, Deprecated => DeprecatedState}
-import it.pagopa.interop.purposemanagement.model.purpose.{
-  PersistentPurposeVersionState,
-  Archived,
-  PersistentPurposeVersion,
-  Active => ActiveState
-}
-import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
-import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, SECURITY_ROLE, SUPPORT_ROLE, authorize}
+import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils._
 import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
+import it.pagopa.interop.purposemanagement.model.purpose.{
+  Archived,
+  PersistentPurposeVersion,
+  PersistentPurposeVersionState,
+  Active => ActiveState
+}
 import it.pagopa.interop.selfcare._
 import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _, _}
 import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
@@ -643,20 +643,15 @@ final case class ClientApiServiceImpl(
 
   }
 
-  override def removeArchivedPurpose(
+  override def removePurposeFromClients(
     purposeId: String
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
     authorize(ADMIN_ROLE) {
-      val operationLabel: String = s"Removing archived Purpose $purposeId from all clients"
+      val operationLabel: String = s"Removing Purpose $purposeId from all clients"
       logger.info(operationLabel)
 
       val result: Future[Unit] = for {
         purposeUuid <- purposeId.toFutureUUID
-        purpose     <- purposeManagementService.getPurposeById(purposeUuid)
-        _           <- purpose.versions
-          .maxByOption(_.createdAt)
-          .find(_.state == Archived)
-          .toFuture(PurposeNotInExpectedState(purpose.id))
         clients     <- authorizationManagementService.getClientsByPurpose(purposeUuid)
         _           <- Future.traverse(clients)(c =>
           authorizationManagementService.removeClientPurpose(c.id, purposeUuid)(contexts)
@@ -664,7 +659,7 @@ final case class ClientApiServiceImpl(
       } yield ()
 
       onComplete(result) {
-        removeArchivedPurposeResponse[Unit](operationLabel)(_ => removeArchivedPurpose204)
+        removePurposeFromClientsResponse[Unit](operationLabel)(_ => removePurposeFromClients204)
       }
     }
 }
