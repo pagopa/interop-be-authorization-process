@@ -852,9 +852,9 @@ paths:
     delete:
       tags:
         - client
-      summary: Removes the purpose from all clients only if purpose version has ARCHIVED state
-      description: Removes the purpose from all clients only if purpose version has ARCHIVED state
-      operationId: removeArchivedPurpose
+      summary: Removes the purpose from all clients
+      description: Removes the purpose from all clients
+      operationId: removePurposeFromClients
       parameters:
         - name: purposeId
           in: path
@@ -866,12 +866,6 @@ paths:
       responses:
         '204':
           description: Request succeed
-        '400':
-          description: No Purpose version in Archived state
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
         '401':
           description: Unauthorized
           content:

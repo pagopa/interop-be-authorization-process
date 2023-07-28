@@ -164,14 +164,14 @@ object ClientApiHandlers extends AkkaResponses {
       case Failure(ex)                                 => internalServerError(ex, logMessage)
     }
 
-  def removeArchivedPurposeResponse[T](logMessage: String)(
+  def removePurposeFromClientsResponse[T](logMessage: String)(
     success: T => Route
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
     result match {
-      case Success(s)                             => success(s)
-      case Failure(ex: PurposeNotFound)           => notFound(ex, logMessage)
-      case Failure(ex: PurposeNotInExpectedState) => badRequest(ex, logMessage)
-      case Failure(ex)                            => internalServerError(ex, logMessage)
+      case Success(s)                            => success(s)
+      case Failure(ex: PurposeNotFound)          => notFound(ex, logMessage)
+      case Failure(ex: ClientsByPurposeNotFound) => notFound(ex, logMessage)
+      case Failure(ex)                           => internalServerError(ex, logMessage)
     }
 
   def getEncodedClientKeyByIdResponse[T](logMessage: String)(
