@@ -18,7 +18,8 @@ trait AuthorizationManagementService {
     name: String,
     description: Option[String],
     kind: ClientKind,
-    createdAt: OffsetDateTime
+    createdAt: OffsetDateTime,
+    members: Seq[UUID]
   )(implicit contexts: Seq[(String, String)]): Future[ManagementClient]
 
   def getClient(clientId: UUID)(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentClient]

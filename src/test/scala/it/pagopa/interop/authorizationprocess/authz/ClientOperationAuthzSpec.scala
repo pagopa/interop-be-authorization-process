@@ -52,12 +52,12 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
 
     "accept authorized roles for createConsumerClient" in {
       val endpoint   = AuthorizedRoutes.endpoints("createConsumerClient")
-      val clientSeed = ClientSeed(name = "pippo")
+      val clientSeed = ClientSeed(name = "pippo", None, Seq.empty)
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.createConsumerClient(clientSeed) })
     }
     "accept authorized roles for createApiClient" in {
       val endpoint   = AuthorizedRoutes.endpoints("createApiClient")
-      val clientSeed = ClientSeed(name = "pippo")
+      val clientSeed = ClientSeed(name = "pippo", None, Seq.empty)
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.createApiClient(clientSeed) })
     }
 
