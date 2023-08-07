@@ -49,7 +49,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           _: String,
           _: Option[String],
           _: authorizationmanagement.client.model.ClientKind,
-          _: OffsetDateTime
+          _: OffsetDateTime,
+          _: Seq[UUID]
         )(_: Seq[(String, String)]))
         .expects(
           consumerId,
@@ -57,6 +58,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           clientSeed.description,
           authorizationmanagement.client.model.ClientKind.CONSUMER,
           timestamp,
+          clientSeed.members,
           *
         )
         .once()

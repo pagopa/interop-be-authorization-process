@@ -925,8 +925,13 @@ components:
           type: string
           minLength: 10
           maxLength: 250
+        members:
+          items:
+            type: string
+            format: uuid
       required:
         - name
+        - members
     Client:
       description: Models Client details
       type: object

@@ -53,7 +53,8 @@ object FakeDependencies {
       name: String,
       description: Option[String],
       kind: ClientKind,
-      createdAt: OffsetDateTime
+      createdAt: OffsetDateTime,
+      members: Seq[UUID]
     )(implicit contexts: Seq[(String, String)]): Future[ManagementClient] = Future.successful(
       Client(
         id = UUID.randomUUID(),

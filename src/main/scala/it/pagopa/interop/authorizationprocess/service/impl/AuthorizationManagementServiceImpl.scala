@@ -36,12 +36,20 @@ final case class AuthorizationManagementServiceImpl(
     name: String,
     description: Option[String],
     kind: ClientKind,
-    createdAt: OffsetDateTime
+    createdAt: OffsetDateTime,
+    members: Seq[UUID]
   )(implicit contexts: Seq[(String, String)]): Future[Client] = withHeaders[Client] {
     (bearerToken, correlationId, ip) =>
       val request: ApiRequest[Client] = clientApi.createClient(
         xCorrelationId = correlationId,
-        ClientSeed(consumerId = consumerId, name = name, description = description, kind = kind, createdAt = createdAt),
+        ClientSeed(
+          consumerId = consumerId,
+          name = name,
+          description = description,
+          kind = kind,
+          createdAt = createdAt,
+          members = members
+        ),
         xForwardedFor = ip
       )(BearerToken(bearerToken))
       invoker.invoke(request, "Client creation")
