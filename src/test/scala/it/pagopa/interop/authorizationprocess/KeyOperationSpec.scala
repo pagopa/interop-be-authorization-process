@@ -3,9 +3,9 @@ package it.pagopa.interop.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
-import it.pagopa.interop.authorizationmanagement.client.model.{KeysResponse, KeySeed => KeyMgmtSeed}
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiMarshallerImpl._
-import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
+import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiServiceImpl, keyFormat, keysFormat}
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{ClientKeyNotFound, ClientNotFound}
 import it.pagopa.interop.authorizationprocess.model._
@@ -38,35 +38,6 @@ class KeyOperationSpec
     mockDateTimeSupplier
   )(ExecutionContext.global, mockReadModel)
 
-  val apiClientKey: ClientKey = ClientKey(
-    name = "test",
-    createdAt = timestamp,
-    key = Key(
-      kty = createdKey.key.kty,
-      key_ops = createdKey.key.keyOps,
-      use = createdKey.key.use,
-      alg = createdKey.key.alg,
-      kid = createdKey.key.kid,
-      x5u = createdKey.key.x5u,
-      x5t = createdKey.key.x5t,
-      x5tS256 = createdKey.key.x5tS256,
-      x5c = createdKey.key.x5c,
-      crv = createdKey.key.crv,
-      x = createdKey.key.x,
-      y = createdKey.key.y,
-      d = createdKey.key.d,
-      k = createdKey.key.k,
-      n = createdKey.key.n,
-      e = createdKey.key.e,
-      p = createdKey.key.p,
-      q = createdKey.key.q,
-      dp = createdKey.key.dp,
-      dq = createdKey.key.dq,
-      qi = createdKey.key.qi,
-      oth = createdKey.key.oth.map(_.map(info => OtherPrimeInfo(r = info.r, d = info.d, t = info.t)))
-    )
-  )
-
   "Retrieve key" should {
     "succeed" in {
 
@@ -82,32 +53,9 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(persistentKey))
 
-      (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(relationship))
-
-      (mockUserRegistryManagementService
-        .getUserById(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
-        .once()
-        .returns(Future.successful(user))
-
-      val expected = ReadClientKey(
-        key = apiClientKey.key,
-        name = apiClientKey.name,
-        createdAt = apiClientKey.createdAt,
-        operator = OperatorDetails(
-          relationshipId = relationship.id,
-          name = user.name.get.value,
-          familyName = user.familyName.get.value
-        )
-      )
-
       Get() ~> service.getClientKeyById(persistentClient.id.toString, persistentKey.kid) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[ReadClientKey] should haveTheSameReadKey(expected)
+        entityAs[Key] should haveTheSameKey(expectedKey)
       }
     }
 
@@ -168,34 +116,11 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(Seq(persistentKey.copy(relationshipId = relationship.id))))
 
-      (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(relationship))
-
-      (mockUserRegistryManagementService
-        .getUserById(_: UUID)(_: Seq[(String, String)]))
-        .expects(*, *)
-        .once()
-        .returns(Future.successful(user))
-
-      val expected = ReadClientKey(
-        key = apiClientKey.key,
-        name = apiClientKey.name,
-        createdAt = apiClientKey.createdAt,
-        operator = OperatorDetails(
-          relationshipId = relationship.id,
-          name = user.name.get.value,
-          familyName = user.familyName.get.value
-        )
-      )
-
       val relationshipIds = relationship.id.toString
 
       Get() ~> service.getClientKeys(relationshipIds, persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[ReadClientKeys] should haveTheSameReadKeys(ReadClientKeys(Seq(expected)))
+        entityAs[Keys] should haveTheSameKeys(Keys(Seq(expectedKey)))
       }
     }
 
@@ -270,16 +195,14 @@ class KeyOperationSpec
         .returns(Future.successful(relationships))
 
       (mockAuthorizationManagementService
-        .createKeys(_: UUID, _: Seq[KeyMgmtSeed])(_: Seq[(String, String)]))
+        .createKeys(_: UUID, _: Seq[AuthorizationManagementDependency.KeySeed])(_: Seq[(String, String)]))
         .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(KeysResponse(Seq(createdKey))))
-
-      val expected = apiClientKey
+        .returns(Future.successful(AuthorizationManagementDependency.Keys(Seq(createdKey))))
 
       Get() ~> service.createKeys(persistentClient.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[ClientKeys] should haveTheSameKeys(ClientKeys(Seq(expected)))
+        entityAs[Keys] should haveTheSameKeys(Keys(Seq(expectedKey)))
       }
     }
 

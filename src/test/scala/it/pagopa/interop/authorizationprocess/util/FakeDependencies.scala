@@ -127,7 +127,7 @@ object FakeDependencies {
 
     override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(implicit
       contexts: Seq[(String, String)]
-    ): Future[KeysResponse] = Future.successful(KeysResponse(Seq.empty))
+    ): Future[Keys] = Future.successful(Keys(Seq.empty))
 
     override def deleteKey(clientId: UUID, kid: String)(implicit contexts: Seq[(String, String)]): Future[Unit] =
       Future.successful(())

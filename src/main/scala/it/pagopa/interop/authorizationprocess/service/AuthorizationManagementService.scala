@@ -43,9 +43,7 @@ trait AuthorizationManagementService {
     clientId: UUID
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentKey]]
 
-  def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(implicit
-    contexts: Seq[(String, String)]
-  ): Future[KeysResponse]
+  def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(implicit contexts: Seq[(String, String)]): Future[Keys]
 
   def deleteKey(clientId: UUID, kid: String)(implicit contexts: Seq[(String, String)]): Future[Unit]
 

@@ -9,7 +9,6 @@ import it.pagopa.interop.authorizationmanagement
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationmanagement.model.{client => AuthorizationPersistentModel}
 import it.pagopa.interop.authorizationmanagement.model.{key => AuthorizationPersistentKeyModel}
-
 import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiMarshallerImpl, _}
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
@@ -23,23 +22,26 @@ import it.pagopa.interop.selfcare.userregistry.client.model.{
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.catalogmanagement.model.{
+  Automatic,
+  CatalogAttributes,
   CatalogDescriptor,
   CatalogItem,
-  CatalogAttributes,
-  Rest,
   Published,
-  Automatic
+  Rest
 }
-import it.pagopa.interop.agreementmanagement.model.agreement.{PersistentAgreement, PersistentStamps, Active}
+import it.pagopa.interop.agreementmanagement.model.agreement.{Active, PersistentAgreement, PersistentStamps}
+import it.pagopa.interop.authorizationmanagement.client.model.KeyUse.SIG
+import it.pagopa.interop.authorizationprocess.common.Adapters.PersistentKeyUseWrapper
 import it.pagopa.interop.purposemanagement.model.purpose.{
+  Archived,
   PersistentPurpose,
   PersistentPurposeVersion,
-  Active => PurposeActive,
-  Archived
+  Active => PurposeActive
 }
-import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenantKind, PersistentTenant, PersistentExternalId}
+import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentExternalId, PersistentTenant, PersistentTenantKind}
 import org.scalamock.scalatest.MockFactory
-import java.time.{OffsetDateTime, Duration}
+
+import java.time.{Duration, OffsetDateTime}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
@@ -348,36 +350,24 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val relationships: PartyManagementDependency.Relationships =
     PartyManagementDependency.Relationships(Seq(relationship))
 
-  val createdKey: AuthorizationManagementDependency.ClientKey = AuthorizationManagementDependency.ClientKey(
-    relationshipId = UUID.randomUUID(),
-    name = "test",
-    createdAt = timestamp,
-    key = AuthorizationManagementDependency.Key(
-      kty = "RSA",
-      keyOps = None,
-      use = Some("sig"),
-      alg = Some("RS256"),
-      kid = "QyiGZU3L-bbyWpJvp3UG5jSFXEuxoYlRdZeuf5o6ULI",
-      x5u = None,
-      x5t = None,
-      x5tS256 = None,
-      x5c = None,
-      crv = None,
-      x = None,
-      y = None,
-      d = None,
-      k = None,
-      n = Some(
-        "vDIjuSxRBmhGnv191IRMglEWnTE1wf9wLG7pA-qBPcrEr3wPAbhO2ZoViTSKKW-XiYmmyq_3iYdbXW5SKsSjsD7SVLHsgF3YO926iWKKLeVu8a8GDqLu-VkB9C4c1QfKj2QDmk53u8iJ9Mv2_8soW66Us65S4M9ssRdkFs1J1UhPIX1OR7R9AJvJXSvfkLzHo8woy5d3rYvbM31-ZM0oe_KPuGBUdgF-kysKeQ7yX13sE-SBiVZFBEc7swLWD21xFIIYiXwVLAmx_ej0L0SSERPK_IZfFSzQovlNo5XlGpFq-SZNYvUrY0QFwm-s4RsyGyT92gXpfiZIxvL1B5Nhfw"
-      ),
-      e = Some("AQAB"),
-      p = None,
-      q = None,
-      dp = None,
-      dq = None,
-      qi = None,
-      oth = None
-    )
+  val createdKey: AuthorizationManagementDependency.Key = AuthorizationManagementDependency.Key(
+    relationshipId = persistentKey.relationshipId,
+    kid = persistentKey.kid,
+    name = persistentKey.name,
+    encodedPem = persistentKey.encodedPem,
+    algorithm = persistentKey.algorithm,
+    use = SIG,
+    createdAt = persistentKey.createdAt
+  )
+
+  val expectedKey: Key = Key(
+    relationshipId = relationship.id,
+    kid = persistentKey.kid,
+    name = persistentKey.name,
+    encodedPem = persistentKey.encodedPem,
+    algorithm = persistentKey.algorithm,
+    use = persistentKey.use.toApi,
+    createdAt = persistentKey.createdAt
   )
 
   def mockGetTenant(): Unit = (mockTenantManagementService
@@ -450,18 +440,6 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   implicit def fromResponseUnmarshallerClientsRequest: FromEntityUnmarshaller[Clients] =
     sprayJsonUnmarshaller[Clients]
-
-  implicit def fromResponseUnmarshallerClientKeyRequest: FromEntityUnmarshaller[ClientKey] =
-    sprayJsonUnmarshaller[ClientKey]
-
-  implicit def fromResponseUnmarshallerReadClientKeyRequest: FromEntityUnmarshaller[ReadClientKey] =
-    sprayJsonUnmarshaller[ReadClientKey]
-
-  implicit def fromResponseUnmarshallerClientKeysRequest: FromEntityUnmarshaller[ClientKeys] =
-    sprayJsonUnmarshaller[ClientKeys]
-
-  implicit def fromResponseUnmarshallerReadClientKeysRequest: FromEntityUnmarshaller[ReadClientKeys] =
-    sprayJsonUnmarshaller[ReadClientKeys]
 
   implicit def fromResponseUnmarshallerOperatorsRequest: FromEntityUnmarshaller[Seq[Operator]] =
     sprayJsonUnmarshaller[Seq[Operator]]

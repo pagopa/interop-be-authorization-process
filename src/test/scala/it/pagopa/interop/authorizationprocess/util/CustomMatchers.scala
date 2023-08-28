@@ -1,57 +1,33 @@
 package it.pagopa.interop.authorizationprocess.util
 
-import it.pagopa.interop.authorizationprocess.model.{ReadClientKey, ClientKey, ClientKeys, ReadClientKeys}
+import it.pagopa.interop.authorizationprocess.model.{Key, Keys}
 import org.scalatest.matchers.{MatchResult, Matcher}
 
 trait CustomMatchers {
-  class ClientKeyMatcher(expectedKey: ClientKey) extends Matcher[ClientKey] {
-    def apply(left: ClientKey) = {
-      val clientKey = left.key
+  class KeyMatcher(expectedKey: Key) extends Matcher[Key] {
+    def apply(left: Key) = {
+      val clientKey = left.encodedPem
       MatchResult(
-        clientKey == expectedKey.key,
-        s"""Client key $clientKey is not equal to "${expectedKey.key}"""",
-        s"""Client key $clientKey is equal to "${expectedKey.key}""""
+        clientKey == expectedKey.encodedPem,
+        s"""Client key $clientKey is not equal to "${expectedKey.encodedPem}"""",
+        s"""Client key $clientKey is equal to "${expectedKey.encodedPem}""""
       )
     }
   }
 
-  class ClientKeysMatcher(expectedKeys: ClientKeys) extends Matcher[ClientKeys] {
-    def apply(left: ClientKeys) = {
-      val clientKeys = left.keys.map(_.key)
+  class KeysMatcher(expectedKeys: Keys) extends Matcher[Keys] {
+    def apply(left: Keys) = {
+      val clientKeys = left.keys.map(_.encodedPem)
       MatchResult(
-        clientKeys == expectedKeys.keys.map(_.key),
+        clientKeys == expectedKeys.keys.map(_.encodedPem),
         s"""Client keys ${left.keys} are not equal to "${expectedKeys.keys}"""",
         s"""Client keys ${left.keys} are equal to "${expectedKeys.keys}""""
       )
     }
   }
 
-  class ReadClientKeyMatcher(expectedKey: ReadClientKey) extends Matcher[ReadClientKey] {
-    def apply(left: ReadClientKey) = {
-      val clientKey = left.key
-      MatchResult(
-        clientKey == expectedKey.key,
-        s"""Read client key $clientKey is not equal to "${expectedKey.key}"""",
-        s"""Read client key $clientKey is equal to "${expectedKey.key}""""
-      )
-    }
-  }
-
-  class ReadClientKeysMatcher(expectedKeys: ReadClientKeys) extends Matcher[ReadClientKeys] {
-    def apply(left: ReadClientKeys) = {
-      val clientKeys = left.keys.map(_.key)
-      MatchResult(
-        clientKeys == expectedKeys.keys.map(_.key),
-        s"""Read client keys ${left.keys} are not equal to "${expectedKeys.keys}"""",
-        s"""Read client keys ${left.keys} are equal to "${expectedKeys.keys}""""
-      )
-    }
-  }
-
-  def haveTheSameKey(expectedKey: ClientKey)                = new ClientKeyMatcher(expectedKey)
-  def haveTheSameKeys(expectedKeys: ClientKeys)             = new ClientKeysMatcher(expectedKeys)
-  def haveTheSameReadKey(expectedReadKey: ReadClientKey)    = new ReadClientKeyMatcher(expectedReadKey)
-  def haveTheSameReadKeys(expectedReadKeys: ReadClientKeys) = new ReadClientKeysMatcher(expectedReadKeys)
+  def haveTheSameKey(expectedKey: Key)    = new KeyMatcher(expectedKey)
+  def haveTheSameKeys(expectedKeys: Keys) = new KeysMatcher(expectedKeys)
 }
 
 //selfless trait
