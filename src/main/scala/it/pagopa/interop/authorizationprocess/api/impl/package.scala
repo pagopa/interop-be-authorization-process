@@ -16,14 +16,9 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val operatorFormat: RootJsonFormat[Operator]                   = jsonFormat7(Operator)
   implicit val clientSeedFormat: RootJsonFormat[ClientSeed]               = jsonFormat3(ClientSeed)
   implicit val primeInfoFormat: RootJsonFormat[OtherPrimeInfo]            = jsonFormat3(OtherPrimeInfo)
-  implicit val keyFormat: RootJsonFormat[Key]                             = jsonFormat22(Key)
-  implicit val clientKeyFormat: RootJsonFormat[ClientKey]                 = jsonFormat3(ClientKey)
-  implicit val encodedClientKeyFormat: RootJsonFormat[EncodedClientKey]   = jsonFormat1(EncodedClientKey)
-  implicit val clientKeysFormat: RootJsonFormat[ClientKeys]               = jsonFormat1(ClientKeys)
+  implicit val keyFormat: RootJsonFormat[Key]                             = jsonFormat7(Key)
+  implicit val keysFormat: RootJsonFormat[Keys]                           = jsonFormat1(Keys)
   implicit val keySeedFormat: RootJsonFormat[KeySeed]                     = jsonFormat4(KeySeed)
-  implicit val OperatorDetailsFormat: RootJsonFormat[OperatorDetails]     = jsonFormat3(OperatorDetails)
-  implicit val readClientKeyFormat: RootJsonFormat[ReadClientKey]         = jsonFormat4(ReadClientKey)
-  implicit val readClientKeysFormat: RootJsonFormat[ReadClientKeys]       = jsonFormat1(ReadClientKeys)
 
   implicit val eServiceDescriptorFormat: RootJsonFormat[EServiceDescriptor]         = jsonFormat2(EServiceDescriptor)
   implicit val eServiceFormat: RootJsonFormat[EService]                             = jsonFormat2(EService)
@@ -41,7 +36,6 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val clientFormat: RootJsonFormat[Client]   = jsonFormat8(Client)
   implicit val clientsFormat: RootJsonFormat[Clients] = jsonFormat2(Clients)
 
-  implicit val keyEntryFormat: RootJsonFormat[KeyEntry]             = jsonFormat7(KeyEntry)
   implicit val clientEntryKeyFormat: RootJsonFormat[ClientWithKeys] = jsonFormat2(ClientWithKeys)
   implicit val clientsKeysFormat: RootJsonFormat[ClientsWithKeys]   = jsonFormat2(ClientsWithKeys)
 
