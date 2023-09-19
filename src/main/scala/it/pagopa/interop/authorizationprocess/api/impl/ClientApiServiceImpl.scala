@@ -127,26 +127,10 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Retrieving client $clientId"
     logger.info(operationLabel)
 
-    def isConsumerOrProducer(organizationId: UUID, client: PersistentClient)(implicit
-      ec: ExecutionContext
-    ): Future[Boolean] = {
-      def isProducer(): Future[Boolean] = Future
-        .traverse(client.purposes.map(_.eService.eServiceId))(catalogManagementService.getEServiceById)
-        .map(eservices => eservices.map(_.producerId).contains(organizationId))
-
-      if (client.consumerId == organizationId) Future.successful(true) else isProducer()
-
-    }
-
     val result: Future[Client] = for {
-      requesterUuid        <- getOrganizationIdFutureUUID(contexts)
-      clientUuid           <- clientId.toFutureUUID
-      client               <- authorizationManagementService.getClient(clientUuid)
-      isConsumerOrProducer <- isConsumerOrProducer(requesterUuid, client)
-      _                    <- Future
-        .failed(OrganizationNotAllowedOnClient(client.id.toString, requesterUuid))
-        .unlessA(isConsumerOrProducer)
-
+      requesterUuid <- getOrganizationIdFutureUUID(contexts)
+      clientUuid    <- clientId.toFutureUUID
+      client        <- authorizationManagementService.getClient(clientUuid)
     } yield client.toApi(requesterUuid == client.consumerId)
 
     onComplete(result) {
@@ -243,8 +227,6 @@ final case class ClientApiServiceImpl(
 
     val result: Future[Key] = for {
       clientUuid <- clientId.toFutureUUID
-      client     <- authorizationManagementService.getClient(clientUuid)
-      _          <- assertIsClientConsumer(client).toFuture
       key        <- authorizationManagementService.getClientKey(clientUuid, keyId)
     } yield key.toApi
 
@@ -308,8 +290,6 @@ final case class ClientApiServiceImpl(
     val result: Future[Keys] = for {
       clientUuid    <- clientId.toFutureUUID
       relationships <- parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
-      client        <- authorizationManagementService.getClient(clientUuid)
-      _             <- assertIsClientConsumer(client).toFuture
       clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)
       operatorKeys =
         if (relationships.isEmpty) clientKeys

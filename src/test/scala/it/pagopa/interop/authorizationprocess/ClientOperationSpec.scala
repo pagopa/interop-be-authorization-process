@@ -145,12 +145,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         .once()
         .returns(Future.successful(persistentClient.copy(consumerId = anotherConsumerId)))
 
-      (mockCatalogManagementService
-        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(eService))
-
       val expected =
         Client(
           id = persistentClient.id,
@@ -166,29 +160,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       Get() ~> service.getClient(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Client] shouldEqual expected
-      }
-    }
-
-    "fail if the organization in the token is not the same" in {
-      val anotherConsumerId = UUID.randomUUID()
-      val anotherProducerId = UUID.randomUUID()
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(persistentClient.copy(consumerId = anotherConsumerId)))
-
-      (mockCatalogManagementService
-        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(eService.copy(producerId = anotherProducerId)))
-
-      Get() ~> service
-        .getClient(persistentClient.id.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        entityAs[Problem].errors.head.code shouldBe "007-0008"
       }
     }
 
