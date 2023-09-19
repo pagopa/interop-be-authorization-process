@@ -169,7 +169,7 @@ class KeyOperationSpec
   }
 
   "Create client keys" should {
-    "succeed" in {
+    "succeed if relationshipIds is empty" in {
       val keySeeds: Seq[KeySeed] = Seq(KeySeed(key = "key", use = KeyUse.SIG, alg = "123", name = "test"))
 
       (() => service.dateTimeSupplier.get()).expects().returning(timestamp).once()
@@ -200,7 +200,44 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(AuthorizationManagementDependency.Keys(Seq(createdKey))))
 
-      Get() ~> service.createKeys(persistentClient.id.toString, keySeeds) ~> check {
+      Get() ~> service.createKeys("[]", persistentClient.id.toString, keySeeds) ~> check {
+        status shouldEqual StatusCodes.OK
+        entityAs[Keys] should haveTheSameKeys(Keys(Seq(expectedKey)))
+      }
+    }
+
+    "succeed if relationshipIds is not empty" in {
+      val keySeeds: Seq[KeySeed] = Seq(KeySeed(key = "key", use = KeyUse.SIG, alg = "123", name = "test"))
+
+      (() => service.dateTimeSupplier.get()).expects().returning(timestamp).once()
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
+        .once()
+        .returns(Future.successful(persistentClient))
+
+      mockGetTenant()
+
+      (mockPartyManagementService
+        .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(
+          consumer.selfcareId.get,
+          user.id,
+          Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
+          *,
+          *
+        )
+        .once()
+        .returns(Future.successful(relationships))
+
+      (mockAuthorizationManagementService
+        .createKeys(_: UUID, _: Seq[AuthorizationManagementDependency.KeySeed])(_: Seq[(String, String)]))
+        .expects(persistentClient.id, *, *)
+        .once()
+        .returns(Future.successful(AuthorizationManagementDependency.Keys(Seq(createdKey))))
+
+      Get() ~> service.createKeys(createdKey.relationshipId.toString, persistentClient.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Keys] should haveTheSameKeys(Keys(Seq(expectedKey)))
       }
@@ -223,7 +260,8 @@ class KeyOperationSpec
         mockTenantManagementService,
         mockDateTimeSupplier
       )(ExecutionContext.global, mockReadModel)
-      Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
+
+      Get() ~> service.createKeys(relationship.id.toString, client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
     }
@@ -251,7 +289,7 @@ class KeyOperationSpec
         .once()
         .returns(Future.failed(AuthorizationProcessErrors.SecurityOperatorRelationshipNotFound(consumerId, personId)))
 
-      Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
+      Get() ~> service.createKeys(relationship.id.toString, client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.Forbidden
         entityAs[Problem].errors.head.code shouldBe "007-0003"
       }
@@ -264,7 +302,7 @@ class KeyOperationSpec
         .once()
         .returns(Future.failed(ClientNotFound(client.id)))
 
-      Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
+      Get() ~> service.createKeys(relationship.id.toString, client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }

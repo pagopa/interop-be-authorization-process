@@ -32,7 +32,7 @@ import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils._
 import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
-import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
+import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.purposemanagement.model.purpose.{
   Archived,
@@ -272,7 +272,7 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  override def createKeys(clientId: String, keysSeeds: Seq[KeySeed])(implicit
+  override def createKeys(relationshipIds: String, clientId: String, keysSeeds: Seq[KeySeed])(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerKeys: ToEntityMarshaller[Keys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -284,13 +284,16 @@ final case class ClientApiServiceImpl(
       userId         <- getUidFutureUUID(contexts)
       clientUuid     <- clientId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
+      relationships  <- parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
       client         <- authorizationManagementService
         .getClient(clientUuid)
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
       relationshipId <- securityOperatorRelationship(client.consumerId, userId).map(_.id)
       seeds = keysSeeds.map(_.toDependency(relationshipId, dateTimeSupplier.get()))
-      keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
-    } yield Keys(keysResponse.keys.map(_.toApi))
+      keys <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
+      filtered =
+        if (relationships.isEmpty) keys.keys else keys.keys.filter(k => relationships.exists(_ == k.relationshipId))
+    } yield Keys(filtered.map(_.toApi))
 
     onComplete(result) {
       createKeysResponse[Keys](operationLabel)(createKeys200)
