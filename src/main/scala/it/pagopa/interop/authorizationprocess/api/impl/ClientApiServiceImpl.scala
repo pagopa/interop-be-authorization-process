@@ -32,7 +32,7 @@ import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils._
 import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
-import it.pagopa.interop.commons.utils.TypeConversions._
+import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, StringOps}
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.purposemanagement.model.purpose.{
   Archived,
@@ -289,8 +289,8 @@ final case class ClientApiServiceImpl(
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
       relationshipId <- securityOperatorRelationship(client.consumerId, userId).map(_.id)
       seeds = keysSeeds.map(_.toDependency(relationshipId, dateTimeSupplier.get()))
-      keys <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
-    } yield Keys(keys.keys.map(_.toApi))
+      keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
+    } yield Keys(keysResponse.keys.map(_.toApi))
 
     onComplete(result) {
       createKeysResponse[Keys](operationLabel)(createKeys200)

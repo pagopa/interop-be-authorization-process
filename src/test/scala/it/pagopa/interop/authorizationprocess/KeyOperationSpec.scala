@@ -169,7 +169,7 @@ class KeyOperationSpec
   }
 
   "Create client keys" should {
-    "succeed if relationshipIds is empty" in {
+    "succeed" in {
       val keySeeds: Seq[KeySeed] = Seq(KeySeed(key = "key", use = KeyUse.SIG, alg = "123", name = "test"))
 
       (() => service.dateTimeSupplier.get()).expects().returning(timestamp).once()
@@ -205,44 +205,6 @@ class KeyOperationSpec
         entityAs[Keys] should haveTheSameKeys(Keys(Seq(expectedKey)))
       }
     }
-
-    "succeed if relationshipIds is not empty" in {
-      val keySeeds: Seq[KeySeed] = Seq(KeySeed(key = "key", use = KeyUse.SIG, alg = "123", name = "test"))
-
-      (() => service.dateTimeSupplier.get()).expects().returning(timestamp).once()
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(persistentClient.id, *, *)
-        .once()
-        .returns(Future.successful(persistentClient))
-
-      mockGetTenant()
-
-      (mockPartyManagementService
-        .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
-        .expects(
-          consumer.selfcareId.get,
-          user.id,
-          Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN),
-          *,
-          *
-        )
-        .once()
-        .returns(Future.successful(relationships))
-
-      (mockAuthorizationManagementService
-        .createKeys(_: UUID, _: Seq[AuthorizationManagementDependency.KeySeed])(_: Seq[(String, String)]))
-        .expects(persistentClient.id, *, *)
-        .once()
-        .returns(Future.successful(AuthorizationManagementDependency.Keys(Seq(createdKey))))
-
-      Get() ~> service.createKeys(persistentClient.id.toString, keySeeds) ~> check {
-        status shouldEqual StatusCodes.OK
-        entityAs[Keys] should haveTheSameKeys(Keys(Seq(expectedKey)))
-      }
-    }
-
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
       val service: ClientApiServiceImpl            = ClientApiServiceImpl(
