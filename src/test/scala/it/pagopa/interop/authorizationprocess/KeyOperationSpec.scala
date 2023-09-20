@@ -200,7 +200,7 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(AuthorizationManagementDependency.Keys(Seq(createdKey))))
 
-      Get() ~> service.createKeys("[]", persistentClient.id.toString, keySeeds) ~> check {
+      Get() ~> service.createKeys(persistentClient.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Keys] should haveTheSameKeys(Keys(Seq(expectedKey)))
       }
@@ -237,7 +237,7 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(AuthorizationManagementDependency.Keys(Seq(createdKey))))
 
-      Get() ~> service.createKeys(createdKey.relationshipId.toString, persistentClient.id.toString, keySeeds) ~> check {
+      Get() ~> service.createKeys(persistentClient.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.OK
         entityAs[Keys] should haveTheSameKeys(Keys(Seq(expectedKey)))
       }
@@ -261,7 +261,7 @@ class KeyOperationSpec
         mockDateTimeSupplier
       )(ExecutionContext.global, mockReadModel)
 
-      Get() ~> service.createKeys(relationship.id.toString, client.id.toString, Seq.empty) ~> check {
+      Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
     }
@@ -289,7 +289,7 @@ class KeyOperationSpec
         .once()
         .returns(Future.failed(AuthorizationProcessErrors.SecurityOperatorRelationshipNotFound(consumerId, personId)))
 
-      Get() ~> service.createKeys(relationship.id.toString, client.id.toString, keySeeds) ~> check {
+      Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.Forbidden
         entityAs[Problem].errors.head.code shouldBe "007-0003"
       }
@@ -302,7 +302,7 @@ class KeyOperationSpec
         .once()
         .returns(Future.failed(ClientNotFound(client.id)))
 
-      Get() ~> service.createKeys(relationship.id.toString, client.id.toString, Seq.empty) ~> check {
+      Get() ~> service.createKeys(client.id.toString, Seq.empty) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }

@@ -522,16 +522,6 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: relationshipIds
-          in: query
-          description: comma separated sequence of relationship IDs
-          schema:
-            type: array
-            items:
-              type: string
-              format: uuid
-            default: []
-          explode: false        
     get:
       tags:
         - client
