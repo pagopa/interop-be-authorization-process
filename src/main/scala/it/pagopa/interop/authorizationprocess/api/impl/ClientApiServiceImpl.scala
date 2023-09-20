@@ -290,6 +290,8 @@ final case class ClientApiServiceImpl(
     val result: Future[Keys] = for {
       clientUuid    <- clientId.toFutureUUID
       relationships <- parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+      client        <- authorizationManagementService.getClient(clientUuid)
+      _             <- assertIsClientConsumer(client).toFuture
       clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)
       operatorKeys =
         if (relationships.isEmpty) clientKeys

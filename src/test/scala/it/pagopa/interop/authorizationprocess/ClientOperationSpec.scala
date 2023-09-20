@@ -130,13 +130,13 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       }
     }
 
-    "succeed in case of requester is the producer" in {
+    "succeed in case of requester is not the consumer" in {
       implicit val contexts: Seq[(String, String)] =
         Seq(
           "bearer"         -> bearerToken,
           "uid"            -> personId.toString,
           USER_ROLES       -> "admin",
-          "organizationId" -> eService.producerId.toString
+          "organizationId" -> UUID.randomUUID().toString
         )
       val anotherConsumerId                        = UUID.randomUUID()
       (mockAuthorizationManagementService
