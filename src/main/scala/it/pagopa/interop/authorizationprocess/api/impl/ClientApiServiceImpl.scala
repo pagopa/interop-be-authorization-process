@@ -227,6 +227,8 @@ final case class ClientApiServiceImpl(
 
     val result: Future[ReadClientKey] = for {
       clientUuid    <- clientId.toFutureUUID
+      client        <- authorizationManagementService.getClient(clientUuid)
+      _             <- assertIsClientConsumer(client).toFuture
       key           <- authorizationManagementService.getClientKey(clientUuid, keyId)
       operator      <- operatorFromRelationship(key.relationshipId)
       readClientKey <- key.toReadKeyApi(operator).toFuture

@@ -71,6 +71,12 @@ class KeyOperationSpec
     "succeed" in {
 
       (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
+        .once()
+        .returns(Future.successful(persistentClient))
+
+      (mockAuthorizationManagementService
         .getClientKey(_: UUID, _: String)(_: ExecutionContext, _: ReadModelService))
         .expects(persistentClient.id, persistentKey.kid, *, *)
         .once()
@@ -130,6 +136,11 @@ class KeyOperationSpec
 
     "fail if client or key do not exist" in {
       val kid = "some-kid"
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
+        .once()
+        .returns(Future.successful(persistentClient))
 
       (mockAuthorizationManagementService
         .getClientKey(_: UUID, _: String)(_: ExecutionContext, _: ReadModelService))
