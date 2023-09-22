@@ -122,8 +122,8 @@ final case class AuthorizationManagementServiceImpl(
   }
   override def createKeys(clientId: UUID, keysSeeds: Seq[KeySeed])(implicit
     contexts: Seq[(String, String)]
-  ): Future[KeysResponse] = withHeaders[KeysResponse] { (bearerToken, correlationId, ip) =>
-    val request: ApiRequest[KeysResponse] =
+  ): Future[Keys] = withHeaders[Keys] { (bearerToken, correlationId, ip) =>
+    val request: ApiRequest[Keys] =
       keyApi.createKeys(xCorrelationId = correlationId, clientId, keysSeeds, xForwardedFor = ip)(
         BearerToken(bearerToken)
       )

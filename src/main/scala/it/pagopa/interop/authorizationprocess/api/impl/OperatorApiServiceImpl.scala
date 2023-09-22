@@ -1,6 +1,5 @@
 package it.pagopa.interop.authorizationprocess.api.impl
 
-import cats.syntax.all._
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
@@ -30,13 +29,13 @@ final case class OperatorApiServiceImpl(
 
   override def getClientOperatorKeys(clientId: String, operatorId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
+    toEntityMarshallerKeys: ToEntityMarshaller[Keys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, SUPPORT_ROLE) {
     val operationLabel: String = s"Getting client keys $clientId for operator $operatorId"
     logger.info(operationLabel)
 
-    val result: Future[ClientKeys] = for {
+    val result: Future[Keys] = for {
       clientUuid    <- clientId.toFutureUUID
       client        <- authorizationManagementService.getClient(clientUuid)
       _             <- assertIsClientConsumer(client).toFuture
@@ -44,14 +43,13 @@ final case class OperatorApiServiceImpl(
       relationships <- partyManagementService.getRelationshipsByPersonId(operatorUuid, Seq.empty)
       clientUuid    <- clientId.toFutureUUID
       clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)
-      keys          <- clientKeys
+      keys = clientKeys
         .filter(key => relationships.items.exists(_.id == key.relationshipId))
-        .traverse(_.toClientKeyApi)
-        .toFuture
-    } yield ClientKeys(keys)
+
+    } yield Keys(keys.map(_.toApi))
 
     onComplete(result) {
-      getClientOperatorKeysResponse[ClientKeys](operationLabel)(getClientOperatorKeys200)
+      getClientOperatorKeysResponse[Keys](operationLabel)(getClientOperatorKeys200)
     }
   }
 }

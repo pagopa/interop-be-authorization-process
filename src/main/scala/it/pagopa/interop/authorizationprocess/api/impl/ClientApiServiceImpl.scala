@@ -219,23 +219,21 @@ final case class ClientApiServiceImpl(
 
   override def getClientKeyById(clientId: String, keyId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerReadClientKey: ToEntityMarshaller[ReadClientKey]
+    toEntityMarshallerKey: ToEntityMarshaller[Key],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
     val operationLabel: String = s"Getting Key $keyId of Client $clientId"
     logger.info(operationLabel)
 
-    val result: Future[ReadClientKey] = for {
-      clientUuid    <- clientId.toFutureUUID
-      client        <- authorizationManagementService.getClient(clientUuid)
-      _             <- assertIsClientConsumer(client).toFuture
-      key           <- authorizationManagementService.getClientKey(clientUuid, keyId)
-      operator      <- operatorFromRelationship(key.relationshipId)
-      readClientKey <- key.toReadKeyApi(operator).toFuture
-    } yield readClientKey
+    val result: Future[Key] = for {
+      clientUuid <- clientId.toFutureUUID
+      client     <- authorizationManagementService.getClient(clientUuid)
+      _          <- assertIsClientConsumer(client).toFuture
+      key        <- authorizationManagementService.getClientKey(clientUuid, keyId)
+    } yield key.toApi
 
     onComplete(result) {
-      getClientKeyByIdResponse[ReadClientKey](operationLabel)(getClientKeyById200)
+      getClientKeyByIdResponse[Key](operationLabel)(getClientKeyById200)
     }
   }
 
@@ -260,13 +258,13 @@ final case class ClientApiServiceImpl(
 
   override def createKeys(clientId: String, keysSeeds: Seq[KeySeed])(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerClientKeys: ToEntityMarshaller[ClientKeys],
+    toEntityMarshallerKeys: ToEntityMarshaller[Keys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE) {
     val operationLabel: String = s"Creating keys for client $clientId"
     logger.info(operationLabel)
 
-    val result: Future[ClientKeys] = for {
+    val result: Future[Keys] = for {
       userId         <- getUidFutureUUID(contexts)
       clientUuid     <- clientId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
@@ -276,22 +274,22 @@ final case class ClientApiServiceImpl(
       relationshipId <- securityOperatorRelationship(client.consumerId, userId).map(_.id)
       seeds = keysSeeds.map(_.toDependency(relationshipId, dateTimeSupplier.get()))
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
-    } yield ClientKeys(keysResponse.keys.map(_.toApi))
+    } yield Keys(keysResponse.keys.map(_.toApi))
 
     onComplete(result) {
-      createKeysResponse[ClientKeys](operationLabel)(createKeys200)
+      createKeysResponse[Keys](operationLabel)(createKeys200)
     }
   }
 
   override def getClientKeys(relationshipIds: String, clientId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerClientKeys: ToEntityMarshaller[ReadClientKeys],
+    toEntityMarshallerKeys: ToEntityMarshaller[Keys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
     val operationLabel: String = s"Retrieving keys for client $clientId"
     logger.info(operationLabel)
 
-    val result: Future[ReadClientKeys] = for {
+    val result: Future[Keys] = for {
       clientUuid    <- clientId.toFutureUUID
       relationships <- parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
       client        <- authorizationManagementService.getClient(clientUuid)
@@ -301,13 +299,10 @@ final case class ClientApiServiceImpl(
         if (relationships.isEmpty) clientKeys
         else
           clientKeys.filter(key => relationships.contains(key.relationshipId))
-      keys <- Future.traverse(operatorKeys)(k =>
-        operatorFromRelationship(k.relationshipId).flatMap(op => k.toReadKeyApi(op).toFuture)
-      )
-    } yield ReadClientKeys(keys)
+    } yield Keys(operatorKeys.map(_.toApi))
 
     onComplete(result) {
-      getClientKeysResponse[ReadClientKeys](operationLabel)(getClientKeys200)
+      getClientKeysResponse[Keys](operationLabel)(getClientKeys200)
     }
   }
 
@@ -512,26 +507,6 @@ final case class ClientApiServiceImpl(
     } yield (name.value, familyName.value, fiscalCode)
 
     userInfo.toFuture(MissingUserInfo(user.id))
-  }
-
-  override def getEncodedClientKeyById(clientId: String, keyId: String)(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerEncodedClientKey: ToEntityMarshaller[EncodedClientKey],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
-    val operationLabel = s"Retrieving encoded Key $keyId of Client $clientId"
-    logger.info(operationLabel)
-
-    val result: Future[EncodedClientKey] = for {
-      clientUuid <- clientId.toFutureUUID
-      client     <- authorizationManagementService.getClient(clientUuid)
-      _          <- assertIsClientConsumer(client).toFuture
-      key        <- authorizationManagementService.getClientKey(clientUuid, keyId)
-    } yield EncodedClientKey(key = key.encodedPem)
-
-    onComplete(result) {
-      getEncodedClientKeyByIdResponse[EncodedClientKey](operationLabel)(getEncodedClientKeyById200)
-    }
   }
 
   override def getClients(
