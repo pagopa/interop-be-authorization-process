@@ -27,7 +27,8 @@ import it.pagopa.interop.catalogmanagement.model.{
   CatalogDescriptor,
   CatalogItem,
   Published,
-  Rest
+  Rest,
+  Deliver
 }
 import it.pagopa.interop.agreementmanagement.model.agreement.{Active, PersistentAgreement, PersistentStamps}
 import it.pagopa.interop.authorizationmanagement.client.model.KeyUse.SIG
@@ -138,7 +139,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     technology = Rest,
     attributes = CatalogAttributes.empty.some,
     descriptors = Seq(activeDescriptor),
-    createdAt = timestamp
+    createdAt = timestamp,
+    riskAnalysis = Seq.empty,
+    mode = Deliver
   )
 
   val agreement: PersistentAgreement = PersistentAgreement(

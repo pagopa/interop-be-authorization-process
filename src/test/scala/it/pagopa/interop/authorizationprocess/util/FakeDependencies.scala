@@ -7,7 +7,7 @@ import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.selfcare.partymanagement.client.model._
 import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
-import it.pagopa.interop.catalogmanagement.model.{CatalogItem, CatalogAttributes, Rest}
+import it.pagopa.interop.catalogmanagement.model.{CatalogItem, CatalogAttributes, Rest, Deliver}
 import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClientKind, PersistentClient, Api}
 import it.pagopa.interop.authorizationmanagement.model.key.{PersistentKey, Sig}
 import it.pagopa.interop.agreementmanagement.model.agreement.PersistentAgreement
@@ -43,7 +43,9 @@ object FakeDependencies {
           technology = Rest,
           attributes = CatalogAttributes(Seq.empty, Seq.empty, Seq.empty).some,
           descriptors = Seq.empty,
-          createdAt = OffsetDateTimeSupplier.get()
+          createdAt = OffsetDateTimeSupplier.get(),
+          mode = Deliver,
+          riskAnalysis = Seq.empty
         )
       )
   }
