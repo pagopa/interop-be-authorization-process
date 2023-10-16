@@ -194,6 +194,24 @@ object FakeDependencies {
       limit: Int
     )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[ReadModelClientWithKeys]] =
       Future.successful(PaginatedResult(results = Seq.empty, totalCount = 0))
+
+    override def migrateKeyRelationshipToUser(clientId: UUID, keyId: String, userId: UUID)(implicit
+      contexts: Seq[(String, String)]
+    ): Future[Unit] = Future.unit
+
+    override def addUser(clientId: UUID, userId: UUID)(implicit
+      contexts: Seq[(String, String)]
+    ): Future[ManagementClient] = Future.successful(
+      Client(
+        id = UUID.randomUUID(),
+        consumerId = UUID.randomUUID(),
+        name = "fake",
+        purposes = Seq.empty,
+        users = Set(userId),
+        kind = ClientKind.API,
+        createdAt = OffsetDateTimeSupplier.get()
+      )
+    )
   }
   class FakePartyManagementService         extends PartyManagementService         {
 
