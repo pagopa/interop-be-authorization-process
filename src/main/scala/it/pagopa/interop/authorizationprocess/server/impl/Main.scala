@@ -75,7 +75,10 @@ object Main extends App with Dependencies {
     for {
 
       relationship <- client.relationships.toList.traverse(partyManagementService.getRelationshipById)
-      _            <- relationship.traverse(rel => authorizationManagementService.addUser(client.id, rel.from))
+      _            <- relationship.traverse(rel => {
+        if (client.users.exists(_ == rel.from)) Future.unit
+        else authorizationManagementService.addUser(client.id, rel.from)
+      })
     } yield ()
   }
 
@@ -88,8 +91,12 @@ object Main extends App with Dependencies {
   def updateKeys(key: Parameter): Future[Unit] = {
     logger.info(s"Update keys for client ${key.clientId}")
     for {
-      relationship <- partyManagementService.getRelationshipById(key.relationShipId)
-      _            <- authorizationManagementService.updateKey(key.clientId, key.kid, relationship.from)
+      relationship  <- partyManagementService.getRelationshipById(key.relationShipId)
+      persistentKey <- authorizationManagementService.getClientKey(key.clientId, key.kid)
+      _             <- persistentKey.userId match {
+        case Some(userId) if (userId == key.relationShipId) => Future.unit
+        case _ => authorizationManagementService.migrateKeyRelationshipToUser(key.clientId, key.kid, relationship.from)
+      }
     } yield ()
   }
 

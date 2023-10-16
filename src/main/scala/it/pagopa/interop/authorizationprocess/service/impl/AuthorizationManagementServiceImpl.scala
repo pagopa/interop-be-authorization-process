@@ -1,7 +1,7 @@
 package it.pagopa.interop.authorizationprocess.service.impl
 
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
-import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
+import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi, MigrateApi}
 import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError, ApiRequest, BearerToken}
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, PersistentClientKind}
@@ -25,6 +25,7 @@ final case class AuthorizationManagementServiceImpl(
   invoker: AuthorizationManagementInvoker,
   clientApi: ClientApi,
   keyApi: KeyApi,
+  migrateApi: MigrateApi,
   purposeApi: PurposeApi
 )(implicit ec: ExecutionContext)
     extends AuthorizationManagementService {
@@ -71,14 +72,18 @@ final case class AuthorizationManagementServiceImpl(
         }
     }
 
-  override def updateKey(clientId: UUID, keyId: String, userId: UUID)(implicit
+  override def migrateKeyRelationshipToUser(clientId: UUID, keyId: String, userId: UUID)(implicit
     contexts: Seq[(String, String)]
   ): Future[Unit] = withHeaders[Unit] { (bearerToken, correlationId, ip) =>
     val request: ApiRequest[Unit] =
-      keyApi.updateKey(xCorrelationId = correlationId, clientId, keyId, UserSeed(userId), xForwardedFor = ip)(
-        BearerToken(bearerToken)
-      )
-    invoker.invoke(request, "Operator addition to client")
+      migrateApi.migrateKeyRelationshipToUser(
+        xCorrelationId = correlationId,
+        clientId,
+        keyId,
+        UserSeed(userId),
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
+    invoker.invoke(request, "Key user migration")
   }
 
   override def addUser(clientId: UUID, userId: UUID)(implicit contexts: Seq[(String, String)]): Future[Client] =
