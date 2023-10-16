@@ -74,7 +74,7 @@ class OperatorOperationSpec
         .addRelationship(_: UUID, _: UUID)(_: Seq[(String, String)]))
         .expects(persistentClient.id, relationship.id, *)
         .once()
-        .returns(Future.successful(client.copy(id = persistentClient.id, relationships = Set(relationship.id))))
+        .returns(Future.successful(client.copy(id = persistentClient.id, users = Set(relationship.id))))
 
       val expected = Client(
         id = persistentClient.id,

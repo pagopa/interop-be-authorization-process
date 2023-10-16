@@ -186,6 +186,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         purposes = Seq.empty,
         description = None,
         relationships = Set.empty,
+        users = Set.empty,
         kind = Api,
         createdAt = timestamp
       )
@@ -240,6 +241,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         purposes = Seq.empty,
         description = None,
         relationships = Set.empty,
+        users = Set.empty,
         kind = Api,
         createdAt = timestamp
       )

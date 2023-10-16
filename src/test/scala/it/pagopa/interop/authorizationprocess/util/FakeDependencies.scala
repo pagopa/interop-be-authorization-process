@@ -63,7 +63,7 @@ object FakeDependencies {
         consumerId = UUID.randomUUID(),
         name = "fake",
         purposes = Seq.empty,
-        relationships = Set.empty,
+        users = Set.empty,
         kind = ClientKind.API,
         createdAt = createdAt
       )
@@ -80,6 +80,7 @@ object FakeDependencies {
           description = Some("description"),
           purposes = Seq.empty,
           relationships = Set.empty,
+          users = Set.empty,
           kind = Api,
           createdAt = OffsetDateTimeSupplier.get()
         )
@@ -96,7 +97,7 @@ object FakeDependencies {
         consumerId = UUID.randomUUID(),
         name = "fake",
         purposes = Seq.empty,
-        relationships = Set.empty,
+        users = Set.empty,
         kind = ClientKind.API,
         createdAt = OffsetDateTimeSupplier.get()
       )
@@ -112,7 +113,8 @@ object FakeDependencies {
     ): Future[PersistentKey] =
       Future.successful(
         PersistentKey(
-          relationshipId = UUID.randomUUID(),
+          relationshipId = UUID.randomUUID().some,
+          userId = UUID.randomUUID().some,
           kid = "fake",
           name = "fake",
           encodedPem = "pem",
