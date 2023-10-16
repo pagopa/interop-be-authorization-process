@@ -43,7 +43,7 @@ object Main extends App with Dependencies {
   logger.info(s"Retrieving clients")
   Await.result(
     execution()
-      .andThen { case Failure(ex) => logger.error("Metrics job got an error", ex) }
+      .andThen { case Failure(ex) => logger.error("Houston we have a problem", ex) }
       .andThen { _ =>
         es.shutdown()
       },
