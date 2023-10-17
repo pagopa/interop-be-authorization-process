@@ -118,6 +118,7 @@ object ClientApiHandlers extends AkkaResponses {
       case Failure(ex: OrganizationNotAllowedOnClient)       => forbidden(ex, logMessage)
       case Failure(ex: ClientNotFound)                       => notFound(ex, logMessage)
       case Failure(ex: KeysAlreadyExist)                     => conflict(ex, logMessage)
+      case Failure(ex: TheNumberOfkeysExceedMaximumAllowed)  => tooManyRequests(ex, logMessage)
       case Failure(ex)                                       => internalServerError(ex, logMessage)
     }
 

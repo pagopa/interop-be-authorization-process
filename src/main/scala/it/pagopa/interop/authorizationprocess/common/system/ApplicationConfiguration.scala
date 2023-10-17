@@ -25,6 +25,8 @@ object ApplicationConfiguration {
 
   val selfcareProductId: String = config.getString("authorization-process.selfcare-product-id")
 
+  val thresholdKeys: Int = config.getInt("authorization-process.threshold-keys")
+
   val readModelConfig: ReadModelConfig = {
     val connectionString: String = config.getString("authorization-process.read-model.db.connection-string")
     val dbName: String           = config.getString("authorization-process.read-model.db.name")
