@@ -62,7 +62,7 @@ object Main extends App with Dependencies {
     _ = logger.info(s"Start update keys ${keys.size}")
     _ <- keys
       .flatMap(client =>
-        client.keys.collect { case PersistentKey(Some(relationshipId), _, kid, _, _, _, _, _) =>
+        client.keys.collect { case PersistentKey(Some(relationshipId), None, kid, _, _, _, _, _) =>
           Parameter(client.id, kid, relationshipId)
         }
       )
@@ -91,12 +91,8 @@ object Main extends App with Dependencies {
   def updateKeys(key: Parameter): Future[Unit] = {
     logger.info(s"Update keys for client ${key.clientId}")
     for {
-      relationship  <- partyManagementService.getRelationshipById(key.relationShipId)
-      persistentKey <- authorizationManagementService.getClientKey(key.clientId, key.kid)
-      _             <- persistentKey.userId match {
-        case Some(userId) if (userId == key.relationShipId) => Future.unit
-        case _ => authorizationManagementService.migrateKeyRelationshipToUser(key.clientId, key.kid, relationship.from)
-      }
+      relationship <- partyManagementService.getRelationshipById(key.relationShipId)
+      _ <- authorizationManagementService.migrateKeyRelationshipToUser(key.clientId, key.kid, relationship.from)
     } yield ()
   }
 
