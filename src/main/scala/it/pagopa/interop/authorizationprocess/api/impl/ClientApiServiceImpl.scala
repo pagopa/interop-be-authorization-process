@@ -266,8 +266,8 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     def assertKeyIsBelowThreshold(clientId: UUID, size: Int): Future[Unit] =
-      if (size > ApplicationConfiguration.thresholdKeys)
-        Future.failed(TheNumberOfkeysExceedMaximumAllowed(clientId, size))
+      if (size > ApplicationConfiguration.maxKeysPerClient)
+        Future.failed(TooManyKeysPerClient(clientId, size))
       else Future.unit
 
     val result: Future[Keys] = for {
@@ -277,8 +277,7 @@ final case class ClientApiServiceImpl(
       client         <- authorizationManagementService
         .getClient(clientUuid)
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
-      keys           <- authorizationManagementService
-        .getClientKeys(clientUuid)
+      keys           <- authorizationManagementService.getClientKeys(clientUuid)
       _              <- assertKeyIsBelowThreshold(clientUuid, keys.size + keysSeeds.size)
       relationshipId <- securityOperatorRelationship(client.consumerId, userId).map(_.id)
       seeds = keysSeeds.map(_.toDependency(relationshipId, dateTimeSupplier.get()))

@@ -506,12 +506,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-        '429':
-          description: Too many keys
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'       
       requestBody:
         required: true
         description: an array of base64 encoded PEM keys.

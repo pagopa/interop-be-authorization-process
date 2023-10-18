@@ -291,7 +291,7 @@ class KeyOperationSpec
         .returns(Future.successful(Seq(persistentKey.copy(relationshipId = relationship.id))))
 
       Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
-        status shouldEqual StatusCodes.TooManyRequests
+        status shouldEqual StatusCodes.BadRequest
         entityAs[Problem].errors.head.code shouldBe "007-0020"
       }
     }
