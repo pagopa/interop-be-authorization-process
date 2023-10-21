@@ -9,16 +9,15 @@ import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 package object impl extends SprayJsonSupport with DefaultJsonProtocol {
 
-  implicit val problemErrorFormat: RootJsonFormat[ProblemError]           = jsonFormat2(ProblemError)
-  implicit val problemFormat: RootJsonFormat[Problem]                     = jsonFormat6(Problem)
-  implicit val organizationFormat: RootJsonFormat[Organization]           = jsonFormat2(Organization)
-  implicit val operatorProductFormat: RootJsonFormat[RelationshipProduct] = jsonFormat3(RelationshipProduct)
-  implicit val operatorFormat: RootJsonFormat[Operator]                   = jsonFormat7(Operator)
-  implicit val clientSeedFormat: RootJsonFormat[ClientSeed]               = jsonFormat3(ClientSeed)
-  implicit val primeInfoFormat: RootJsonFormat[OtherPrimeInfo]            = jsonFormat3(OtherPrimeInfo)
-  implicit val keyFormat: RootJsonFormat[Key]                             = jsonFormat7(Key)
-  implicit val keysFormat: RootJsonFormat[Keys]                           = jsonFormat1(Keys)
-  implicit val keySeedFormat: RootJsonFormat[KeySeed]                     = jsonFormat4(KeySeed)
+  implicit val problemErrorFormat: RootJsonFormat[ProblemError] = jsonFormat2(ProblemError)
+  implicit val problemFormat: RootJsonFormat[Problem]           = jsonFormat6(Problem)
+  implicit val organizationFormat: RootJsonFormat[Organization] = jsonFormat2(Organization)
+  implicit val userFormat: RootJsonFormat[User]                 = jsonFormat5(User)
+  implicit val clientSeedFormat: RootJsonFormat[ClientSeed]     = jsonFormat3(ClientSeed)
+  implicit val primeInfoFormat: RootJsonFormat[OtherPrimeInfo]  = jsonFormat3(OtherPrimeInfo)
+  implicit val keyFormat: RootJsonFormat[Key]                   = jsonFormat7(Key)
+  implicit val keysFormat: RootJsonFormat[Keys]                 = jsonFormat1(Keys)
+  implicit val keySeedFormat: RootJsonFormat[KeySeed]           = jsonFormat4(KeySeed)
 
   implicit val eServiceDescriptorFormat: RootJsonFormat[EServiceDescriptor]         = jsonFormat2(EServiceDescriptor)
   implicit val eServiceFormat: RootJsonFormat[EService]                             = jsonFormat2(EService)

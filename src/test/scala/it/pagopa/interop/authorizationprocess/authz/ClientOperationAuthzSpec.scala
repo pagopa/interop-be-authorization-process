@@ -21,9 +21,8 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
   val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeCatalogManagementService: CatalogManagementService             = new FakeCatalogManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
-  val fakePartyManagementService: PartyManagementService                 = new FakePartyManagementService()
+  val fakeSelfcareV2ClientService: SelfcareV2ClientService               = new FakeSelfcareV2ClientService()
   val fakePurposeManagementService: PurposeManagementService             = new FakePurposeManagementService()
-  val fakeUserRegistryManagementService: UserRegistryManagementService   = new FakeUserRegistryManagementService()
   val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
   val fakeDateTimeSupplier: OffsetDateTimeSupplier                       = () => OffsetDateTime.now(ZoneOffset.UTC)
   implicit val fakeReadModel: ReadModelService                           = new MongoDbReadModelService(
@@ -37,9 +36,8 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
     fakeAuthorizationManagementService,
     fakeAgreementManagementService,
     fakeCatalogManagementService,
-    fakePartyManagementService,
+    fakeSelfcareV2ClientService,
     fakePurposeManagementService,
-    fakeUserRegistryManagementService,
     fakeTenantManagementService,
     fakeDateTimeSupplier
   )(ExecutionContext.global, fakeReadModel)
@@ -85,19 +83,13 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
       )
     }
 
-    "accept authorized roles for clientOperatorRelationshipBinding" in {
-      val endpoint = AuthorizedRoutes.endpoints("clientOperatorRelationshipBinding")
-      validateAuthorization(
-        endpoint,
-        { implicit c: Seq[(String, String)] => service.clientOperatorRelationshipBinding("yada", "yada") }
-      )
+    "accept authorized roles for addUser" in {
+      val endpoint = AuthorizedRoutes.endpoints("addUser")
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.addUser("yada", "yada") })
     }
-    "accept authorized roles for removeClientOperatorRelationship" in {
-      val endpoint = AuthorizedRoutes.endpoints("removeClientOperatorRelationship")
-      validateAuthorization(
-        endpoint,
-        { implicit c: Seq[(String, String)] => service.removeClientOperatorRelationship("yada", "yada") }
-      )
+    "accept authorized roles for removeUser" in {
+      val endpoint = AuthorizedRoutes.endpoints("removeUser")
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.removeUser("yada", "yada") })
     }
     "accept authorized roles for getClientKeyById" in {
       val endpoint = AuthorizedRoutes.endpoints("getClientKeyById")
@@ -120,8 +112,8 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClientKeys("yada", "yada") })
     }
     "accept authorized roles for getClientOperators" in {
-      val endpoint = AuthorizedRoutes.endpoints("getClientOperators")
-      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClientOperators("yada") })
+      val endpoint = AuthorizedRoutes.endpoints("getClientUsers")
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClientUsers("yada") })
     }
     "accept authorized roles for addClientPurpose" in {
       val endpoint = AuthorizedRoutes.endpoints("addClientPurpose")

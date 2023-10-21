@@ -21,12 +21,12 @@
       "roles": ["admin"]
     },
     {
-      "route": "clientOperatorRelationshipBinding",
+      "route": "addUser",
       "verb": "POST",
       "roles": ["admin"]
     },
     {
-      "route": "removeClientOperatorRelationship",
+      "route": "removeUser",
       "verb": "DELETE",
       "roles": ["admin"]
     },
@@ -61,7 +61,7 @@
       "roles": ["admin", "security", "m2m", "support"]
     },
     {
-      "route": "getClientOperators",
+      "route": "getClientUsers",
       "verb": "GET",
       "roles": ["admin", "security", "support"]
     },
@@ -81,7 +81,7 @@
       "roles": ["admin"]
     },
     {
-      "route": "getClientOperatorKeys",
+      "route": "getClientUserKeys",
       "verb": "GET",
       "roles": ["admin", "security", "support"]
     }

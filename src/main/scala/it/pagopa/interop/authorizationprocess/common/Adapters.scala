@@ -9,9 +9,14 @@ import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientCo
 import it.pagopa.interop.authorizationmanagement.model.client.{Api, Consumer}
 import it.pagopa.interop.authorizationmanagement.model.key.{Enc, Sig}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.interop.selfcare.v2.client.{model => SelfcareV2Dependency}
+import it.pagopa.interop.authorizationprocess.common.model.{UserResource, UserResponse}
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationmanagement.model.key.{PersistentKey, PersistentKeyUse}
 import it.pagopa.interop.authorizationmanagement.jwk.model.Models._
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{UserNotCompleted, MissingUserId}
+import it.pagopa.interop.commons.utils.TypeConversions._
+import cats.syntax.all._
 
 import java.util.UUID
 import java.time.OffsetDateTime
@@ -19,46 +24,54 @@ import java.time.OffsetDateTime
 object Adapters {
 
   implicit class PersistentClientWrapper(private val p: PersistentClient) extends AnyVal {
-    def toApi(showRelationShips: Boolean): Client = Client(
+    def toApi(showUsers: Boolean): Client = Client(
       id = p.id,
       name = p.name,
       description = p.description,
       consumerId = p.consumerId,
       purposes = p.purposes.map(p => ClientPurpose(states = p.toApi)),
-      relationshipsIds = if (showRelationShips) p.relationships else Set.empty,
+      users = if (showUsers) p.users else Set.empty,
       kind = p.kind.toApi,
       createdAt = p.createdAt
     )
   }
 
   implicit class ReadModelClientWithKeysWrapper(private val rmck: ReadModelClientWithKeys) extends AnyVal {
-    def toApi(showRelationShips: Boolean): ClientWithKeys =
-      ClientWithKeys(
-        client = Client(
-          id = rmck.id,
-          name = rmck.name,
-          description = rmck.description,
-          consumerId = rmck.consumerId,
-          purposes = rmck.purposes.map(p => ClientPurpose(states = p.toApi)),
-          relationshipsIds = if (showRelationShips) rmck.relationships else Set.empty,
-          kind = rmck.kind.toApi,
-          createdAt = rmck.createdAt
-        ),
-        keys = rmck.keys.map(_.toApi)
-      )
+    def toApi(showUsers: Boolean): Either[Throwable, ClientWithKeys] =
+      rmck.keys
+        .traverse(_.toApi)
+        .map(keys =>
+          ClientWithKeys(
+            client = Client(
+              id = rmck.id,
+              name = rmck.name,
+              description = rmck.description,
+              consumerId = rmck.consumerId,
+              purposes = rmck.purposes.map(p => ClientPurpose(states = p.toApi)),
+              users = if (showUsers) rmck.users else Set.empty,
+              kind = rmck.kind.toApi,
+              createdAt = rmck.createdAt
+            ),
+            keys = keys
+          )
+        )
   }
 
   implicit class PersistentKeyWrapper(private val k: PersistentKey) extends AnyVal {
-    def toApi: Key =
-      Key(
-        kid = k.kid,
-        encodedPem = k.encodedPem,
-        use = k.use.toApi,
-        algorithm = k.algorithm,
-        name = k.name,
-        createdAt = k.createdAt,
-        relationshipId = k.relationshipId
-      )
+    def toApi: Either[Throwable, Key] =
+      k.userId
+        .toRight(MissingUserId(k.kid))
+        .map(user =>
+          Key(
+            kid = k.kid,
+            encodedPem = k.encodedPem,
+            use = k.use.toApi,
+            algorithm = k.algorithm,
+            name = k.name,
+            createdAt = k.createdAt,
+            userId = user
+          )
+        )
   }
 
   implicit class ManagementClientPurposeWrapper(private val cp: AuthorizationManagementDependency.Purpose)
@@ -67,13 +80,13 @@ object Adapters {
   }
 
   implicit class ManagementClientWrapper(private val p: AuthorizationManagementDependency.Client) extends AnyVal {
-    def toApi(showRelationShips: Boolean): Client = Client(
+    def toApi(showUsers: Boolean): Client = Client(
       id = p.id,
       name = p.name,
       description = p.description,
       consumerId = p.consumerId,
       purposes = p.purposes.map(_.toApi),
-      relationshipsIds = if (showRelationShips) p.relationships else Set.empty,
+      users = if (showUsers) p.users else Set.empty,
       kind = p.kind.toApi,
       createdAt = p.createdAt
     )
@@ -138,9 +151,9 @@ object Adapters {
   }
 
   implicit class KeySeedWrapper(private val keySeed: KeySeed) extends AnyVal {
-    def toDependency(relationshipId: UUID, createdAt: OffsetDateTime): AuthorizationManagementDependency.KeySeed =
+    def toDependency(userId: UUID, createdAt: OffsetDateTime): AuthorizationManagementDependency.KeySeed =
       AuthorizationManagementDependency.KeySeed(
-        relationshipId = relationshipId,
+        userId = userId,
         key = keySeed.key,
         use = keySeed.use.toDependency,
         alg = keySeed.alg,
@@ -179,7 +192,7 @@ object Adapters {
         use = key.use.toApi,
         name = key.name,
         createdAt = key.createdAt,
-        relationshipId = key.relationshipId
+        userId = key.userId
       )
   }
 
@@ -247,4 +260,34 @@ object Adapters {
   implicit class JwkOtherPrimeInfoWrapper(private val o: JwkOtherPrimeInfo) extends AnyVal {
     def toApi: OtherPrimeInfo = OtherPrimeInfo(r = o.r, d = o.d, t = o.t)
   }
+
+  implicit class UserResourceWrapper(private val ur: SelfcareV2Dependency.UserResource) extends AnyVal {
+    def toApi: Either[Throwable, UserResource] = for {
+      id         <- ur.id.toRight(UserNotCompleted("id"))
+      name       <- ur.name.toRight(UserNotCompleted("name"))
+      surname    <- ur.surname.toRight(UserNotCompleted("surname"))
+      fiscalCode <- ur.fiscalCode.toRight(UserNotCompleted("fiscalCode"))
+      email      <- ur.email.toRight(UserNotCompleted("email"))
+      roles      <- ur.roles.toRight(UserNotCompleted("roles"))
+    } yield (UserResource(
+      id = id,
+      name = name,
+      surname = surname,
+      fiscalCode = fiscalCode,
+      email = email,
+      roles = roles
+    ))
+  }
+
+  implicit class UserResponseWrapper(private val ur: SelfcareV2Dependency.UserResponse) extends AnyVal {
+    def toApi: Either[Throwable, UserResponse] = for {
+      id      <- ur.id.toRight(UserNotCompleted("id"))
+      uuid    <- id.toUUID.toEither
+      name    <- ur.name.toRight(UserNotCompleted("name"))
+      surname <- ur.surname.toRight(UserNotCompleted("surname"))
+      taxCode <- ur.taxCode.toRight(UserNotCompleted("taxCode"))
+      email   <- ur.email.toRight(UserNotCompleted("email"))
+    } yield UserResponse(id = uuid, name = name, surname = surname, taxCode = taxCode, email = email)
+  }
+
 }

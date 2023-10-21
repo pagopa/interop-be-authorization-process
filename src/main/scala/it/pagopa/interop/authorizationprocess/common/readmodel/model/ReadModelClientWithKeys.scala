@@ -17,7 +17,7 @@ final case class ReadModelClientWithKeys(
   name: String,
   purposes: Seq[PersistentClientStatesChain],
   description: Option[String],
-  relationships: Set[UUID],
+  users: Set[UUID],
   kind: PersistentClientKind,
   keys: Seq[PersistentKey]
 )

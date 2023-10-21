@@ -6,28 +6,22 @@ import java.util.UUID
 
 object AuthorizationProcessErrors {
 
-  final case class OperatorRelationshipAlreadyAssigned(clientId: UUID, operatorRelationship: UUID)
+  final case class UserAlreadyAssigned(clientId: UUID, userId: UUID)
       extends ComponentError(
         "0001",
-        s"Operator relationship ${operatorRelationship.toString} is already assigned to the client ${clientId.toString}"
+        s"Operator user ${userId.toString} is already assigned to the client ${clientId.toString}"
       )
 
-  final case class SecurityOperatorRelationshipNotActive(relationshipId: UUID)
-      extends ComponentError(
-        "0002",
-        s"Relationship $relationshipId is not an active relationship for a security Operator."
-      )
-
-  final case class SecurityOperatorRelationshipNotFound(consumerId: UUID, relationshipId: UUID)
+  final case class SecurityUserNotFound(consumerId: UUID, userId: UUID)
       extends ComponentError(
         "0003",
-        s"Security operator relationship not found for consumer ${consumerId.toString} and relationship ${relationshipId.toString}"
+        s"Security operator user not found for consumer ${consumerId.toString} and user ${userId.toString}"
       )
 
-  final case class UserNotAllowedToRemoveOwnRelationship(clientId: String, relationshipId: String)
+  final case class UserNotAllowedToRemoveOwnUser(clientId: String, userId: String)
       extends ComponentError(
         "0004",
-        s"A user is not allowed to remove own relationship from client. Client $clientId Relationship $relationshipId"
+        s"A user is not allowed to remove own user from client. Client $clientId, User $userId"
       )
 
   final case class AgreementNotFound(eServiceId: UUID, consumerId: UUID)
@@ -47,8 +41,8 @@ object AuthorizationProcessErrors {
 
   final case class TenantNotFound(tenantId: UUID) extends ComponentError("0011", s"Tenant $tenantId not found")
 
-  final case class ClientRelationshipNotFound(clientId: UUID, relationshipId: UUID)
-      extends ComponentError("0012", s"Relationship $relationshipId not found for Client $clientId")
+  final case class ClientUserNotFound(clientId: UUID, userId: UUID)
+      extends ComponentError("0012", s"User $userId not found for Client $clientId")
 
   final case class ClientKeyNotFound(clientId: UUID, kid: String)
       extends ComponentError("0013", s"Key $kid not found for Client $clientId")
@@ -70,4 +64,14 @@ object AuthorizationProcessErrors {
   final case class EServiceNotFound(eServiceId: UUID)
       extends ComponentError("0019", s"EService ${eServiceId.toString} not found")
 
+  final case class MissingUserId(kid: String) extends ComponentError("0020", s"Key $kid has not UserId")
+
+  final case class UserNotCompleted(fieldNotCompleted: String)
+      extends ComponentError("0021", s"User field $fieldNotCompleted not completed")
+
+  final case class InstitutionNotFound(selfcareId: UUID)
+      extends ComponentError("0022", s"Institution $selfcareId not found")
+
+  final case class UserNotFound(selfcareId: UUID, userId: UUID)
+      extends ComponentError("0023", s"User $userId not found for institution $selfcareId")
 }

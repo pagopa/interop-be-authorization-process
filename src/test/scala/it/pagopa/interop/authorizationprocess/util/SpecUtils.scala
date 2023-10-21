@@ -13,12 +13,6 @@ import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiMarshallerImpl,
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.commons.utils.USER_ROLES
-import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
-import it.pagopa.interop.selfcare.userregistry.client.model.{
-  CertifiableFieldResourceOfstring,
-  CertifiableFieldResourceOfstringEnums,
-  UserResource
-}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.catalogmanagement.model.{
@@ -40,6 +34,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   Active => PurposeActive
 }
 import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentExternalId, PersistentTenant, PersistentTenantKind}
+import it.pagopa.interop.selfcare.v2.client.model.{UserResponse, UserResource}
 import org.scalamock.scalatest.MockFactory
 
 import java.time.{Duration, OffsetDateTime}
@@ -53,7 +48,8 @@ trait SpecUtilsWithImplicit extends SpecUtils {
   implicit val contexts: Seq[(String, String)] =
     Seq(
       "bearer"         -> bearerToken,
-      "uid"            -> personId.toString,
+      "uid"            -> UUID.randomUUID.toString,
+      "selfcareId"     -> selfcareId.toString,
       USER_ROLES       -> "admin",
       "organizationId" -> consumerId.toString
     )
@@ -64,9 +60,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockAgreementManagementService: AgreementManagementService         = mock[AgreementManagementService]
   val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
-  val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
+  val mockSelfcareV2ClientService: SelfcareV2ClientService               = mock[SelfcareV2ClientService]
   val mockPurposeManagementService: PurposeManagementService             = mock[PurposeManagementService]
-  val mockUserRegistryManagementService: UserRegistryManagementService   = mock[UserRegistryManagementService]
   val mockTenantManagementService: TenantManagementService               = mock[TenantManagementService]
   val mockDateTimeSupplier: OffsetDateTimeSupplier                       = mock[OffsetDateTimeSupplier]
   val mockReadModel: ReadModelService                                    = mock[ReadModelService]
@@ -75,40 +70,39 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   def mockSubject(uuid: String): Success[JWTClaimsSet] = Success(new JWTClaimsSet.Builder().subject(uuid).build())
 
-  val bearerToken: String    = "token"
-  val eServiceId: UUID       = UUID.randomUUID()
-  val consumerId: UUID       = UUID.randomUUID()
-  val agreementId: UUID      = UUID.randomUUID()
-  val organizationId: UUID   = UUID.randomUUID()
-  val personId: UUID         = UUID.randomUUID()
-  val descriptorId: UUID     = UUID.randomUUID()
-  val versionId: UUID        = UUID.randomUUID()
-  val purposeId: UUID        = UUID.randomUUID()
-  val clientPurposeId: UUID  = UUID.randomUUID()
-  val taxCode: String        = "taxCode"
-  val institutionId: String  = "some-external-id1"
-  val clientSeed: ClientSeed = ClientSeed("client name", Some("client description"), Seq.empty)
-  val user: UserResource     = UserResource(
-    id = personId,
+  val bearerToken: String             = "token"
+  val eServiceId: UUID                = UUID.randomUUID()
+  val clientId: UUID                  = UUID.randomUUID()
+  val personId: UUID                  = UUID.randomUUID()
+  val consumerId: UUID                = UUID.randomUUID()
+  val agreementId: UUID               = UUID.randomUUID()
+  val organizationId: UUID            = UUID.randomUUID()
+  val selfcareId: UUID                = UUID.randomUUID()
+  val userId: UUID                    = UUID.randomUUID()
+  val descriptorId: UUID              = UUID.randomUUID()
+  val versionId: UUID                 = UUID.randomUUID()
+  val purposeId: UUID                 = UUID.randomUUID()
+  val clientPurposeId: UUID           = UUID.randomUUID()
+  val taxCode: String                 = "taxCode"
+  val institutionId: String           = "some-external-id1"
+  val clientSeed: ClientSeed          = ClientSeed("client name", Some("client description"), Seq.empty)
+  val emptyUserResource: UserResource =
+    UserResource(id = None, fiscalCode = None, surname = None, name = None, email = None, roles = None)
+  val userResource: UserResource      = UserResource(
+    id = Some(userId),
     fiscalCode = Some(taxCode),
-    familyName = Some(
-      CertifiableFieldResourceOfstring(
-        certification = CertifiableFieldResourceOfstringEnums.Certification.NONE,
-        value = "Surname"
-      )
-    ),
-    name = Some(
-      CertifiableFieldResourceOfstring(
-        certification = CertifiableFieldResourceOfstringEnums.Certification.NONE,
-        value = "Name"
-      )
-    ),
-    birthDate = None,
-    email = None,
-    workContacts = None
+    surname = Some("Surname"),
+    name = Some("name"),
+    email = Some("email"),
+    roles = Some(Seq("admin"))
   )
-
-  val relationshipId: String = UUID.randomUUID().toString
+  val userResponse: UserResponse      = UserResponse(
+    id = Some(userId.toString),
+    taxCode = Some(taxCode),
+    surname = Some("surname"),
+    name = Some("name"),
+    email = Some("email")
+  )
 
   val activeDescriptor: CatalogDescriptor = CatalogDescriptor(
     id = UUID.randomUUID(),
@@ -259,6 +253,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     purposes = Seq(persistentClientPurpose),
     description = clientSeed.description,
     relationships = Set.empty,
+    users = Set.empty,
     kind = AuthorizationPersistentModel.Consumer,
     createdAt = timestamp
   )
@@ -269,7 +264,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUF2RElqdVN4UkJtaEdudjE5MUlSTQpnbEVXblRFMXdmOXdMRzdwQStxQlBjckVyM3dQQWJoTzJab1ZpVFNLS1crWGlZbW15cS8zaVlkYlhXNVNLc1NqCnNEN1NWTEhzZ0YzWU85MjZpV0tLTGVWdThhOEdEcUx1K1ZrQjlDNGMxUWZLajJRRG1rNTN1OGlKOU12Mi84c28KVzY2VXM2NVM0TTlzc1Jka0ZzMUoxVWhQSVgxT1I3UjlBSnZKWFN2ZmtMekhvOHdveTVkM3JZdmJNMzErWk0wbwplL0tQdUdCVWRnRitreXNLZVE3eVgxM3NFK1NCaVZaRkJFYzdzd0xXRDIxeEZJSVlpWHdWTEFteC9lajBMMFNTCkVSUEsvSVpmRlN6UW92bE5vNVhsR3BGcStTWk5ZdlVyWTBRRndtK3M0UnN5R3lUOTJnWHBmaVpJeHZMMUI1TmgKZndJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t",
     algorithm = "RS256",
     use = AuthorizationPersistentKeyModel.Sig,
-    relationshipId = UUID.randomUUID(),
+    relationshipId = Some(UUID.randomUUID()),
+    userId = Some(userId),
     name = "test",
     createdAt = timestamp
   )
@@ -280,7 +276,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     name = clientSeed.name,
     purposes = Seq(clientPurpose),
     description = clientSeed.description,
-    relationships = Set.empty,
+    users = Set.empty,
     kind = AuthorizationManagementDependency.ClientKind.CONSUMER,
     createdAt = timestamp
   )
@@ -340,21 +336,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       )
     )
 
-  val relationship: PartyManagementDependency.Relationship = PartyManagementDependency.Relationship(
-    id = UUID.fromString(relationshipId),
-    from = user.id,
-    to = organizationId,
-    role = PartyManagementDependency.PartyRole.OPERATOR,
-    product = PartyManagementDependency.RelationshipProduct("Interop", "aPlatformRole", timestamp),
-    state = PartyManagementDependency.RelationshipState.ACTIVE,
-    createdAt = timestamp.some
-  )
-
-  val relationships: PartyManagementDependency.Relationships =
-    PartyManagementDependency.Relationships(Seq(relationship))
-
   val createdKey: AuthorizationManagementDependency.Key = AuthorizationManagementDependency.Key(
-    relationshipId = persistentKey.relationshipId,
+    userId = userId,
     kid = persistentKey.kid,
     name = persistentKey.name,
     encodedPem = persistentKey.encodedPem,
@@ -364,7 +347,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   )
 
   val expectedKey: Key = Key(
-    relationshipId = relationship.id,
+    userId = userId,
     kid = persistentKey.kid,
     name = persistentKey.name,
     encodedPem = persistentKey.encodedPem,
@@ -380,9 +363,11 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     .returns(Future.successful(consumer)): Unit
 
   def mockClientComposition(
-    withOperators: Boolean,
+    withUsers: Boolean,
     client: authorizationmanagement.client.model.Client = client,
-    relationship: PartyManagementDependency.Relationship = relationship
+    userId: UUID,
+    results: Seq[UserResource],
+    result: UserResponse
   ): Unit = {
 
     (mockTenantManagementService
@@ -414,26 +399,28 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
     }
 
-    if (withOperators) {
-      (mockPartyManagementService
-        .getRelationshipById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
-        .expects(relationship.id, *, *)
+    if (withUsers) {
+      (mockSelfcareV2ClientService
+        .getInstitutionProductUsers(_: UUID, _: UUID, _: UUID, _: Seq[String])(
+          _: Seq[(String, String)],
+          _: ExecutionContext
+        ))
+        .expects(userId, *, *, *, *, *)
         .once()
-        .returns(Future.successful(relationship))
+        .returns(Future.successful(results))
 
-      (mockUserRegistryManagementService
-        .getUserById(_: UUID)(_: Seq[(String, String)]))
-        .expects(relationship.from, *)
+      (mockSelfcareV2ClientService
+        .getUserById(_: UUID, _: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+        .expects(userId, *, *, *)
         .once()
-        .returns(Future.successful(user))
+        .returns(Future.successful(result))
     }
-
     ()
   }
 
   val clientApiMarshaller: ClientApiMarshallerImpl.type = ClientApiMarshallerImpl
 
-  val operatorApiMarshaller: OperatorApiMarshallerImpl.type = OperatorApiMarshallerImpl
+  val operatorApiMarshaller: UserApiMarshallerImpl.type = UserApiMarshallerImpl
 
   implicit def fromResponseUnmarshallerClientRequest: FromEntityUnmarshaller[Client] =
     sprayJsonUnmarshaller[Client]
@@ -444,11 +431,11 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   implicit def fromResponseUnmarshallerClientsRequest: FromEntityUnmarshaller[Clients] =
     sprayJsonUnmarshaller[Clients]
 
-  implicit def fromResponseUnmarshallerOperatorsRequest: FromEntityUnmarshaller[Seq[Operator]] =
-    sprayJsonUnmarshaller[Seq[Operator]]
+  implicit def fromResponseUnmarshallerUsersRequest: FromEntityUnmarshaller[Seq[User]] =
+    sprayJsonUnmarshaller[Seq[User]]
 
-  implicit def fromResponseUnmarshallerOperatorRequest: FromEntityUnmarshaller[Operator] =
-    sprayJsonUnmarshaller[Operator]
+  implicit def fromResponseUnmarshallerUserRequest: FromEntityUnmarshaller[User] =
+    sprayJsonUnmarshaller[User]
 
   implicit def fromResponseUnmarshallerProblem: FromEntityUnmarshaller[Problem] =
     sprayJsonUnmarshaller[Problem]

@@ -17,11 +17,12 @@ import it.pagopa.interop.authorizationprocess.api.impl.{
   ClientApiMarshallerImpl,
   ClientApiServiceImpl,
   HealthApiMarshallerImpl,
-  HealthServiceApiImpl,
-  OperatorApiMarshallerImpl,
-  OperatorApiServiceImpl
+  HealthServiceApiImpl
 }
-import it.pagopa.interop.authorizationprocess.api.{ClientApi, HealthApi, OperatorApi}
+import it.pagopa.interop.authorizationprocess.api.impl.UserApiServiceImpl
+import it.pagopa.interop.authorizationprocess.api.impl.UserApiMarshallerImpl
+import it.pagopa.interop.authorizationprocess.api.{ClientApi, HealthApi, UserApi}
+import it.pagopa.interop.selfcare.v2.client.api.{InstitutionsApi, UsersApi}
 import it.pagopa.interop.authorizationprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.authorizationprocess.api.impl.serviceCode
 import it.pagopa.interop.authorizationprocess.service._
@@ -32,9 +33,6 @@ import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, S
 import it.pagopa.interop.commons.utils.TypeConversions.TryOps
 import it.pagopa.interop.commons.utils.errors.{Problem => CommonProblem}
 import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
-import it.pagopa.interop.selfcare.partymanagement.client.api.{PartyApi => PartyManagementApi}
-import it.pagopa.interop.selfcare.userregistry.client.api.{UserApi => UserRegistryManagementApi}
-import it.pagopa.interop.selfcare.userregistry.client.invoker.ApiKeyValue
 import it.pagopa.interop.commons.cqrs.service.{MongoDbReadModelService, ReadModelService}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
@@ -47,23 +45,17 @@ trait Dependencies {
   implicit val loggerTI: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog]("OAuth2JWTValidatorAsContexts")
 
-  implicit val partyManagementApiKeyValue: PartyManagementApiKeyValue = PartyManagementApiKeyValue()
-  implicit val readModelService: ReadModelService                     = new MongoDbReadModelService(
+  implicit val readModelService: ReadModelService = new MongoDbReadModelService(
     ApplicationConfiguration.readModelConfig
   )
-  val dateTimeSupplier: OffsetDateTimeSupplier                        = OffsetDateTimeSupplier
+  val dateTimeSupplier: OffsetDateTimeSupplier    = OffsetDateTimeSupplier
 
-  def partyManagementService()(implicit actorSystem: ActorSystem[_]): PartyManagementService =
-    PartyManagementServiceImpl(
-      PartyManagementInvoker()(actorSystem.classicSystem),
-      PartyManagementApi(ApplicationConfiguration.getPartyManagementURL)
-    )
-
-  def userRegistryManagementService()(implicit actorSystem: ActorSystem[_]): UserRegistryManagementServiceImpl =
-    UserRegistryManagementServiceImpl(
-      UserRegistryManagementInvoker()(actorSystem.classicSystem),
-      UserRegistryManagementApi(ApplicationConfiguration.getUserRegistryManagementURL)
-    )(ApiKeyValue(ApplicationConfiguration.userRegistryApiKey))
+  def selfcareV2ClientService()(implicit actorSystem: ActorSystem[_]): SelfcareV2ClientService =
+    SelfcareV2ClientServiceImpl(
+      SelfcareV2ClientInvoker()(actorSystem.classicSystem),
+      InstitutionsApi(ApplicationConfiguration.getPartyManagementURL),
+      UsersApi(ApplicationConfiguration.getPartyManagementURL)
+    )(SelfcareV2ClientApiKeyValue())
 
   val authorizationManagementClientApi: AuthorizationClientApi = AuthorizationClientApi(
     ApplicationConfiguration.getAuthorizationManagementURL
@@ -96,9 +88,8 @@ trait Dependencies {
       authorizationManagementService(blockingEc),
       AgreementManagementServiceImpl,
       CatalogManagementServiceImpl,
-      partyManagementService(),
+      selfcareV2ClientService(),
       PurposeManagementServiceImpl,
-      userRegistryManagementService(),
       TenantManagementServiceImpl,
       dateTimeSupplier
     ),
@@ -109,9 +100,9 @@ trait Dependencies {
   def operatorApi(jwtReader: JWTReader, blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_],
     ec: ExecutionContext
-  ): OperatorApi = new OperatorApi(
-    OperatorApiServiceImpl(authorizationManagementService(blockingEc), partyManagementService()),
-    OperatorApiMarshallerImpl,
+  ): UserApi = new UserApi(
+    UserApiServiceImpl(authorizationManagementService(blockingEc), selfcareV2ClientService()),
+    UserApiMarshallerImpl,
     jwtReader.OAuth2JWTValidatorAsContexts(Logger.takingImplicit[ContextFieldsToLog]("OAuth2JWTValidatorAsContexts"))
   )
 

@@ -5,8 +5,6 @@ import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
-import it.pagopa.interop.selfcare.partymanagement.client.model._
-import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
 import it.pagopa.interop.catalogmanagement.model.{CatalogItem, CatalogAttributes, Rest, Deliver}
 import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClientKind, PersistentClient, Api}
 import it.pagopa.interop.authorizationmanagement.model.key.{PersistentKey, Sig}
@@ -19,6 +17,8 @@ import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelCl
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
+import it.pagopa.interop.selfcare.v2.client.model.UserResource
+import it.pagopa.interop.selfcare.v2.client.model.UserResponse
 
 /**
  * Holds fake implementation of dependencies for tests not requiring neither mocks or stubs
@@ -63,7 +63,7 @@ object FakeDependencies {
         consumerId = UUID.randomUUID(),
         name = "fake",
         purposes = Seq.empty,
-        relationships = Set.empty,
+        users = Set.empty,
         kind = ClientKind.API,
         createdAt = createdAt
       )
@@ -80,6 +80,7 @@ object FakeDependencies {
           description = Some("description"),
           purposes = Seq.empty,
           relationships = Set.empty,
+          users = Set.empty,
           kind = Api,
           createdAt = OffsetDateTimeSupplier.get()
         )
@@ -88,7 +89,7 @@ object FakeDependencies {
     override def deleteClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] =
       Future.successful(())
 
-    override def addRelationship(clientId: UUID, relationshipId: UUID)(implicit
+    override def addUser(clientId: UUID, userId: UUID)(implicit
       contexts: Seq[(String, String)]
     ): Future[ManagementClient] = Future.successful(
       Client(
@@ -96,15 +97,14 @@ object FakeDependencies {
         consumerId = UUID.randomUUID(),
         name = "fake",
         purposes = Seq.empty,
-        relationships = Set.empty,
+        users = Set.empty,
         kind = ClientKind.API,
         createdAt = OffsetDateTimeSupplier.get()
       )
     )
 
-    override def removeClientRelationship(clientId: UUID, relationshipId: UUID)(implicit
-      contexts: Seq[(String, String)]
-    ): Future[Unit] = Future.successful(())
+    override def removeUser(clientId: UUID, userId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] =
+      Future.successful(())
 
     override def getClientKey(clientId: UUID, kid: String)(implicit
       ec: ExecutionContext,
@@ -112,7 +112,8 @@ object FakeDependencies {
     ): Future[PersistentKey] =
       Future.successful(
         PersistentKey(
-          relationshipId = UUID.randomUUID(),
+          relationshipId = Some(UUID.randomUUID()),
+          userId = Some(UUID.randomUUID()),
           kid = "fake",
           name = "fake",
           encodedPem = "pem",
@@ -193,33 +194,21 @@ object FakeDependencies {
     )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[ReadModelClientWithKeys]] =
       Future.successful(PaginatedResult(results = Seq.empty, totalCount = 0))
   }
-  class FakePartyManagementService         extends PartyManagementService         {
+  class FakeSelfcareV2ClientService        extends SelfcareV2ClientService        {
+    override def getInstitutionProductUsers(
+      selfcareId: UUID,
+      requesterId: UUID,
+      userId: UUID,
+      productRoles: Seq[String]
+    )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Seq[UserResource]] =
+      Future.successful(Seq.empty)
 
-    override def getRelationships(organizationId: String, personId: UUID, productRoles: Seq[String])(implicit
+    override def getUserById(selfcareId: UUID, userId: UUID)(implicit
       contexts: Seq[(String, String)],
       ec: ExecutionContext
-    ): Future[Relationships] = Future.successful(Relationships(Seq.empty))
-
-    override def getRelationshipsByPersonId(personId: UUID, productRole: Seq[String])(implicit
-      contexts: Seq[(String, String)],
-      ec: ExecutionContext
-    ): Future[Relationships] = Future.successful(Relationships(Seq.empty))
-
-    override def getRelationshipById(
-      relationshipId: UUID
-    )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Relationship] = Future.successful(
-      Relationship(
-        id = UUID.randomUUID(),
-        from = UUID.randomUUID(),
-        to = UUID.randomUUID(),
-        role = PartyRole.MANAGER,
-        product = RelationshipProduct(id = "fake", role = "fake", createdAt = OffsetDateTimeSupplier.get()),
-        state = RelationshipState.ACTIVE,
-        createdAt = OffsetDateTimeSupplier.get().some
-      )
-    )
+    ): Future[UserResponse] = Future.successful(UserResponse(None, None, None, None, None))
   }
-  class FakePurposeManagementService      extends PurposeManagementService      {
+  class FakePurposeManagementService       extends PurposeManagementService       {
     override def getPurposeById(
       purposeId: UUID
     )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentPurpose] =
@@ -241,11 +230,7 @@ object FakeDependencies {
         )
       )
   }
-  class FakeUserRegistryManagementService extends UserRegistryManagementService {
-    override def getUserById(id: UUID)(implicit contexts: Seq[(String, String)]): Future[UserResource] =
-      Future.successful(UserResource(id = UUID.randomUUID()))
-  }
-  class FakeTenantManagementService       extends TenantManagementService       {
+  class FakeTenantManagementService        extends TenantManagementService        {
     override def getTenantById(
       tenantId: UUID
     )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] =

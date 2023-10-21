@@ -36,14 +36,12 @@ object Dependencies {
       namespace %% "interop-be-agreement-management-models" % agreementManagementVersion
     lazy val catalogManagementModels =
       namespace %% "interop-be-catalog-management-models" % catalogManagementVersion
-    lazy val partyManagement =
-      namespace %% "interop-selfcare-party-management-client" % partyManagementVersion
     lazy val tenantManagementModels =
       namespace %% "interop-be-tenant-management-models" % tenantManagementVersion
     lazy val purposeManagementModels =
       namespace %% "interop-be-purpose-management-models" % purposeManagementVersion
-    lazy val userRegistryManagement =
-      namespace %% "interop-selfcare-user-registry-client" % userRegistryManagementVersion
+    lazy val selfcareV2Client =
+      namespace %% "interop-selfcare-v2-client" % selfcareV2ClientVersion
 
     lazy val commonsUtils = namespace %% "interop-commons-utils" % commonsVersion
     lazy val commonsJwt   = namespace %% "interop-commons-jwt"   % commonsVersion
@@ -140,10 +138,9 @@ object Dependencies {
       pagopa.authorizationManagementClient  % Compile,
       pagopa.authorizationManagementModels  % Compile,
       pagopa.authorizationManagementKeyConverter  % Compile,
-      pagopa.partyManagement                % Compile,
+      pagopa.selfcareV2Client               % Compile,
       pagopa.purposeManagementModels        % Compile,
       pagopa.tenantManagementModels         % Compile,
-      pagopa.userRegistryManagement         % Compile,
       scalpb.core                           % "protobuf",
       akka.httpTestkit                      % Test,
       akka.streamTestkit                    % Test,
