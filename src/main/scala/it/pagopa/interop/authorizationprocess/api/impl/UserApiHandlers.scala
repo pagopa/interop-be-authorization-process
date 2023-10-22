@@ -6,7 +6,7 @@ import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{
   ClientNotFound,
   InstitutionNotFound,
   UserNotFound,
-  UserNotCompleted
+  SelfcareEntityNotFilled
 }
 import it.pagopa.interop.commons.logging.ContextFieldsToLog
 import it.pagopa.interop.commons.utils.errors.AkkaResponses
@@ -24,7 +24,7 @@ object UserApiHandlers extends AkkaResponses {
       case Failure(ex: OrganizationNotAllowedOnClient) => forbidden(ex, logMessage)
       case Failure(ex: InstitutionNotFound)            => forbidden(ex, logMessage)
       case Failure(ex: UserNotFound)                   => forbidden(ex, logMessage)
-      case Failure(ex: UserNotCompleted)               => forbidden(ex, logMessage)
+      case Failure(ex: SelfcareEntityNotFilled)        => forbidden(ex, logMessage)
       case Failure(ex: ClientNotFound)                 => notFound(ex, logMessage)
       case Failure(ex)                                 => internalServerError(ex, logMessage)
     }

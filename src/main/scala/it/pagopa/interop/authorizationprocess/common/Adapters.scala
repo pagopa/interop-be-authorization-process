@@ -14,7 +14,7 @@ import it.pagopa.interop.authorizationprocess.common.model.{UserResource, UserRe
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationmanagement.model.key.{PersistentKey, PersistentKeyUse}
 import it.pagopa.interop.authorizationmanagement.jwk.model.Models._
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{UserNotCompleted, MissingUserId}
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{SelfcareEntityNotFilled, MissingUserId}
 import it.pagopa.interop.commons.utils.TypeConversions._
 import cats.syntax.all._
 
@@ -263,12 +263,12 @@ object Adapters {
 
   implicit class UserResourceWrapper(private val ur: SelfcareV2Dependency.UserResource) extends AnyVal {
     def toApi: Either[Throwable, UserResource] = for {
-      id         <- ur.id.toRight(UserNotCompleted("id"))
-      name       <- ur.name.toRight(UserNotCompleted("name"))
-      surname    <- ur.surname.toRight(UserNotCompleted("surname"))
-      fiscalCode <- ur.fiscalCode.toRight(UserNotCompleted("fiscalCode"))
-      email      <- ur.email.toRight(UserNotCompleted("email"))
-      roles      <- ur.roles.toRight(UserNotCompleted("roles"))
+      id         <- ur.id.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "id"))
+      name       <- ur.name.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "name"))
+      surname    <- ur.surname.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "surname"))
+      fiscalCode <- ur.fiscalCode.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "fiscalCode"))
+      email      <- ur.email.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "email"))
+      roles      <- ur.roles.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "roles"))
     } yield (UserResource(
       id = id,
       name = name,
@@ -281,12 +281,12 @@ object Adapters {
 
   implicit class UserResponseWrapper(private val ur: SelfcareV2Dependency.UserResponse) extends AnyVal {
     def toApi: Either[Throwable, UserResponse] = for {
-      id      <- ur.id.toRight(UserNotCompleted("id"))
+      id      <- ur.id.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "id"))
       uuid    <- id.toUUID.toEither
-      name    <- ur.name.toRight(UserNotCompleted("name"))
-      surname <- ur.surname.toRight(UserNotCompleted("surname"))
-      taxCode <- ur.taxCode.toRight(UserNotCompleted("taxCode"))
-      email   <- ur.email.toRight(UserNotCompleted("email"))
+      name    <- ur.name.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "name"))
+      surname <- ur.surname.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "surname"))
+      taxCode <- ur.taxCode.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "taxCode"))
+      email   <- ur.email.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "email"))
     } yield UserResponse(id = uuid, name = name, surname = surname, taxCode = taxCode, email = email)
   }
 
