@@ -26,7 +26,7 @@ final case class SelfcareV2ClientServiceImpl(
   implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
-  override def getInstitutionProductUsers(selfcareId: UUID, requesterId: UUID, userId: UUID, productRoles: Seq[String])(
+  override def getInstitutionProductUsers(selfcareId: UUID, personId: UUID, userId: UUID, productRoles: Seq[String])(
     implicit
     contexts: Seq[(String, String)],
     ec: ExecutionContext
@@ -34,14 +34,14 @@ final case class SelfcareV2ClientServiceImpl(
     val request: ApiRequest[Seq[UserResource]] =
       institutionsApi.getInstitutionProductUsersUsingGET(
         institutionId = selfcareId.toString,
-        userIdForAuth = requesterId.toString,
+        userIdForAuth = personId.toString,
         userId = userId.toString.some,
         productRoles = productRoles
       )
     invoker
       .invoke(
         request,
-        s"Retrieving User with istitution id $selfcareId, requester $requesterId, user $userId, for roles $productRoles"
+        s"Retrieving User with istitution id $selfcareId, personId $personId, user $userId, for roles $productRoles"
       )
       .recoverWith {
         case err: ApiError[_] if err.code == 404 => Future.failed(InstitutionNotFound(selfcareId))
