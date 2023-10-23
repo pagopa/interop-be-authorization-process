@@ -7,15 +7,12 @@ import java.util.UUID
 object AuthorizationProcessErrors {
 
   final case class UserAlreadyAssigned(clientId: UUID, userId: UUID)
-      extends ComponentError(
-        "0001",
-        s"Operator user ${userId.toString} is already assigned to the client ${clientId.toString}"
-      )
+      extends ComponentError("0001", s"User ${userId.toString} is already assigned to the client ${clientId.toString}")
 
   final case class SecurityUserNotFound(consumerId: UUID, userId: UUID)
       extends ComponentError(
         "0003",
-        s"Security operator user not found for consumer ${consumerId.toString} and user ${userId.toString}"
+        s"Security user not found for consumer ${consumerId.toString} and user ${userId.toString}"
       )
 
   final case class UserNotAllowedToRemoveOwnUser(clientId: String, userId: String)

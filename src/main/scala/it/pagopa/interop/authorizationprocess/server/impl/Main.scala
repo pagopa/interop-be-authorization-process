@@ -35,7 +35,7 @@ object Main extends App with CORSSupport with Dependencies {
         controller = new Controller(
           clientApi(jwtReader, blockingEc),
           healthApi,
-          operatorApi(jwtReader, blockingEc),
+          userApi(jwtReader, blockingEc),
           validationExceptionToRoute.some
         )(actorSystem.classicSystem)
         binding <- Http()(actorSystem.classicSystem)

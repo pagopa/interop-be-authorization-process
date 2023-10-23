@@ -169,7 +169,7 @@ object FakeDependencies {
 
     override def getClients(
       name: Option[String],
-      relationshipIds: List[UUID],
+      userIds: List[UUID],
       consumerId: UUID,
       purposeId: Option[UUID],
       kind: Option[PersistentClientKind],
@@ -185,7 +185,7 @@ object FakeDependencies {
 
     override def getClientsWithKeys(
       name: Option[String],
-      relationshipIds: List[UUID],
+      userIds: List[UUID],
       consumerId: UUID,
       purposeId: Option[UUID],
       kind: Option[PersistentClientKind],

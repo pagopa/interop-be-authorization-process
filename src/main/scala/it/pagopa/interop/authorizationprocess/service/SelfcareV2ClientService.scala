@@ -18,6 +18,6 @@ trait SelfcareV2ClientService {
 }
 
 object SelfcareV2ClientService {
-  final val PRODUCT_ROLE_SECURITY_OPERATOR = "security"
-  final val PRODUCT_ROLE_ADMIN             = "admin"
+  final val PRODUCT_ROLE_SECURITY_USER = "security"
+  final val PRODUCT_ROLE_ADMIN         = "admin"
 }

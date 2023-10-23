@@ -136,9 +136,9 @@ class KeyOperationSpec
         .once()
         .returns(Future.failed(ClientNotFound(persistentClient.id)))
 
-      val relationshipIds = UUID.randomUUID.toString
+      val userIds = UUID.randomUUID.toString
 
-      Get() ~> service.getClientKeys(relationshipIds, persistentClient.id.toString) ~> check {
+      Get() ~> service.getClientKeys(userIds, persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
         responseAs[Problem].errors.head.code shouldEqual "007-0010"
       }
@@ -178,7 +178,7 @@ class KeyOperationSpec
           selfcareId,
           consumerId,
           personId,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_OPERATOR, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
+          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
           *,
           *
         )
@@ -207,7 +207,7 @@ class KeyOperationSpec
       }
     }
 
-    "fail if the uid in the header is not of the right operator/admin of that consumer" in {
+    "fail if the uid in the header is not of the right user/admin of that consumer" in {
 
       implicit val contexts: Seq[(String, String)] =
         Seq(
@@ -235,7 +235,7 @@ class KeyOperationSpec
           selfcareId,
           consumerId,
           personId,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_OPERATOR, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
+          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
           *,
           *
         )

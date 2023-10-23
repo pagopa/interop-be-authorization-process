@@ -64,7 +64,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           selfcareId,
           consumerId,
           userId,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_OPERATOR, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
+          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
           *,
           *
         )
@@ -134,7 +134,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           selfcareId,
           consumerId,
           userId,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_OPERATOR, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
+          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
           *,
           *
         )
@@ -164,7 +164,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           selfcareId,
           consumerId,
           userId,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_OPERATOR, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
+          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
           *,
           *
         )
@@ -193,7 +193,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           selfcareId,
           consumerId,
           userId,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_OPERATOR, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
+          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
           *,
           *
         )
@@ -224,7 +224,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           selfcareId,
           consumerId,
           userId,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_OPERATOR, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
+          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
           *,
           *
         )
@@ -254,7 +254,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -293,7 +293,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -308,7 +308,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
       }
     }
 
-    "fail if a security user removes own relationship" in {
+    "fail if a security user removes own user" in {
 
       val results: Seq[UserResource] = Seq(userResource.copy(roles = Some(Seq("security"))))
 
@@ -323,7 +323,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -348,7 +348,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -376,7 +376,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(Seq.empty))
 
@@ -400,7 +400,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -426,7 +426,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -480,7 +480,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.failed(InstitutionNotFound(selfcareId)))
 
@@ -502,7 +502,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(Seq.empty))
 
@@ -526,7 +526,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -553,7 +553,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -608,7 +608,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.failed(InstitutionNotFound(selfcareId)))
 
@@ -630,7 +630,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(Seq.empty))
 
@@ -654,7 +654,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, Seq.empty, *, *)
+        .expects(selfcareId, personId, userId, Seq.empty, *, *)
         .once()
         .returns(Future.successful(results))
 

@@ -186,7 +186,7 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Unit] = for {
-      requesterUUID <- getOrganizationIdFutureUUID(contexts)
+      requesterUUID <- getUidFutureUUID(contexts)
       selfcareUUID  <- getSelfcareIdFutureUUID(contexts)
       clientUUID    <- clientId.toFutureUUID
       client        <- authorizationManagementService.getClient(clientUUID)
@@ -310,7 +310,7 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerUserarray: ToEntityMarshaller[Seq[User]]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, SUPPORT_ROLE) {
-    val operationLabel: String = s"Retrieving operators of client $clientId"
+    val operationLabel: String = s"Retrieving users of client $clientId"
     logger.info(operationLabel)
 
     val result: Future[Seq[User]] = for {
@@ -441,7 +441,7 @@ final case class ClientApiServiceImpl(
     requesterId: UUID,
     userId: UUID,
     roles: Seq[String] =
-      Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_OPERATOR, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN)
+      Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN)
   )(implicit contexts: Seq[(String, String)]): Future[CommonUserResource] = for {
     users    <- selfcareV2ClientService
       .getInstitutionProductUsers(selfcareId, requesterId, userId, roles)
@@ -456,10 +456,10 @@ final case class ClientApiServiceImpl(
 
   private[this] def userFromUsers(userId: UUID)(implicit contexts: Seq[(String, String)]): Future[User] =
     for {
-      requesterUUID     <- getOrganizationIdFutureUUID(contexts)
+      idUUID            <- getUidFutureUUID(contexts)
       selfcareUUID      <- getSelfcareIdFutureUUID(contexts)
       users             <- selfcareV2ClientService
-        .getInstitutionProductUsers(selfcareUUID, requesterUUID, userId, Seq.empty)
+        .getInstitutionProductUsers(selfcareUUID, idUUID, userId, Seq.empty)
         .map(_.map(_.toApi))
       usersResourcesApi <- users.traverse(_.toFuture)
       userResourceApi   <- usersResourcesApi.headOption.toFuture(UserNotFound(selfcareUUID, userId))

@@ -48,7 +48,7 @@ trait SpecUtilsWithImplicit extends SpecUtils {
   implicit val contexts: Seq[(String, String)] =
     Seq(
       "bearer"         -> bearerToken,
-      "uid"            -> UUID.randomUUID.toString,
+      "uid"            -> personId.toString,
       "selfcareId"     -> selfcareId.toString,
       USER_ROLES       -> "admin",
       "organizationId" -> consumerId.toString
@@ -420,7 +420,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val clientApiMarshaller: ClientApiMarshallerImpl.type = ClientApiMarshallerImpl
 
-  val operatorApiMarshaller: UserApiMarshallerImpl.type = UserApiMarshallerImpl
+  val userApiMarshaller: UserApiMarshallerImpl.type = UserApiMarshallerImpl
 
   implicit def fromResponseUnmarshallerClientRequest: FromEntityUnmarshaller[Client] =
     sprayJsonUnmarshaller[Client]

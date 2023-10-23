@@ -97,7 +97,7 @@ trait Dependencies {
     jwtReader.OAuth2JWTValidatorAsContexts
   )
 
-  def operatorApi(jwtReader: JWTReader, blockingEc: ExecutionContextExecutor)(implicit
+  def userApi(jwtReader: JWTReader, blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_],
     ec: ExecutionContext
   ): UserApi = new UserApi(

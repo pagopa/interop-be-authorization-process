@@ -76,7 +76,7 @@ final case class AuthorizationManagementServiceImpl(
         clientApi.addUser(xCorrelationId = correlationId, clientId, UserSeed(userId), xForwardedFor = ip)(
           BearerToken(bearerToken)
         )
-      invoker.invoke(request, "Operator addition to client")
+      invoker.invoke(request, "User addition to client")
     }
   override def removeUser(clientId: UUID, userId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] =
     withHeaders[Unit] { (bearerToken, correlationId, ip) =>
