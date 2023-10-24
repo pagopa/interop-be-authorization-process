@@ -1,4 +1,4 @@
-package it.pagopa.interop.authorizationprocess.common.model
+package it.pagopa.interop.authorizationprocess.service.model
 
 import java.util.UUID
 

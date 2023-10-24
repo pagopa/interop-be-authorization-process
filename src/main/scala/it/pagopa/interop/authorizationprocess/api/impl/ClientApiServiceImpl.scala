@@ -20,7 +20,7 @@ import it.pagopa.interop.authorizationprocess.common.Adapters._
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
-import it.pagopa.interop.authorizationprocess.common.model.{UserResource => CommonUserResource}
+import it.pagopa.interop.authorizationprocess.service.model.{UserResource => CommonUserResource}
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.service.SelfcareV2ClientService
 import it.pagopa.interop.catalogmanagement.model.{CatalogDescriptor, Published, Deprecated => DeprecatedState}

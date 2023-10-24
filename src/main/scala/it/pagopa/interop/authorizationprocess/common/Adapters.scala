@@ -10,7 +10,7 @@ import it.pagopa.interop.authorizationmanagement.model.client.{Api, Consumer}
 import it.pagopa.interop.authorizationmanagement.model.key.{Enc, Sig}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.selfcare.v2.client.{model => SelfcareV2Dependency}
-import it.pagopa.interop.authorizationprocess.common.model.{UserResource, UserResponse}
+import it.pagopa.interop.authorizationprocess.service.model.{UserResource, UserResponse}
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationmanagement.model.key.{PersistentKey, PersistentKeyUse}
 import it.pagopa.interop.authorizationmanagement.jwk.model.Models._
