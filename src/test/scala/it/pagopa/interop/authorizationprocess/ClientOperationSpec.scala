@@ -1,5 +1,6 @@
 package it.pagopa.interop.authorizationprocess
 
+import cats.syntax.all._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
@@ -235,11 +236,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val results: Seq[UserResource] = Seq(userResource)
 
       (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: UUID, _: Seq[String])(
+        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, personId, roles, *, *)
+        .expects(selfcareId, consumerId, personId.some, roles, *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -286,11 +287,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val limit: Int  = 50
 
       (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: UUID, _: Seq[String])(
+        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, personId, roles, *, *)
+        .expects(selfcareId, consumerId, personId.some, roles, *, *)
         .once()
         .returns(Future.failed(InstitutionNotFound(selfcareId)))
 
@@ -324,11 +325,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val limit: Int  = 50
 
       (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: UUID, _: Seq[String])(
+        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, personId, roles, *, *)
+        .expects(selfcareId, consumerId, personId.some, roles, *, *)
         .once()
         .returns(Future.successful(Seq.empty))
 
@@ -364,11 +365,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val results: Seq[UserResource] = Seq(emptyUserResource)
 
       (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: UUID, _: Seq[String])(
+        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, personId, roles, *, *)
+        .expects(selfcareId, consumerId, personId.some, roles, *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -463,11 +464,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val results: Seq[UserResource] = Seq(userResource)
 
       (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: UUID, _: Seq[String])(
+        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, personId, roles, *, *)
+        .expects(selfcareId, consumerId, personId.some, roles, *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -514,11 +515,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val limit: Int  = 50
 
       (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: UUID, _: Seq[String])(
+        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, personId, roles, *, *)
+        .expects(selfcareId, consumerId, personId.some, roles, *, *)
         .once()
         .returns(Future.failed(InstitutionNotFound(selfcareId)))
 
@@ -552,11 +553,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val limit: Int  = 50
 
       (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: UUID, _: Seq[String])(
+        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, personId, roles, *, *)
+        .expects(selfcareId, consumerId, personId.some, roles, *, *)
         .once()
         .returns(Future.successful(Seq.empty))
 
@@ -592,11 +593,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val results: Seq[UserResource] = Seq(emptyUserResource)
 
       (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: UUID, _: Seq[String])(
+        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId, roles, *, *)
+        .expects(selfcareId, consumerId, userId.some, roles, *, *)
         .once()
         .returns(Future.successful(results))
 

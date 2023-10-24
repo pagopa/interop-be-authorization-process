@@ -193,7 +193,7 @@ final case class ClientApiServiceImpl(
       _             <- assertIsClientConsumer(client).toFuture
       userUUID      <- userId.toFutureUUID
       users         <- selfcareV2ClientService
-        .getInstitutionProductUsers(selfcareUUID, requesterUUID, userUUID, Seq.empty)
+        .getInstitutionProductUsers(selfcareUUID, requesterUUID, userUUID.some, Seq.empty)
         .map(_.map(_.toApi))
       usersApi      <- users.traverse(_.toFuture)
       user          <- usersApi.headOption.toFuture(UserNotFound(selfcareUUID, userUUID))
@@ -444,7 +444,7 @@ final case class ClientApiServiceImpl(
       Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN)
   )(implicit contexts: Seq[(String, String)]): Future[CommonUserResource] = for {
     users    <- selfcareV2ClientService
-      .getInstitutionProductUsers(selfcareId, requesterId, userId, roles)
+      .getInstitutionProductUsers(selfcareId, requesterId, userId.some, roles)
       .map(_.map(_.toApi))
     usersApi <- users.traverse(_.toFuture)
     user     <- usersApi.headOption.toFuture(SecurityUserNotFound(requesterId, userId))
@@ -459,7 +459,7 @@ final case class ClientApiServiceImpl(
       idUUID            <- getUidFutureUUID(contexts)
       selfcareUUID      <- getSelfcareIdFutureUUID(contexts)
       users             <- selfcareV2ClientService
-        .getInstitutionProductUsers(selfcareUUID, idUUID, userId, Seq.empty)
+        .getInstitutionProductUsers(selfcareUUID, idUUID, userId.some, Seq.empty)
         .map(_.map(_.toApi))
       usersResourcesApi <- users.traverse(_.toFuture)
       userResourceApi   <- usersResourcesApi.headOption.toFuture(UserNotFound(selfcareUUID, userId))

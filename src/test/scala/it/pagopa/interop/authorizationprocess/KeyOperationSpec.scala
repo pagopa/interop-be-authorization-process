@@ -1,5 +1,6 @@
 package it.pagopa.interop.authorizationprocess
 
+import cats.syntax.all._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
@@ -170,14 +171,14 @@ class KeyOperationSpec
       val results: Seq[UserResource] = Seq(userResource)
 
       (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: UUID, _: Seq[String])(
+        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
         .expects(
           selfcareId,
           consumerId,
-          personId,
+          personId.some,
           Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
           *,
           *
@@ -227,14 +228,14 @@ class KeyOperationSpec
         .returns(Future.successful(persistentClient))
 
       (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: UUID, _: Seq[String])(
+        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
         .expects(
           selfcareId,
           consumerId,
-          personId,
+          personId.some,
           Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
           *,
           *

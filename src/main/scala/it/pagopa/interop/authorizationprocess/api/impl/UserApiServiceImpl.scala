@@ -46,7 +46,7 @@ final case class UserApiServiceImpl(
       _            <- assertIsClientConsumer(client).toFuture
       userUuid     <- userId.toFutureUUID
       users        <- selfcareV2ClientService
-        .getInstitutionProductUsers(selfcareUuid, idUuid, userUuid, Seq.empty)
+        .getInstitutionProductUsers(selfcareUuid, idUuid, userUuid.some, Seq.empty)
         .map(_.map(_.toApi))
       usersApi     <- users.traverse(_.toFuture)
       user         <- usersApi.headOption.toFuture(UserNotFound(selfcareUuid, userUuid))

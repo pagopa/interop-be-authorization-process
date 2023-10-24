@@ -401,7 +401,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
     if (withUsers) {
       (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: UUID, _: Seq[String])(
+        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
