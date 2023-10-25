@@ -267,13 +267,6 @@ object Adapters {
       surname    <- ur.surname.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "surname"))
       fiscalCode <- ur.fiscalCode.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "fiscalCode"))
       roles      <- ur.roles.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "roles"))
-    } yield (UserResource(
-      id = id,
-      name = name,
-      surname = surname,
-      fiscalCode = fiscalCode,
-      email = ur.email,
-      roles = roles
-    ))
+    } yield (UserResource(id = id, name = name, surname = surname, fiscalCode = fiscalCode, roles = roles))
   }
 }
