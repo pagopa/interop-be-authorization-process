@@ -164,7 +164,7 @@ final case class ClientApiServiceImpl(
       client          <- authorizationManagementService
         .getClient(clientUuid)
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == requesterOrgId)
-      _               <- getSecurityUser(selfcareId, requesterUserId, userUUID)
+      _               <- assertSecurityUser(selfcareId, requesterUserId, userUUID)
       updatedClient   <- client.users
         .find(_ === userUUID)
         .fold(authorizationManagementService.addUser(clientUuid, userUUID)(contexts))(_ =>
@@ -254,7 +254,7 @@ final case class ClientApiServiceImpl(
         .getClient(clientUuid)
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == requesterOrgId)
       _               <- client.users.find(_ == requesterUserId).toFuture(UserNotFound(selfcareId, requesterUserId))
-      user            <- getSecurityUser(selfcareId, requesterOrgId, requesterUserId)
+      user            <- assertSecurityUser(selfcareId, requesterOrgId, requesterUserId)
       seeds = keysSeeds.map(_.toDependency(requesterUserId, dateTimeSupplier.get()))
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
     } yield Keys(keysResponse.keys.map(_.toApi))
@@ -420,7 +420,7 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  private[this] def getSecurityUser(
+  private[this] def assertSecurityUser(
     selfcareId: UUID,
     requesterUserId: UUID,
     userId: UUID,
