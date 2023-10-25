@@ -1,6 +1,5 @@
 package it.pagopa.interop.authorizationprocess
 
-import cats.syntax.all._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
@@ -8,7 +7,7 @@ import it.pagopa.interop.authorizationmanagement.model.client.{Api, PersistentCl
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{InstitutionNotFound, ClientNotFound}
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.ClientNotFound
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
@@ -20,7 +19,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import it.pagopa.interop.selfcare.v2.client.model.UserResource
 
 class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsWithImplicit with ScalatestRouteTest {
 
@@ -205,7 +203,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     "succeed with SECURITY role" in {
 
       val securityRole = "security"
-      val roles        = Seq(securityRole)
 
       implicit val contexts: Seq[(String, String)] =
         Seq(
@@ -232,17 +229,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       val offset: Int = 0
       val limit: Int  = 50
-
-      val results: Seq[UserResource] = Seq(userResource)
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, consumerId, personId.some, roles, *, *)
-        .once()
-        .returns(Future.successful(results))
 
       (mockAuthorizationManagementService
         .getClients(
@@ -272,7 +258,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
     "fail with SECURITY role and Institution Not Found" in {
       val securityRole = "security"
-      val roles        = Seq(securityRole)
 
       implicit val contexts: Seq[(String, String)] =
         Seq(
@@ -286,15 +271,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val offset: Int = 0
       val limit: Int  = 50
 
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, consumerId, personId.some, roles, *, *)
-        .once()
-        .returns(Future.failed(InstitutionNotFound(selfcareId)))
-
       Get() ~> service.getClients(
         Option("name"),
         UUID.randomUUID().toString,
@@ -304,86 +280,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         offset,
         limit
       ) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0022"
-      }
-    }
-    "fail with SECURITY role and Users not Found" in {
-      val securityRole = "security"
-      val roles        = Seq(securityRole)
-
-      implicit val contexts: Seq[(String, String)] =
-        Seq(
-          "bearer"         -> bearerToken,
-          USER_ROLES       -> securityRole,
-          "organizationId" -> consumerId.toString,
-          "uid"            -> personId.toString,
-          "selfcareId"     -> selfcareId.toString
-        )
-
-      val offset: Int = 0
-      val limit: Int  = 50
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, consumerId, personId.some, roles, *, *)
-        .once()
-        .returns(Future.successful(Seq.empty))
-
-      Get() ~> service.getClients(
-        Option("name"),
-        UUID.randomUUID().toString,
-        consumerId.toString,
-        Some(UUID.randomUUID().toString),
-        None,
-        offset,
-        limit
-      ) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0003"
-      }
-    }
-    "fail with SECURITY role and User has empty fields" in {
-      val securityRole = "security"
-      val roles        = Seq(securityRole)
-
-      implicit val contexts: Seq[(String, String)] =
-        Seq(
-          "bearer"         -> bearerToken,
-          USER_ROLES       -> securityRole,
-          "organizationId" -> consumerId.toString,
-          "uid"            -> personId.toString,
-          "selfcareId"     -> selfcareId.toString
-        )
-
-      val offset: Int = 0
-      val limit: Int  = 50
-
-      val results: Seq[UserResource] = Seq(emptyUserResource)
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, consumerId, personId.some, roles, *, *)
-        .once()
-        .returns(Future.successful(results))
-
-      Get() ~> service.getClients(
-        Option("name"),
-        UUID.randomUUID().toString,
-        consumerId.toString,
-        Some(UUID.randomUUID().toString),
-        None,
-        offset,
-        limit
-      ) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0021"
+        status shouldEqual StatusCodes.InternalServerError
+        responseAs[Problem].errors.head.code shouldEqual "007-9991"
       }
     }
   }
@@ -434,7 +332,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
     "succeed with SECURITY role" in {
       val securityRole = "security"
-      val roles        = Seq(securityRole)
 
       implicit val contexts: Seq[(String, String)] =
         Seq(
@@ -460,17 +357,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           keys = Seq.empty
         )
       )
-
-      val results: Seq[UserResource] = Seq(userResource)
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, consumerId, personId.some, roles, *, *)
-        .once()
-        .returns(Future.successful(results))
 
       (mockAuthorizationManagementService
         .getClientsWithKeys(
@@ -498,9 +384,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         status shouldEqual StatusCodes.OK
       }
     }
-    "fail with SECURITY role and Institution Not Found" in {
+    "fail with SECURITY role" in {
       val securityRole = "security"
-      val roles        = Seq(securityRole)
 
       implicit val contexts: Seq[(String, String)] =
         Seq(
@@ -514,15 +399,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       val offset: Int = 0
       val limit: Int  = 50
 
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, consumerId, personId.some, roles, *, *)
-        .once()
-        .returns(Future.failed(InstitutionNotFound(selfcareId)))
-
       Get() ~> service.getClientsWithKeys(
         Option("name"),
         userId.toString,
@@ -532,86 +408,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         offset,
         limit
       ) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0022"
-      }
-    }
-    "fail with SECURITY role and Users not Found" in {
-      val securityRole = "security"
-      val roles        = Seq(securityRole)
-
-      implicit val contexts: Seq[(String, String)] =
-        Seq(
-          "bearer"         -> bearerToken,
-          USER_ROLES       -> securityRole,
-          "organizationId" -> consumerId.toString,
-          "uid"            -> personId.toString,
-          "selfcareId"     -> selfcareId.toString
-        )
-
-      val offset: Int = 0
-      val limit: Int  = 50
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, consumerId, personId.some, roles, *, *)
-        .once()
-        .returns(Future.successful(Seq.empty))
-
-      Get() ~> service.getClientsWithKeys(
-        Option("name"),
-        userId.toString,
-        consumerId.toString,
-        None,
-        None,
-        offset,
-        limit
-      ) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0003"
-      }
-    }
-    "fail with SECURITY role and User is empty" in {
-      val securityRole = "security"
-      val roles        = Seq(securityRole)
-
-      implicit val contexts: Seq[(String, String)] =
-        Seq(
-          "bearer"         -> bearerToken,
-          USER_ROLES       -> securityRole,
-          "organizationId" -> consumerId.toString,
-          "uid"            -> userId.toString,
-          "selfcareId"     -> selfcareId.toString
-        )
-
-      val offset: Int = 0
-      val limit: Int  = 50
-
-      val results: Seq[UserResource] = Seq(emptyUserResource)
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, consumerId, userId.some, roles, *, *)
-        .once()
-        .returns(Future.successful(results))
-
-      Get() ~> service.getClientsWithKeys(
-        Option("name"),
-        userId.toString,
-        consumerId.toString,
-        None,
-        None,
-        offset,
-        limit
-      ) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0021"
+        status shouldEqual StatusCodes.InternalServerError
+        responseAs[Problem].errors.head.code shouldEqual "007-9991"
       }
     }
   }

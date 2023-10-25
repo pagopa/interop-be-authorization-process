@@ -18,7 +18,6 @@ import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import it.pagopa.interop.selfcare.v2.client.model.UserResource
-import it.pagopa.interop.selfcare.v2.client.model.UserResponse
 
 /**
  * Holds fake implementation of dependencies for tests not requiring neither mocks or stubs
@@ -202,11 +201,6 @@ object FakeDependencies {
       productRoles: Seq[String]
     )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Seq[UserResource]] =
       Future.successful(Seq.empty)
-
-    override def getUserById(selfcareId: UUID, userId: UUID)(implicit
-      contexts: Seq[(String, String)],
-      ec: ExecutionContext
-    ): Future[UserResponse] = Future.successful(UserResponse(None, None, None, None, None))
   }
   class FakePurposeManagementService       extends PurposeManagementService       {
     override def getPurposeById(

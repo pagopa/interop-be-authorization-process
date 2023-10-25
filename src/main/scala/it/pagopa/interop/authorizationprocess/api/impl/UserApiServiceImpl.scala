@@ -39,19 +39,18 @@ final case class UserApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Keys] = for {
-      clientUuid   <- clientId.toFutureUUID
-      idUuid       <- getUidFutureUUID(contexts)
-      selfcareUuid <- getSelfcareIdFutureUUID(contexts)
-      client       <- authorizationManagementService.getClient(clientUuid)
-      _            <- assertIsClientConsumer(client).toFuture
-      userUuid     <- userId.toFutureUUID
-      users        <- selfcareV2ClientService
-        .getInstitutionProductUsers(selfcareUuid, idUuid, userUuid.some, Seq.empty)
+      clientUuid        <- clientId.toFutureUUID
+      requestedUserUuid <- getUidFutureUUID(contexts)
+      selfcareId        <- getSelfcareIdFutureUUID(contexts)
+      client            <- authorizationManagementService.getClient(clientUuid)
+      _                 <- assertIsClientConsumer(client).toFuture
+      userUuid          <- userId.toFutureUUID
+      users             <- selfcareV2ClientService
+        .getInstitutionProductUsers(selfcareId, requestedUserUuid, userUuid.some, Seq.empty)
         .map(_.map(_.toApi))
-      usersApi     <- users.traverse(_.toFuture)
-      user         <- usersApi.headOption.toFuture(UserNotFound(selfcareUuid, userUuid))
-      clientUuid   <- clientId.toFutureUUID
-      clientKeys   <- authorizationManagementService.getClientKeys(clientUuid)
+      usersApi          <- users.traverse(_.toFuture)
+      user              <- usersApi.headOption.toFuture(UserNotFound(selfcareId, userUuid))
+      clientKeys        <- authorizationManagementService.getClientKeys(client.id)
       apiKeys = clientKeys.filter(user.id.some == _.userId).map(_.toApi)
       keys <- apiKeys.traverse(_.toFuture)
     } yield Keys(keys = keys)

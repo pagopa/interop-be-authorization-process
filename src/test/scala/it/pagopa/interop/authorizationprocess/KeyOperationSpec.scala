@@ -6,15 +6,11 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiMarshallerImpl._
 import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiServiceImpl, keyFormat, keysFormat}
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{
-  ClientKeyNotFound,
-  ClientNotFound,
-  SecurityUserNotFound
-}
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{ClientKeyNotFound, ClientNotFound}
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.selfcare.v2.client.model.UserResource
 import it.pagopa.interop.commons.utils.USER_ROLES
-import it.pagopa.interop.authorizationprocess.service.SelfcareV2ClientService
+import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, SECURITY_ROLE}
 import it.pagopa.interop.authorizationprocess.util.{CustomMatchers, SpecUtilsWithImplicit}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import org.scalamock.scalatest.MockFactory
@@ -152,9 +148,9 @@ class KeyOperationSpec
       implicit val contexts: Seq[(String, String)] =
         Seq(
           "bearer"         -> bearerToken,
-          USER_ROLES       -> "admin",
+          USER_ROLES       -> ADMIN_ROLE,
           "organizationId" -> consumerId.toString,
-          "uid"            -> personId.toString,
+          "uid"            -> userId.toString,
           "selfcareId"     -> selfcareId.toString
         )
 
@@ -166,7 +162,7 @@ class KeyOperationSpec
         .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(persistentClient))
+        .returns(Future.successful(persistentClient.copy(users = Set(userId))))
 
       val results: Seq[UserResource] = Seq(userResource)
 
@@ -175,14 +171,7 @@ class KeyOperationSpec
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(
-          selfcareId,
-          consumerId,
-          personId.some,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
-          *,
-          *
-        )
+        .expects(selfcareId, consumerId, userId.some, Seq(SECURITY_ROLE, ADMIN_ROLE), *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -213,7 +202,7 @@ class KeyOperationSpec
       implicit val contexts: Seq[(String, String)] =
         Seq(
           "bearer"         -> bearerToken,
-          USER_ROLES       -> "admin",
+          USER_ROLES       -> ADMIN_ROLE,
           "organizationId" -> consumerId.toString,
           "uid"            -> personId.toString,
           "selfcareId"     -> selfcareId.toString
@@ -227,25 +216,9 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(persistentClient))
 
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(
-          selfcareId,
-          consumerId,
-          personId.some,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
-          *,
-          *
-        )
-        .once()
-        .returns(Future.failed(SecurityUserNotFound(consumerId, personId)))
-
       Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        entityAs[Problem].errors.head.code shouldBe "007-0003"
+        status shouldEqual StatusCodes.InternalServerError
+        entityAs[Problem].errors.head.code shouldBe "007-9991"
       }
     }
 

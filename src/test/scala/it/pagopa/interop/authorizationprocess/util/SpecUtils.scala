@@ -1,6 +1,7 @@
 package it.pagopa.interop.authorizationprocess.util
 
 import cats.syntax.all._
+import it.pagopa.interop.commons.utils.SprayCommonFormats.uuidFormat
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
@@ -366,8 +367,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     withUsers: Boolean,
     client: authorizationmanagement.client.model.Client = client,
     userId: UUID,
-    results: Seq[UserResource],
-    result: UserResponse
+    results: Seq[UserResource]
   ): Unit = {
 
     (mockTenantManagementService
@@ -408,12 +408,6 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
         .expects(userId, *, *, *, *, *)
         .once()
         .returns(Future.successful(results))
-
-      (mockSelfcareV2ClientService
-        .getUserById(_: UUID, _: UUID)(_: Seq[(String, String)], _: ExecutionContext))
-        .expects(userId, *, *, *)
-        .once()
-        .returns(Future.successful(result))
     }
     ()
   }
@@ -431,11 +425,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   implicit def fromResponseUnmarshallerClientsRequest: FromEntityUnmarshaller[Clients] =
     sprayJsonUnmarshaller[Clients]
 
-  implicit def fromResponseUnmarshallerUsersRequest: FromEntityUnmarshaller[Seq[User]] =
-    sprayJsonUnmarshaller[Seq[User]]
-
-  implicit def fromResponseUnmarshallerUserRequest: FromEntityUnmarshaller[User] =
-    sprayJsonUnmarshaller[User]
+  implicit def fromResponseUnmarshallerUsersRequest: FromEntityUnmarshaller[Seq[UUID]] =
+    sprayJsonUnmarshaller[Seq[UUID]]
 
   implicit def fromResponseUnmarshallerProblem: FromEntityUnmarshaller[Problem] =
     sprayJsonUnmarshaller[Problem]

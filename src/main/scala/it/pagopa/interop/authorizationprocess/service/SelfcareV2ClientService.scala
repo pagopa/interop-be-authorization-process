@@ -10,14 +10,4 @@ trait SelfcareV2ClientService {
     contexts: Seq[(String, String)],
     ec: ExecutionContext
   ): Future[Seq[UserResource]]
-
-  def getUserById(selfcareId: UUID, userId: UUID)(implicit
-    contexts: Seq[(String, String)],
-    ec: ExecutionContext
-  ): Future[UserResponse]
-}
-
-object SelfcareV2ClientService {
-  final val PRODUCT_ROLE_SECURITY_USER = "security"
-  final val PRODUCT_ROLE_ADMIN         = "admin"
 }

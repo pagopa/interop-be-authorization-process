@@ -2,12 +2,7 @@ package it.pagopa.interop.authorizationprocess.api.impl
 
 import akka.http.scaladsl.server.Route
 import com.typesafe.scalalogging.LoggerTakingImplicit
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{
-  ClientNotFound,
-  InstitutionNotFound,
-  UserNotFound,
-  SelfcareEntityNotFilled
-}
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.ClientNotFound
 import it.pagopa.interop.commons.logging.ContextFieldsToLog
 import it.pagopa.interop.commons.utils.errors.AkkaResponses
 
@@ -22,9 +17,6 @@ object UserApiHandlers extends AkkaResponses {
     result match {
       case Success(s)                                  => success(s)
       case Failure(ex: OrganizationNotAllowedOnClient) => forbidden(ex, logMessage)
-      case Failure(ex: InstitutionNotFound)            => forbidden(ex, logMessage)
-      case Failure(ex: UserNotFound)                   => forbidden(ex, logMessage)
-      case Failure(ex: SelfcareEntityNotFilled)        => forbidden(ex, logMessage)
       case Failure(ex: ClientNotFound)                 => notFound(ex, logMessage)
       case Failure(ex)                                 => internalServerError(ex, logMessage)
     }

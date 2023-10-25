@@ -13,7 +13,6 @@ import it.pagopa.interop.agreementmanagement.model.agreement.{
   Suspended
 }
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
-import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
 import it.pagopa.interop.authorizationprocess.api.ClientApiService
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiHandlers._
 import it.pagopa.interop.authorizationprocess.common.Adapters._
@@ -158,20 +157,21 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Client] = for {
-      clientUuid    <- clientId.toFutureUUID
-      userUUID      <- userId.toFutureUUID
-      requesterUUID <- getOrganizationIdFutureUUID(contexts)
-      selfcareUUID  <- getSelfcareIdFutureUUID(contexts)
-      client        <- authorizationManagementService
+      clientUuid      <- clientId.toFutureUUID
+      userUUID        <- userId.toFutureUUID
+      requesterOrgId  <- getOrganizationIdFutureUUID(contexts)
+      requesterUserId <- getUidFutureUUID(contexts)
+      selfcareId      <- getSelfcareIdFutureUUID(contexts)
+      client          <- authorizationManagementService
         .getClient(clientUuid)
-        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == requesterUUID)
-      userApi       <- getSecurityUser(selfcareUUID, requesterUUID, userUUID)
-      updatedClient <- client.users
+        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == requesterOrgId)
+      userApi         <- getSecurityUser(selfcareId, requesterUserId, userUUID)
+      updatedClient   <- client.users
         .find(_ === userApi.id)
         .fold(authorizationManagementService.addUser(clientUuid, userUUID)(contexts))(_ =>
           Future.failed(UserAlreadyAssigned(client.id, userUUID))
         )
-    } yield updatedClient.toApi(requesterUUID == updatedClient.consumerId)
+    } yield updatedClient.toApi(requesterOrgId == updatedClient.consumerId)
 
     onComplete(result) {
       addUserResponse[Client](operationLabel)(addUser200)
@@ -186,31 +186,23 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Unit] = for {
-      requesterUUID <- getUidFutureUUID(contexts)
-      selfcareUUID  <- getSelfcareIdFutureUUID(contexts)
-      clientUUID    <- clientId.toFutureUUID
-      client        <- authorizationManagementService.getClient(clientUUID)
-      _             <- assertIsClientConsumer(client).toFuture
-      userUUID      <- userId.toFutureUUID
-      users         <- selfcareV2ClientService
-        .getInstitutionProductUsers(selfcareUUID, requesterUUID, userUUID.some, Seq.empty)
+      requesterUserId <- getUidFutureUUID(contexts)
+      selfcareId      <- getSelfcareIdFutureUUID(contexts)
+      clientUUID      <- clientId.toFutureUUID
+      client          <- authorizationManagementService.getClient(clientUUID)
+      _               <- assertIsClientConsumer(client).toFuture
+      userUUID        <- userId.toFutureUUID
+      users           <- selfcareV2ClientService
+        .getInstitutionProductUsers(selfcareId, requesterUserId, userUUID.some, Seq.empty)
         .map(_.map(_.toApi))
-      usersApi      <- users.traverse(_.toFuture)
-      user          <- usersApi.headOption.toFuture(UserNotFound(selfcareUUID, userUUID))
-      _             <-
-        if (isNotRemovable(userUUID)(user)) Future.failed(UserNotAllowedToRemoveOwnUser(clientId, userId))
-        else Future.unit
-      _             <- authorizationManagementService.removeUser(clientUUID, userUUID)(contexts)
+      usersApi        <- users.traverse(_.toFuture)
+      _               <- usersApi.headOption.toFuture(UserNotFound(selfcareId, userUUID))
+      _               <- authorizationManagementService.removeUser(clientUUID, userUUID)(contexts)
     } yield ()
 
     onComplete(result) {
       removeUserResponse[Unit](operationLabel)(_ => removeUser204)
     }
-  }
-
-  private def isNotRemovable(userId: UUID): CommonUserResource => Boolean = user => {
-    user.id == userId &&
-    user.roles.forall(_ != SelfcareV2ClientService.PRODUCT_ROLE_ADMIN)
   }
 
   override def getClientKeyById(clientId: String, keyId: String)(implicit
@@ -262,15 +254,16 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Keys] = for {
-      userUUID      <- getUidFutureUUID(contexts)
-      clientUuid    <- clientId.toFutureUUID
-      selfcareUUID  <- getSelfcareIdFutureUUID(contexts)
-      requesterUUID <- getOrganizationIdFutureUUID(contexts)
-      client        <- authorizationManagementService
+      clientUuid      <- clientId.toFutureUUID
+      selfcareId      <- getSelfcareIdFutureUUID(contexts)
+      requesterOrgId  <- getOrganizationIdFutureUUID(contexts)
+      requesterUserId <- getUidFutureUUID(contexts)
+      client          <- authorizationManagementService
         .getClient(clientUuid)
-        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == requesterUUID)
-      user          <- getSecurityUser(selfcareUUID, client.consumerId, userUUID)
-      seeds = keysSeeds.map(_.toDependency(userUUID, dateTimeSupplier.get()))
+        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == requesterOrgId)
+      _               <- client.users.find(_ == requesterUserId).toFuture(UserNotFound(selfcareId, requesterUserId))
+      user            <- getSecurityUser(selfcareId, requesterOrgId, requesterUserId)
+      seeds = keysSeeds.map(_.toDependency(requesterUserId, dateTimeSupplier.get()))
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
     } yield Keys(keysResponse.keys.map(_.toApi))
 
@@ -307,23 +300,22 @@ final case class ClientApiServiceImpl(
 
   override def getClientUsers(clientId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerUserarray: ToEntityMarshaller[Seq[User]]
+    toEntityMarshallerUUIDarray: ToEntityMarshaller[Seq[UUID]],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, SUPPORT_ROLE) {
     val operationLabel: String = s"Retrieving users of client $clientId"
     logger.info(operationLabel)
 
-    val result: Future[Seq[User]] = for {
+    val result: Future[Seq[UUID]] = for {
       clientUuid     <- clientId.toFutureUUID
-      organizationId <- getOrganizationIdFutureUUID(contexts)
+      requesterOrgId <- getOrganizationIdFutureUUID(contexts)
       client         <- authorizationManagementService
         .getClient(clientUuid)
-        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
-      users          <- usersFromClient(client)
-    } yield users
+        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == requesterOrgId)
+    } yield client.users.toList
 
     onComplete(result) {
-      getClientUsersResponse[Seq[User]](operationLabel)(getClientUsers200)
+      getClientUsersResponse[Seq[UUID]](operationLabel)(getClientUsers200)
     }
   }
 
@@ -438,40 +430,16 @@ final case class ClientApiServiceImpl(
 
   private[this] def getSecurityUser(
     selfcareId: UUID,
-    requesterId: UUID,
+    requesterUserId: UUID,
     userId: UUID,
-    roles: Seq[String] =
-      Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN)
+    roles: Seq[String] = Seq(SECURITY_ROLE, ADMIN_ROLE)
   )(implicit contexts: Seq[(String, String)]): Future[CommonUserResource] = for {
     users    <- selfcareV2ClientService
-      .getInstitutionProductUsers(selfcareId, requesterId, userId.some, roles)
+      .getInstitutionProductUsers(selfcareId, requesterUserId, userId.some, roles)
       .map(_.map(_.toApi))
     usersApi <- users.traverse(_.toFuture)
-    user     <- usersApi.headOption.toFuture(SecurityUserNotFound(requesterId, userId))
+    user     <- usersApi.headOption.toFuture(SecurityUserNotFound(requesterUserId, userId))
   } yield user
-
-  private[this] def usersFromClient(client: PersistentClient)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Seq[User]] = Future.traverse(client.users.toList)(userFromUsers)
-
-  private[this] def userFromUsers(userId: UUID)(implicit contexts: Seq[(String, String)]): Future[User] =
-    for {
-      idUUID            <- getUidFutureUUID(contexts)
-      selfcareUUID      <- getSelfcareIdFutureUUID(contexts)
-      users             <- selfcareV2ClientService
-        .getInstitutionProductUsers(selfcareUUID, idUUID, userId.some, Seq.empty)
-        .map(_.map(_.toApi))
-      usersResourcesApi <- users.traverse(_.toFuture)
-      userResourceApi   <- usersResourcesApi.headOption.toFuture(UserNotFound(selfcareUUID, userId))
-      userResponse      <- selfcareV2ClientService.getUserById(selfcareUUID, userId).map(_.toApi)
-      userResponseApi   <- userResponse.toFuture
-    } yield User(
-      userId = userResponseApi.id,
-      taxCode = userResponseApi.taxCode,
-      name = userResponseApi.name,
-      familyName = userResponseApi.surname,
-      roles = userResourceApi.roles
-    )
 
   override def getClients(
     name: Option[String],
@@ -491,15 +459,14 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Clients] = for {
-      requesterUuid <- getOrganizationIdFutureUUID(contexts)
-      selfcareUuid  <- getSelfcareIdFutureUUID(contexts)
-      userUuid      <- getUidFutureUUID(contexts)
-      consumerUuid  <- consumerId.toFutureUUID
-      purposeUUid   <- purposeId.traverse(_.toFutureUUID)
-      roles         <- getUserRolesFuture(contexts)
-      users         <- checkAuthorizationForRoles(roles, userIds, selfcareUuid, requesterUuid, userUuid)(contexts)
-      clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
-      clients       <- authorizationManagementService.getClients(
+      requesterOrgId  <- getOrganizationIdFutureUUID(contexts)
+      requesterUserId <- getUidFutureUUID(contexts)
+      consumerUuid    <- consumerId.toFutureUUID
+      purposeUUid     <- purposeId.traverse(_.toFutureUUID)
+      roles           <- getUserRolesFuture(contexts)
+      users           <- checkAuthorizationForRoles(roles, userIds, requesterUserId)
+      clientKind      <- kind.traverse(ClientKind.fromValue).toFuture
+      clients         <- authorizationManagementService.getClients(
         name,
         users,
         consumerUuid,
@@ -508,28 +475,17 @@ final case class ClientApiServiceImpl(
         offset,
         limit
       )
-      apiClients = clients.results.map(_.toApi(requesterUuid == consumerUuid))
+      apiClients = clients.results.map(_.toApi(requesterOrgId == consumerUuid))
     } yield Clients(results = apiClients, totalCount = clients.totalCount)
 
     onComplete(result) { getClientsResponse[Clients](operationLabel)(getClients200) }
 
   }
 
-  private def checkAuthorizationForRoles(
-    roles: String,
-    userIds: String,
-    selfcareUuid: UUID,
-    requesterId: UUID,
-    userId: UUID
-  )(implicit contexts: Seq[(String, String)]): Future[List[UUID]] = {
-    if (roles.contains(SECURITY_ROLE)) getUser(selfcareUuid, requesterId, userId, Seq(SECURITY_ROLE)).map(List[UUID](_))
+  private def checkAuthorizationForRoles(roles: String, userIds: String, userId: UUID): Future[List[UUID]] = {
+    if (roles.contains(SECURITY_ROLE)) Future.successful(userId :: Nil)
     else parseArrayParameters(userIds).traverse(_.toFutureUUID)
   }
-
-  private def getUser(selfcareUuid: UUID, requesterId: UUID, userId: UUID, roles: Seq[String])(implicit
-    contexts: Seq[(String, String)]
-  ): Future[UUID] =
-    getSecurityUser(selfcareUuid, requesterId, userId, roles).map(_.id)
 
   override def getClientsWithKeys(
     name: Option[String],
@@ -550,15 +506,14 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[ClientsWithKeys] = for {
-      requesterUuid <- getOrganizationIdFutureUUID(contexts)
-      selfcareUuid  <- getSelfcareIdFutureUUID(contexts)
-      userUuid      <- getUidFutureUUID(contexts)
-      consumerUuid  <- consumerId.toFutureUUID
-      purposeUUid   <- purposeId.traverse(_.toFutureUUID)
-      roles         <- getUserRolesFuture(contexts)
-      users         <- checkAuthorizationForRoles(roles, userIds, selfcareUuid, requesterUuid, userUuid)(contexts)
-      clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
-      clientsKeys   <- authorizationManagementService.getClientsWithKeys(
+      requesterOrgId  <- getOrganizationIdFutureUUID(contexts)
+      requesterUserId <- getUidFutureUUID(contexts)
+      consumerUuid    <- consumerId.toFutureUUID
+      purposeUUid     <- purposeId.traverse(_.toFutureUUID)
+      roles           <- getUserRolesFuture(contexts)
+      users           <- checkAuthorizationForRoles(roles, userIds, requesterUserId)
+      clientKind      <- kind.traverse(ClientKind.fromValue).toFuture
+      clientsKeys     <- authorizationManagementService.getClientsWithKeys(
         name,
         users,
         consumerUuid,
@@ -567,7 +522,7 @@ final case class ClientApiServiceImpl(
         offset,
         limit
       )
-      apiClientsKeys = clientsKeys.results.map(_.toApi(requesterUuid == consumerUuid))
+      apiClientsKeys = clientsKeys.results.map(_.toApi(requesterOrgId == consumerUuid))
       keys <- apiClientsKeys.traverse(_.toFuture)
     } yield ClientsWithKeys(results = keys, totalCount = clientsKeys.totalCount)
 

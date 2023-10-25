@@ -77,10 +77,7 @@ object ClientApiHandlers extends AkkaResponses {
       case Success(s)                                  => success(s)
       case Failure(ex: UserAlreadyAssigned)            => badRequest(ex, logMessage)
       case Failure(ex: OrganizationNotAllowedOnClient) => forbidden(ex, logMessage)
-      case Failure(ex: InstitutionNotFound)            => forbidden(ex, logMessage)
       case Failure(ex: SecurityUserNotFound)           => forbidden(ex, logMessage)
-      case Failure(ex: UserNotFound)                   => forbidden(ex, logMessage)
-      case Failure(ex: SelfcareEntityNotFilled)        => forbidden(ex, logMessage)
       case Failure(ex: ClientNotFound)                 => notFound(ex, logMessage)
       case Failure(ex)                                 => internalServerError(ex, logMessage)
     }
@@ -90,12 +87,7 @@ object ClientApiHandlers extends AkkaResponses {
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
     result match {
       case Success(s)                                  => success(s)
-      case Failure(ex: UserNotAllowedToRemoveOwnUser)  => forbidden(ex, logMessage)
       case Failure(ex: OrganizationNotAllowedOnClient) => forbidden(ex, logMessage)
-      case Failure(ex: InstitutionNotFound)            => forbidden(ex, logMessage)
-      case Failure(ex: SecurityUserNotFound)           => forbidden(ex, logMessage)
-      case Failure(ex: UserNotFound)                   => forbidden(ex, logMessage)
-      case Failure(ex: SelfcareEntityNotFilled)        => forbidden(ex, logMessage)
       case Failure(ex: ClientUserNotFound)             => notFound(ex, logMessage)
       case Failure(ex)                                 => internalServerError(ex, logMessage)
     }
@@ -127,10 +119,7 @@ object ClientApiHandlers extends AkkaResponses {
     result match {
       case Success(s)                                  => success(s)
       case Failure(ex: CreateKeysBadRequest)           => badRequest(ex, logMessage)
-      case Failure(ex: SecurityUserNotFound)           => forbidden(ex, logMessage)
-      case Failure(ex: SelfcareEntityNotFilled)        => forbidden(ex, logMessage)
       case Failure(ex: InstitutionNotFound)            => forbidden(ex, logMessage)
-      case Failure(ex: UserNotFound)                   => forbidden(ex, logMessage)
       case Failure(ex: OrganizationNotAllowedOnClient) => forbidden(ex, logMessage)
       case Failure(ex: ClientNotFound)                 => notFound(ex, logMessage)
       case Failure(ex: KeysAlreadyExist)               => conflict(ex, logMessage)
@@ -155,7 +144,6 @@ object ClientApiHandlers extends AkkaResponses {
       case Failure(ex: OrganizationNotAllowedOnClient) => forbidden(ex, logMessage)
       case Failure(ex: InstitutionNotFound)            => forbidden(ex, logMessage)
       case Failure(ex: UserNotFound)                   => forbidden(ex, logMessage)
-      case Failure(ex: SelfcareEntityNotFilled)        => forbidden(ex, logMessage)
       case Failure(ex: ClientNotFound)                 => notFound(ex, logMessage)
       case Failure(ex)                                 => internalServerError(ex, logMessage)
     }

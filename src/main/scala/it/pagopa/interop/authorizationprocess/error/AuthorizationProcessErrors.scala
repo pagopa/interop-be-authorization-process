@@ -14,25 +14,14 @@ object AuthorizationProcessErrors {
         "0003",
         s"Security user not found for consumer ${consumerId.toString} and user ${userId.toString}"
       )
-
-  final case class UserNotAllowedToRemoveOwnUser(clientId: String, userId: String)
-      extends ComponentError(
-        "0004",
-        s"A user is not allowed to remove own user from client. Client $clientId, User $userId"
-      )
-
   final case class AgreementNotFound(eServiceId: UUID, consumerId: UUID)
       extends ComponentError("0005", s"Agreement not found for EService $eServiceId and Consumer $consumerId")
 
   final case class DescriptorNotFound(eServiceId: UUID, descriptorId: UUID)
       extends ComponentError("0006", s"Descriptor $descriptorId not found for EService $eServiceId")
 
-  final case class MissingUserInfo(userId: UUID) extends ComponentError("0007", s"Missing ${userId.toString} user info")
-
   final case class OrganizationNotAllowedOnClient(clientId: String, organizationId: UUID)
       extends ComponentError("0008", s"Organization $organizationId is not allowed on client $clientId")
-
-  final case object MissingSelfcareId extends ComponentError("0009", "SelfcareId in tenant not found")
 
   final case class ClientNotFound(clientId: UUID) extends ComponentError("0010", s"Client $clientId not found")
 
@@ -67,8 +56,8 @@ object AuthorizationProcessErrors {
       extends ComponentError("0021", s"Selfcare entity $className with field $field not filled")
 
   final case class InstitutionNotFound(selfcareId: UUID)
-      extends ComponentError("0022", s"Institution $selfcareId not found")
+      extends ComponentError("0022", s"Selfcare institution $selfcareId not found")
 
   final case class UserNotFound(selfcareId: UUID, userId: UUID)
-      extends ComponentError("0023", s"User $userId not found for institution $selfcareId")
+      extends ComponentError("0023", s"User $userId not found for selfcare institution $selfcareId")
 }

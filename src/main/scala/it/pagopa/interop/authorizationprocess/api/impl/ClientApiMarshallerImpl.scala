@@ -5,6 +5,9 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import it.pagopa.interop.authorizationprocess.api.ClientApiMarshaller
 import it.pagopa.interop.authorizationprocess.model._
+import it.pagopa.interop.commons.utils.SprayCommonFormats.uuidFormat
+
+import java.util.UUID
 
 case object ClientApiMarshallerImpl extends ClientApiMarshaller with SprayJsonSupport {
 
@@ -21,9 +24,6 @@ case object ClientApiMarshallerImpl extends ClientApiMarshaller with SprayJsonSu
   override implicit def toEntityMarshallerClients: ToEntityMarshaller[Clients] =
     sprayJsonMarshaller[Clients]
 
-  override implicit def toEntityMarshallerUserarray: ToEntityMarshaller[Seq[User]] =
-    sprayJsonMarshaller[Seq[User]]
-
   override implicit def fromEntityUnmarshallerPurposeAdditionDetails: FromEntityUnmarshaller[PurposeAdditionDetails] =
     sprayJsonUnmarshaller[PurposeAdditionDetails]
 
@@ -33,4 +33,7 @@ case object ClientApiMarshallerImpl extends ClientApiMarshaller with SprayJsonSu
   override implicit def toEntityMarshallerKeys: ToEntityMarshaller[Keys] = sprayJsonMarshaller[Keys]
 
   override implicit def toEntityMarshallerKey: ToEntityMarshaller[Key] = sprayJsonMarshaller[Key]
+
+  override implicit def toEntityMarshallerUUIDarray: ToEntityMarshaller[Seq[UUID]] = sprayJsonMarshaller[Seq[UUID]]
+
 }

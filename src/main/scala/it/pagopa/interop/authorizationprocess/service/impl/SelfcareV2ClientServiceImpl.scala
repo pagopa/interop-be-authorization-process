@@ -8,10 +8,9 @@ import it.pagopa.interop.authorizationprocess.service.{
 }
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.selfcare.v2.client.api.{InstitutionsApi, UsersApi}
-import it.pagopa.interop.selfcare.v2.client.model.{UserResource, UserResponse}
+import it.pagopa.interop.selfcare.v2.client.model.UserResource
 import it.pagopa.interop.selfcare.v2.client.invoker.{ApiRequest, ApiError}
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{UserNotFound, InstitutionNotFound}
-import cats.syntax.all._
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.InstitutionNotFound
 
 import java.util.UUID
 import scala.concurrent.{Future, ExecutionContext}
@@ -46,19 +45,6 @@ final case class SelfcareV2ClientServiceImpl(
       )
       .recoverWith {
         case err: ApiError[_] if err.code == 404 => Future.failed(InstitutionNotFound(selfcareId))
-      }
-  }
-
-  override def getUserById(selfcareId: UUID, userId: UUID)(implicit
-    contexts: Seq[(String, String)],
-    ec: ExecutionContext
-  ): Future[UserResponse] = {
-    val request: ApiRequest[UserResponse] =
-      usersApi.getUserInfoUsingGET(id = userId.toString, institutionId = selfcareId.toString.some)
-    invoker
-      .invoke(request, s"Retrieving User with with istitution id $selfcareId, user $userId")
-      .recoverWith {
-        case err: ApiError[_] if err.code == 404 => Future.failed(UserNotFound(selfcareId, userId))
       }
   }
 }

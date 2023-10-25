@@ -10,7 +10,7 @@ import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.commons.utils.USER_ROLES
 import it.pagopa.interop.selfcare.v2.client.model.UserResource
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
-import it.pagopa.interop.authorizationprocess.service._
+import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, SECURITY_ROLE}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -42,9 +42,9 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
       implicit val contexts: Seq[(String, String)] =
         Seq(
           "bearer"         -> bearerToken,
-          USER_ROLES       -> "admin",
+          USER_ROLES       -> ADMIN_ROLE,
           "organizationId" -> consumerId.toString,
-          "uid"            -> userId.toString,
+          "uid"            -> personId.toString,
           "selfcareId"     -> selfcareId.toString
         )
 
@@ -61,14 +61,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(
-          selfcareId,
-          consumerId,
-          userId.some,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
-          *,
-          *
-        )
+        .expects(selfcareId, personId, userId.some, Seq(SECURITY_ROLE, ADMIN_ROLE), *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -131,14 +124,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(
-          selfcareId,
-          consumerId,
-          userId.some,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
-          *,
-          *
-        )
+        .expects(selfcareId, personId, userId.some, Seq(SECURITY_ROLE, ADMIN_ROLE), *, *)
         .once()
         .returns(Future.successful(results))
 
@@ -161,20 +147,13 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(
-          selfcareId,
-          consumerId,
-          userId.some,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
-          *,
-          *
-        )
+        .expects(selfcareId, personId, userId.some, Seq(SECURITY_ROLE, ADMIN_ROLE), *, *)
         .once()
         .returns(Future.failed(InstitutionNotFound(selfcareId)))
 
       Post() ~> service.addUser(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0022"
+        status shouldEqual StatusCodes.InternalServerError
+        responseAs[Problem].errors.head.code shouldEqual "007-9991"
       }
     }
     "fail when Security User not Found" in {
@@ -190,14 +169,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(
-          selfcareId,
-          consumerId,
-          userId.some,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
-          *,
-          *
-        )
+        .expects(selfcareId, personId, userId.some, Seq(SECURITY_ROLE, ADMIN_ROLE), *, *)
         .once()
         .returns(Future.successful(Seq.empty))
 
@@ -221,20 +193,13 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(
-          selfcareId,
-          consumerId,
-          userId.some,
-          Seq(SelfcareV2ClientService.PRODUCT_ROLE_SECURITY_USER, SelfcareV2ClientService.PRODUCT_ROLE_ADMIN),
-          *,
-          *
-        )
+        .expects(selfcareId, personId, userId.some, Seq(SECURITY_ROLE, ADMIN_ROLE), *, *)
         .once()
         .returns(Future.successful(results))
 
       Post() ~> service.addUser(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0021"
+        status shouldEqual StatusCodes.InternalServerError
+        responseAs[Problem].errors.head.code shouldEqual "007-9991"
       }
     }
   }
@@ -279,61 +244,6 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
       }
     }
 
-    "succeed if an admin user removes own user" in {
-
-      val results: Seq[UserResource] = Seq(userResource)
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(persistentClient))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.successful(results))
-
-      (mockAuthorizationManagementService
-        .removeUser(_: UUID, _: UUID)(_: Seq[(String, String)]))
-        .expects(persistentClient.id, userId, *)
-        .once()
-        .returns(Future.unit)
-
-      Delete() ~> service.removeUser(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.NoContent
-      }
-    }
-
-    "fail if a security user removes own user" in {
-
-      val results: Seq[UserResource] = Seq(userResource.copy(roles = Some(Seq("security"))))
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(persistentClient))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.successful(results))
-
-      Delete() ~> service.removeUser(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0004"
-      }
-    }
-
     "fail if Institution not found" in {
 
       val results: Seq[UserResource] = Seq(userResource)
@@ -360,8 +270,8 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
         .returns(Future.failed(InstitutionNotFound(selfcareId)))
 
       Delete() ~> service.removeUser(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0022"
+        status shouldEqual StatusCodes.InternalServerError
+        responseAs[Problem].errors.head.code shouldEqual "007-9991"
       }
     }
     "fail if User not found" in {
@@ -382,8 +292,8 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
         .returns(Future.successful(Seq.empty))
 
       Delete() ~> service.removeUser(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0023"
+        status shouldEqual StatusCodes.InternalServerError
+        responseAs[Problem].errors.head.code shouldEqual "007-9991"
       }
     }
     "fail if User has empty fields" in {
@@ -406,15 +316,14 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
         .returns(Future.successful(results))
 
       Delete() ~> service.removeUser(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0021"
+        status shouldEqual StatusCodes.InternalServerError
+        responseAs[Problem].errors.head.code shouldEqual "007-9991"
       }
     }
   }
 
   "User retrieve" should {
     "succeed" in {
-      val results: Seq[UserResource] = Seq(userResource)
 
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -422,27 +331,11 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
         .once()
         .returns(Future.successful(persistentClient.copy(users = Set(userId))))
 
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.successful(results))
-
-      (mockSelfcareV2ClientService
-        .getUserById(_: UUID, _: UUID)(_: Seq[(String, String)], _: ExecutionContext))
-        .expects(selfcareId, userId, *, *)
-        .once()
-        .returns(Future.successful(userResponse))
-
-      val expected =
-        Seq(User(userId = userId, taxCode = taxCode, name = "name", familyName = "surname", roles = Seq("admin")))
+      val expected = Seq(userId)
 
       Get() ~> service.getClientUsers(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[Seq[User]] shouldEqual expected
+        entityAs[Seq[UUID]] shouldEqual expected
       }
     }
 
@@ -465,75 +358,6 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
       Get() ~> service.getClientUsers(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
         responseAs[Problem].errors.head.code shouldEqual "007-0010"
-      }
-    }
-
-    "fail if Institution not found" in {
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(persistentClient.id, *, *)
-        .once()
-        .returns(Future.successful(persistentClient.copy(users = Set(userId))))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.failed(InstitutionNotFound(selfcareId)))
-
-      Get() ~> service.getClientUsers(persistentClient.id.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0022"
-      }
-    }
-    "fail if User not found" in {
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(persistentClient.id, *, *)
-        .once()
-        .returns(Future.successful(persistentClient.copy(users = Set(userId))))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.successful(Seq.empty))
-
-      Get() ~> service.getClientUsers(persistentClient.id.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0023"
-      }
-    }
-    "fail if User has empty fields" in {
-
-      val results: Seq[UserResource] = Seq(emptyUserResource)
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(persistentClient.id, *, *)
-        .once()
-        .returns(Future.successful(persistentClient.copy(users = Set(userId))))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.successful(results))
-
-      Get() ~> service.getClientUsers(persistentClient.id.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0021"
       }
     }
   }
@@ -614,8 +438,8 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
         .returns(Future.failed(InstitutionNotFound(selfcareId)))
 
       Get() ~> serviceUser.getClientUserKeys(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0022"
+        status shouldEqual StatusCodes.InternalServerError
+        responseAs[Problem].errors.head.code shouldEqual "007-9991"
       }
     }
     "fail if User not found" in {
@@ -636,8 +460,8 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
         .returns(Future.successful(Seq.empty))
 
       Get() ~> serviceUser.getClientUserKeys(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0023"
+        status shouldEqual StatusCodes.InternalServerError
+        responseAs[Problem].errors.head.code shouldEqual "007-9991"
       }
     }
     "fail if User has empty fields" in {
@@ -660,8 +484,8 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
         .returns(Future.successful(results))
 
       Get() ~> serviceUser.getClientUserKeys(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0021"
+        status shouldEqual StatusCodes.InternalServerError
+        responseAs[Problem].errors.head.code shouldEqual "007-9991"
       }
     }
   }
