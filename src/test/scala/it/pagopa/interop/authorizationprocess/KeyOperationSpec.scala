@@ -217,8 +217,8 @@ class KeyOperationSpec
         .returns(Future.successful(persistentClient))
 
       Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
-        status shouldEqual StatusCodes.InternalServerError
-        entityAs[Problem].errors.head.code shouldBe "007-9991"
+        status shouldEqual StatusCodes.Forbidden
+        entityAs[Problem].errors.head.code shouldBe "007-0023"
       }
     }
 

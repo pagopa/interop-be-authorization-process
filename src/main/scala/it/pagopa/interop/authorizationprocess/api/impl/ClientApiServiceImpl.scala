@@ -428,7 +428,6 @@ final case class ClientApiServiceImpl(
   )(implicit contexts: Seq[(String, String)]): Future[Unit] = for {
     users <- selfcareV2ClientService
       .getInstitutionProductUsers(selfcareId, requesterUserId, userId.some, roles)
-      .map(_.map(_.toApi))
     _     <- users.headOption.toFuture(SecurityUserNotFound(requesterUserId, userId))
   } yield ()
 
