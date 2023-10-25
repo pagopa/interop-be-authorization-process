@@ -9,12 +9,10 @@ import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientCo
 import it.pagopa.interop.authorizationmanagement.model.client.{Api, Consumer}
 import it.pagopa.interop.authorizationmanagement.model.key.{Enc, Sig}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
-import it.pagopa.interop.selfcare.v2.client.{model => SelfcareV2Dependency}
-import it.pagopa.interop.authorizationprocess.service.model.UserResource
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationmanagement.model.key.{PersistentKey, PersistentKeyUse}
 import it.pagopa.interop.authorizationmanagement.jwk.model.Models._
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{SelfcareEntityNotFilled, MissingUserId}
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.MissingUserId
 import cats.syntax.all._
 
 import java.util.UUID
@@ -258,15 +256,5 @@ object Adapters {
 
   implicit class JwkOtherPrimeInfoWrapper(private val o: JwkOtherPrimeInfo) extends AnyVal {
     def toApi: OtherPrimeInfo = OtherPrimeInfo(r = o.r, d = o.d, t = o.t)
-  }
-
-  implicit class UserResourceWrapper(private val ur: SelfcareV2Dependency.UserResource) extends AnyVal {
-    def toApi: Either[Throwable, UserResource] = for {
-      id         <- ur.id.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "id"))
-      name       <- ur.name.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "name"))
-      surname    <- ur.surname.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "surname"))
-      fiscalCode <- ur.fiscalCode.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "fiscalCode"))
-      roles      <- ur.roles.toRight(SelfcareEntityNotFilled(ur.getClass().getName(), "roles"))
-    } yield (UserResource(id = id, name = name, surname = surname, fiscalCode = fiscalCode, roles = roles))
   }
 }

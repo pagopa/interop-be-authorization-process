@@ -52,9 +52,6 @@ object AuthorizationProcessErrors {
 
   final case class MissingUserId(kid: String) extends ComponentError("0020", s"Key $kid has not UserId")
 
-  final case class SelfcareEntityNotFilled(className: String, field: String)
-      extends ComponentError("0021", s"Selfcare entity $className with field $field not filled")
-
   final case class InstitutionNotFound(selfcareId: UUID)
       extends ComponentError("0022", s"Selfcare institution $selfcareId not found")
 
