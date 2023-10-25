@@ -19,7 +19,6 @@ import it.pagopa.interop.authorizationprocess.common.Adapters._
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
-import it.pagopa.interop.authorizationprocess.service.model.{UserResource => CommonUserResource}
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.service.SelfcareV2ClientService
 import it.pagopa.interop.catalogmanagement.model.{CatalogDescriptor, Published, Deprecated => DeprecatedState}
@@ -165,9 +164,9 @@ final case class ClientApiServiceImpl(
       client          <- authorizationManagementService
         .getClient(clientUuid)
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == requesterOrgId)
-      userApi         <- getSecurityUser(selfcareId, requesterUserId, userUUID)
+      _               <- getSecurityUser(selfcareId, requesterUserId, userUUID)
       updatedClient   <- client.users
-        .find(_ === userApi.id)
+        .find(_ === userUUID)
         .fold(authorizationManagementService.addUser(clientUuid, userUUID)(contexts))(_ =>
           Future.failed(UserAlreadyAssigned(client.id, userUUID))
         )
@@ -186,18 +185,11 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Unit] = for {
-      requesterUserId <- getUidFutureUUID(contexts)
-      selfcareId      <- getSelfcareIdFutureUUID(contexts)
-      clientUUID      <- clientId.toFutureUUID
-      client          <- authorizationManagementService.getClient(clientUUID)
-      _               <- assertIsClientConsumer(client).toFuture
-      userUUID        <- userId.toFutureUUID
-      users           <- selfcareV2ClientService
-        .getInstitutionProductUsers(selfcareId, requesterUserId, userUUID.some, Seq.empty)
-        .map(_.map(_.toApi))
-      usersApi        <- users.traverse(_.toFuture)
-      _               <- usersApi.headOption.toFuture(UserNotFound(selfcareId, userUUID))
-      _               <- authorizationManagementService.removeUser(clientUUID, userUUID)(contexts)
+      clientUUID <- clientId.toFutureUUID
+      client     <- authorizationManagementService.getClient(clientUUID)
+      _          <- assertIsClientConsumer(client).toFuture
+      userUUID   <- userId.toFutureUUID
+      _          <- authorizationManagementService.removeUser(clientUUID, userUUID)(contexts)
     } yield ()
 
     onComplete(result) {
@@ -433,13 +425,12 @@ final case class ClientApiServiceImpl(
     requesterUserId: UUID,
     userId: UUID,
     roles: Seq[String] = Seq(SECURITY_ROLE, ADMIN_ROLE)
-  )(implicit contexts: Seq[(String, String)]): Future[CommonUserResource] = for {
-    users    <- selfcareV2ClientService
+  )(implicit contexts: Seq[(String, String)]): Future[Unit] = for {
+    users <- selfcareV2ClientService
       .getInstitutionProductUsers(selfcareId, requesterUserId, userId.some, roles)
       .map(_.map(_.toApi))
-    usersApi <- users.traverse(_.toFuture)
-    user     <- usersApi.headOption.toFuture(SecurityUserNotFound(requesterUserId, userId))
-  } yield user
+    _     <- users.headOption.toFuture(SecurityUserNotFound(requesterUserId, userId))
+  } yield ()
 
   override def getClients(
     name: Option[String],

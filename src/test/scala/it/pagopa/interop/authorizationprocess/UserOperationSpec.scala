@@ -207,22 +207,11 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
   "User removal" should {
     "succeed" in {
 
-      val results: Seq[UserResource] = Seq(userResource)
-
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(*, *, *)
         .once()
         .returns(Future.successful(persistentClient))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.successful(results))
 
       (mockAuthorizationManagementService
         .removeUser(_: UUID, _: UUID)(_: Seq[(String, String)]))
@@ -241,83 +230,6 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
       Delete() ~> service.removeUser(client.id.toString, userId.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
         responseAs[Problem].errors.head.code shouldEqual "007-9989"
-      }
-    }
-
-    "fail if Institution not found" in {
-
-      val results: Seq[UserResource] = Seq(userResource)
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(persistentClient))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.successful(results))
-
-      (mockAuthorizationManagementService
-        .removeUser(_: UUID, _: UUID)(_: Seq[(String, String)]))
-        .expects(persistentClient.id, userId, *)
-        .once()
-        .returns(Future.failed(InstitutionNotFound(selfcareId)))
-
-      Delete() ~> service.removeUser(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.InternalServerError
-        responseAs[Problem].errors.head.code shouldEqual "007-9991"
-      }
-    }
-    "fail if User not found" in {
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(persistentClient))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.successful(Seq.empty))
-
-      Delete() ~> service.removeUser(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.InternalServerError
-        responseAs[Problem].errors.head.code shouldEqual "007-9991"
-      }
-    }
-    "fail if User has empty fields" in {
-
-      val results: Seq[UserResource] = Seq(emptyUserResource)
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(persistentClient))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.successful(results))
-
-      Delete() ~> service.removeUser(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.InternalServerError
-        responseAs[Problem].errors.head.code shouldEqual "007-9991"
       }
     }
   }
