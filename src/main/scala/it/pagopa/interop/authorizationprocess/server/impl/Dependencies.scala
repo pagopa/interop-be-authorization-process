@@ -53,8 +53,8 @@ trait Dependencies {
   def selfcareV2ClientService()(implicit actorSystem: ActorSystem[_]): SelfcareV2ClientService =
     SelfcareV2ClientServiceImpl(
       SelfcareV2ClientInvoker()(actorSystem.classicSystem),
-      InstitutionsApi(ApplicationConfiguration.getPartyManagementURL),
-      UsersApi(ApplicationConfiguration.getPartyManagementURL)
+      InstitutionsApi(ApplicationConfiguration.selfcareV2ClientURL),
+      UsersApi(ApplicationConfiguration.selfcareV2ClientURL)
     )(SelfcareV2ClientApiKeyValue())
 
   val authorizationManagementClientApi: AuthorizationClientApi = AuthorizationClientApi(

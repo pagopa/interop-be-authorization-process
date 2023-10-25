@@ -9,7 +9,6 @@ object ApplicationConfiguration {
 
   val getAuthorizationManagementURL: String =
     config.getString("authorization-process.services.authorization-management")
-  val getPartyManagementURL: String         = config.getString("authorization-process.services.party-management")
 
   val selfcareV2ClientURL: String    = config.getString("authorization-process.services.selfcare-v2-client")
   val selfcareV2ClientApiKey: String = config.getString("authorization-process.api-keys.selfcare-v2-client")
