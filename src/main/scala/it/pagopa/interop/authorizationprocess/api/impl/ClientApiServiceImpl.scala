@@ -254,7 +254,7 @@ final case class ClientApiServiceImpl(
         .getClient(clientUuid)
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == requesterOrgId)
       _               <- client.users.find(_ == requesterUserId).toFuture(UserNotFound(selfcareId, requesterUserId))
-      user            <- assertSecurityUser(selfcareId, requesterOrgId, requesterUserId)
+      _               <- assertSecurityUser(selfcareId, requesterOrgId, requesterUserId)
       seeds = keysSeeds.map(_.toDependency(requesterUserId, dateTimeSupplier.get()))
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
     } yield Keys(keysResponse.keys.map(_.toApi))
