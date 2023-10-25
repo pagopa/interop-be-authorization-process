@@ -277,22 +277,11 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
   "User retrieve keys" should {
     "succeed" in {
 
-      val results: Seq[UserResource] = Seq(userResource)
-
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(persistentClient.id, *, *)
         .once()
         .returns(Future.successful(persistentClient.copy(users = Set(userId))))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.successful(results))
 
       (mockAuthorizationManagementService
         .getClientKeys(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -332,73 +321,5 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
       }
     }
 
-    "fail if Institution not found" in {
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(persistentClient.id, *, *)
-        .once()
-        .returns(Future.successful(persistentClient.copy(users = Set(userId))))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.failed(InstitutionNotFound(selfcareId)))
-
-      Get() ~> serviceUser.getClientUserKeys(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.InternalServerError
-        responseAs[Problem].errors.head.code shouldEqual "007-9991"
-      }
-    }
-    "fail if User not found" in {
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(persistentClient.id, *, *)
-        .once()
-        .returns(Future.successful(persistentClient.copy(users = Set(userId))))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.successful(Seq.empty))
-
-      Get() ~> serviceUser.getClientUserKeys(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.InternalServerError
-        responseAs[Problem].errors.head.code shouldEqual "007-9991"
-      }
-    }
-    "fail if User has empty fields" in {
-
-      val results: Seq[UserResource] = Seq(emptyUserResource)
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(persistentClient.id, *, *)
-        .once()
-        .returns(Future.successful(persistentClient.copy(users = Set(userId))))
-
-      (mockSelfcareV2ClientService
-        .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
-          _: Seq[(String, String)],
-          _: ExecutionContext
-        ))
-        .expects(selfcareId, personId, userId.some, Seq.empty, *, *)
-        .once()
-        .returns(Future.successful(results))
-
-      Get() ~> serviceUser.getClientUserKeys(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.InternalServerError
-        responseAs[Problem].errors.head.code shouldEqual "007-9991"
-      }
-    }
   }
 }

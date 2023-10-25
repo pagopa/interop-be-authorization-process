@@ -13,11 +13,9 @@ import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, SECURITY_ROLE, SUPPORT_ROLE, a
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.selfcare.v2.client.model.{Problem => _}
 import it.pagopa.interop.commons.utils.TypeConversions._
-import it.pagopa.interop.commons.utils.AkkaUtils._
 import it.pagopa.interop.authorizationprocess.common.Adapters._
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -39,19 +37,12 @@ final case class UserApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Keys] = for {
-      clientUuid        <- clientId.toFutureUUID
-      requestedUserUuid <- getUidFutureUUID(contexts)
-      selfcareId        <- getSelfcareIdFutureUUID(contexts)
-      client            <- authorizationManagementService.getClient(clientUuid)
-      _                 <- assertIsClientConsumer(client).toFuture
-      userUuid          <- userId.toFutureUUID
-      users             <- selfcareV2ClientService
-        .getInstitutionProductUsers(selfcareId, requestedUserUuid, userUuid.some, Seq.empty)
-        .map(_.map(_.toApi))
-      usersApi          <- users.traverse(_.toFuture)
-      user              <- usersApi.headOption.toFuture(UserNotFound(selfcareId, userUuid))
-      clientKeys        <- authorizationManagementService.getClientKeys(client.id)
-      apiKeys = clientKeys.filter(user.id.some == _.userId).map(_.toApi)
+      clientUuid <- clientId.toFutureUUID
+      client     <- authorizationManagementService.getClient(clientUuid)
+      _          <- assertIsClientConsumer(client).toFuture
+      userUuid   <- userId.toFutureUUID
+      clientKeys <- authorizationManagementService.getClientKeys(client.id)
+      apiKeys = clientKeys.filter(userUuid.some == _.userId).map(_.toApi)
       keys <- apiKeys.traverse(_.toFuture)
     } yield Keys(keys = keys)
 

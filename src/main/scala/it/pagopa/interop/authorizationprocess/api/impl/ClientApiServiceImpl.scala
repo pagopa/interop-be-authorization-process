@@ -473,8 +473,8 @@ final case class ClientApiServiceImpl(
 
   }
 
-  private def checkAuthorizationForRoles(roles: String, userIds: String, userId: UUID): Future[List[UUID]] = {
-    if (roles.contains(SECURITY_ROLE)) Future.successful(userId :: Nil)
+  private def checkAuthorizationForRoles(roles: String, userIds: String, requesterUserId: UUID): Future[List[UUID]] = {
+    if (roles.contains(SECURITY_ROLE)) Future.successful(requesterUserId :: Nil)
     else parseArrayParameters(userIds).traverse(_.toFutureUUID)
   }
 
