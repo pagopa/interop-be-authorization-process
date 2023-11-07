@@ -1,7 +1,7 @@
 package it.pagopa.interop.authorizationprocess.service.impl
 
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
-import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
+import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi, MigrateApi}
 import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError, ApiRequest, BearerToken}
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, PersistentClientKind}
@@ -25,11 +25,12 @@ final case class AuthorizationManagementServiceImpl(
   invoker: AuthorizationManagementInvoker,
   clientApi: ClientApi,
   keyApi: KeyApi,
+  migrateApi: MigrateApi,
   purposeApi: PurposeApi
 )(implicit ec: ExecutionContext)
     extends AuthorizationManagementService {
 
-  implicit val logger: LoggerTakingImplicit[ContextFieldsToLog]                                               =
+  implicit val logger: LoggerTakingImplicit[ContextFieldsToLog]                                     =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
   override def createClient(
     consumerId: UUID,
@@ -47,7 +48,7 @@ final case class AuthorizationManagementServiceImpl(
         description = description,
         kind = kind,
         createdAt = createdAt,
-        members = members
+        users = members
       )
     )(BearerToken(bearerToken))
     invoker.invoke(request, "Client creation")
@@ -56,7 +57,7 @@ final case class AuthorizationManagementServiceImpl(
     clientId: UUID
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentClient] =
     ReadModelAuthorizationQueries.getClientById(clientId).flatMap(_.toFuture(ClientNotFound(clientId)))
-  override def deleteClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit]           =
+  override def deleteClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] =
     withHeaders[Unit] { (bearerToken, correlationId) =>
       val request: ApiRequest[Unit] =
         clientApi.deleteClient(xCorrelationId = correlationId, clientId.toString)(BearerToken(bearerToken))
@@ -66,22 +67,35 @@ final case class AuthorizationManagementServiceImpl(
           case err: ApiError[_] if err.code == 404 => Future.failed(ClientNotFound(clientId))
         }
     }
+
+  override def migrateKeyRelationshipToUser(clientId: UUID, keyId: String, userId: UUID)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Unit] = withHeaders[Unit] { (bearerToken, correlationId) =>
+    val request: ApiRequest[Unit] =
+      migrateApi.migrateKeyRelationshipToUser(xCorrelationId = correlationId, clientId, keyId, UserSeed(userId))(
+        BearerToken(bearerToken)
+      )
+    invoker.invoke(request, "Key user migration")
+  }
+
+  override def addUser(clientId: UUID, userId: UUID)(implicit contexts: Seq[(String, String)]): Future[Client] =
+    withHeaders[Client] { (bearerToken, correlationId) =>
+      val request: ApiRequest[Client] =
+        clientApi.addUser(xCorrelationId = correlationId, clientId, UserSeed(userId))(BearerToken(bearerToken))
+      invoker.invoke(request, "Operator addition to client")
+    }
   override def addRelationship(clientId: UUID, relationshipId: UUID)(implicit
     contexts: Seq[(String, String)]
   ): Future[Client] = withHeaders[Client] { (bearerToken, correlationId) =>
     val request: ApiRequest[Client] =
-      clientApi.addRelationship(xCorrelationId = correlationId, clientId, PartyRelationshipSeed(relationshipId))(
-        BearerToken(bearerToken)
-      )
+      clientApi.addUser(xCorrelationId = correlationId, clientId, UserSeed(relationshipId))(BearerToken(bearerToken))
     invoker.invoke(request, "Operator addition to client")
   }
   override def removeClientRelationship(clientId: UUID, relationshipId: UUID)(implicit
     contexts: Seq[(String, String)]
   ): Future[Unit] = withHeaders[Unit] { (bearerToken, correlationId) =>
     val request: ApiRequest[Unit] =
-      clientApi.removeClientRelationship(xCorrelationId = correlationId, clientId, relationshipId)(
-        BearerToken(bearerToken)
-      )
+      clientApi.removeClientUser(xCorrelationId = correlationId, clientId, relationshipId)(BearerToken(bearerToken))
     invoker
       .invoke(request, "Operator removal from client")
       .recoverWith {
@@ -97,7 +111,7 @@ final case class AuthorizationManagementServiceImpl(
       .flatMap(_.map(_.keys).toFuture(ClientKeyNotFound(clientId, kid)))
     key  <- keys.find(_.kid == kid).toFuture(ClientKeyNotFound(clientId, kid))
   } yield key
-  override def deleteKey(clientId: UUID, kid: String)(implicit contexts: Seq[(String, String)]): Future[Unit] =
+  override def deleteKey(clientId: UUID, kid: String)(implicit contexts: Seq[(String, String)]): Future[Unit]  =
     withHeaders[Unit] { (bearerToken, correlationId) =>
       val request: ApiRequest[Unit] =
         keyApi.deleteClientKeyById(xCorrelationId = correlationId, clientId, kid)(BearerToken(bearerToken))
