@@ -72,13 +72,9 @@ final case class AuthorizationManagementServiceImpl(
     contexts: Seq[(String, String)]
   ): Future[Unit] = withHeaders[Unit] { (bearerToken, correlationId) =>
     val request: ApiRequest[Unit] =
-      migrateApi.migrateKeyRelationshipToUser(
-        xCorrelationId = correlationId,
-        clientId,
-        keyId,
-        UserSeed(userId),
-        xForwardedFor = ip
-      )(BearerToken(bearerToken))
+      migrateApi.migrateKeyRelationshipToUser(xCorrelationId = correlationId, clientId, keyId, UserSeed(userId))(
+        BearerToken(bearerToken)
+      )
     invoker.invoke(request, "Key user migration")
   }
 

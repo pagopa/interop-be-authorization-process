@@ -138,9 +138,9 @@ object Adapters {
   }
 
   implicit class KeySeedWrapper(private val keySeed: KeySeed) extends AnyVal {
-    def toDependency(relationshipId: UUID, createdAt: OffsetDateTime): AuthorizationManagementDependency.KeySeed =
+    def toDependency(userId: UUID, createdAt: OffsetDateTime): AuthorizationManagementDependency.KeySeed =
       AuthorizationManagementDependency.KeySeed(
-        userId = relationshipId,
+        userId = userId,
         key = keySeed.key,
         use = keySeed.use.toDependency,
         alg = keySeed.alg,
