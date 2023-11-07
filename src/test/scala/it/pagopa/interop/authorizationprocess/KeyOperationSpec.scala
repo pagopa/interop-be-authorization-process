@@ -186,7 +186,7 @@ class KeyOperationSpec
         .getClientKeys(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(persistentClient.id, *, *)
         .once()
-        .returns(Future.successful(Seq(persistentKey.copy(relationshipId = relationship.id))))
+        .returns(Future.successful(Seq(persistentKey.copy(relationshipId = Some(relationship.id)))))
 
       mockGetTenant()
 
@@ -250,7 +250,7 @@ class KeyOperationSpec
         .getClientKeys(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(client.id, *, *)
         .once()
-        .returns(Future.successful(Seq(persistentKey.copy(relationshipId = relationship.id))))
+        .returns(Future.successful(Seq(persistentKey.copy(relationshipId = Some(relationship.id)))))
 
       mockGetTenant()
 
@@ -291,7 +291,7 @@ class KeyOperationSpec
         .getClientKeys(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(client.id, *, *)
         .once()
-        .returns(Future.successful(Seq(persistentKey.copy(relationshipId = relationship.id))))
+        .returns(Future.successful(Seq(persistentKey.copy(relationshipId = Some(relationship.id)))))
 
       Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.BadRequest
