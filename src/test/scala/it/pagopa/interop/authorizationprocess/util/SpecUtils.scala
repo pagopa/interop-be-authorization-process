@@ -259,6 +259,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     purposes = Seq(persistentClientPurpose),
     description = clientSeed.description,
     relationships = Set.empty,
+    users = Set.empty,
     kind = AuthorizationPersistentModel.Consumer,
     createdAt = timestamp
   )
@@ -269,7 +270,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
       "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUF2RElqdVN4UkJtaEdudjE5MUlSTQpnbEVXblRFMXdmOXdMRzdwQStxQlBjckVyM3dQQWJoTzJab1ZpVFNLS1crWGlZbW15cS8zaVlkYlhXNVNLc1NqCnNEN1NWTEhzZ0YzWU85MjZpV0tLTGVWdThhOEdEcUx1K1ZrQjlDNGMxUWZLajJRRG1rNTN1OGlKOU12Mi84c28KVzY2VXM2NVM0TTlzc1Jka0ZzMUoxVWhQSVgxT1I3UjlBSnZKWFN2ZmtMekhvOHdveTVkM3JZdmJNMzErWk0wbwplL0tQdUdCVWRnRitreXNLZVE3eVgxM3NFK1NCaVZaRkJFYzdzd0xXRDIxeEZJSVlpWHdWTEFteC9lajBMMFNTCkVSUEsvSVpmRlN6UW92bE5vNVhsR3BGcStTWk5ZdlVyWTBRRndtK3M0UnN5R3lUOTJnWHBmaVpJeHZMMUI1TmgKZndJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t",
     algorithm = "RS256",
     use = AuthorizationPersistentKeyModel.Sig,
-    relationshipId = UUID.randomUUID(),
+    userId = UUID.randomUUID().some,
+    relationshipId = UUID.randomUUID().some,
     name = "test",
     createdAt = timestamp
   )
@@ -280,7 +282,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     name = clientSeed.name,
     purposes = Seq(clientPurpose),
     description = clientSeed.description,
-    relationships = Set.empty,
+    users = Set.empty,
     kind = AuthorizationManagementDependency.ClientKind.CONSUMER,
     createdAt = timestamp
   )
@@ -354,7 +356,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     PartyManagementDependency.Relationships(Seq(relationship))
 
   val createdKey: AuthorizationManagementDependency.Key = AuthorizationManagementDependency.Key(
-    relationshipId = persistentKey.relationshipId,
+    userId = persistentKey.userId.getOrElse(UUID.randomUUID()),
     kid = persistentKey.kid,
     name = persistentKey.name,
     encodedPem = persistentKey.encodedPem,
@@ -364,7 +366,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   )
 
   val expectedKey: Key = Key(
-    relationshipId = relationship.id,
+    relationshipId = relationship.id.some,
     kid = persistentKey.kid,
     name = persistentKey.name,
     encodedPem = persistentKey.encodedPem,

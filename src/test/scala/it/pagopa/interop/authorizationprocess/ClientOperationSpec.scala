@@ -3,7 +3,7 @@ package it.pagopa.interop.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
-import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
+import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi, MigrateApi}
 import it.pagopa.interop.authorizationmanagement.model.client.{Api, PersistentClient, PersistentClientKind}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.common.readmodel.PaginatedResult
@@ -88,6 +88,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           AuthorizationManagementInvoker(ExecutionContext.global),
           ClientApi(),
           KeyApi(),
+          MigrateApi(),
           PurposeApi()
         ),
         mockAgreementManagementService,
@@ -186,6 +187,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         purposes = Seq.empty,
         description = None,
         relationships = Set.empty,
+        users = Set.empty,
         kind = Api,
         createdAt = timestamp
       )
@@ -240,6 +242,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         purposes = Seq.empty,
         description = None,
         relationships = Set.empty,
+        users = Set.empty,
         kind = Api,
         createdAt = timestamp
       )
