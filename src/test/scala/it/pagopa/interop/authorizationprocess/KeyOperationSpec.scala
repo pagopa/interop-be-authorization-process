@@ -182,6 +182,12 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(persistentClient))
 
+      (mockAuthorizationManagementService
+        .getClientKeys(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(persistentClient.id, *, *)
+        .once()
+        .returns(Future.successful(Seq(persistentKey.copy(relationshipId = Some(relationship.id)))))
+
       mockGetTenant()
 
       (mockPartyManagementService
@@ -240,6 +246,12 @@ class KeyOperationSpec
         .once()
         .returns(Future.successful(persistentClient))
 
+      (mockAuthorizationManagementService
+        .getClientKeys(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(client.id, *, *)
+        .once()
+        .returns(Future.successful(Seq(persistentKey.copy(relationshipId = Some(relationship.id)))))
+
       mockGetTenant()
 
       (mockPartyManagementService
@@ -257,6 +269,33 @@ class KeyOperationSpec
       Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
         status shouldEqual StatusCodes.Forbidden
         entityAs[Problem].errors.head.code shouldBe "007-0003"
+      }
+    }
+
+    "fail if the keys exceed the maximum allowed" in {
+      val keySeeds: Seq[KeySeed] = Seq(
+        KeySeed(key = "key1", use = KeyUse.SIG, alg = "123", name = "test"),
+        KeySeed(key = "key2", use = KeyUse.SIG, alg = "123", name = "test"),
+        KeySeed(key = "key3", use = KeyUse.SIG, alg = "123", name = "test"),
+        KeySeed(key = "key4", use = KeyUse.SIG, alg = "123", name = "test"),
+        KeySeed(key = "key5", use = KeyUse.SIG, alg = "123", name = "test")
+      )
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(client.id, *, *)
+        .once()
+        .returns(Future.successful(persistentClient))
+
+      (mockAuthorizationManagementService
+        .getClientKeys(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(client.id, *, *)
+        .once()
+        .returns(Future.successful(Seq(persistentKey.copy(relationshipId = Some(relationship.id)))))
+
+      Get() ~> service.createKeys(client.id.toString, keySeeds) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        entityAs[Problem].errors.head.code shouldBe "007-0020"
       }
     }
 
