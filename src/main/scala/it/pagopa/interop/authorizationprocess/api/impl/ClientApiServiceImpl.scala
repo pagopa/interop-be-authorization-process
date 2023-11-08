@@ -5,7 +5,6 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.Route
 import cats.syntax.all._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
-import it.pagopa.interop.authorizationprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop._
 import it.pagopa.interop.agreementmanagement.model.agreement.{
   Active,
@@ -265,11 +264,6 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Creating keys for client $clientId"
     logger.info(operationLabel)
 
-    def assertKeyIsBelowThreshold(clientId: UUID, size: Int): Future[Unit] =
-      if (size > ApplicationConfiguration.maxKeysPerClient)
-        Future.failed(TooManyKeysPerClient(clientId, size))
-      else Future.unit
-
     val result: Future[Keys] = for {
       userId         <- getUidFutureUUID(contexts)
       clientUuid     <- clientId.toFutureUUID
@@ -277,8 +271,6 @@ final case class ClientApiServiceImpl(
       client         <- authorizationManagementService
         .getClient(clientUuid)
         .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
-      keys           <- authorizationManagementService.getClientKeys(clientUuid)
-      _              <- assertKeyIsBelowThreshold(clientUuid, keys.size + keysSeeds.size)
       relationshipId <- securityOperatorRelationship(client.consumerId, userId).map(_.id)
       seeds = keysSeeds.map(_.toDependency(relationshipId, dateTimeSupplier.get()))
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)

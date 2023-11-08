@@ -70,10 +70,4 @@ object AuthorizationProcessErrors {
   final case class EServiceNotFound(eServiceId: UUID)
       extends ComponentError("0019", s"EService ${eServiceId.toString} not found")
 
-  final case class TooManyKeysPerClient(clientId: UUID, size: Int)
-      extends ComponentError(
-        "0020",
-        s"The number of the keys ${size.toString} for the client ${clientId.toString} exceed maximun allowed"
-      )
-
 }
