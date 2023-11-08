@@ -11,7 +11,6 @@ import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
 import it.pagopa.interop.authorizationmanagement.client.api.{
   ClientApi => AuthorizationClientApi,
   KeyApi => AuthorizationKeyApi,
-  MigrateApi,
   PurposeApi => AuthorizationPurposeApi
 }
 import it.pagopa.interop.authorizationprocess.api.impl.{
@@ -80,7 +79,6 @@ trait Dependencies {
     AuthorizationManagementInvoker(blockingEc)(actorSystem.classicSystem),
     AuthorizationClientApi(ApplicationConfiguration.getAuthorizationManagementURL),
     AuthorizationKeyApi(ApplicationConfiguration.getAuthorizationManagementURL),
-    MigrateApi(ApplicationConfiguration.getAuthorizationManagementURL),
     AuthorizationPurposeApi(ApplicationConfiguration.getAuthorizationManagementURL)
   )(blockingEc)
 
