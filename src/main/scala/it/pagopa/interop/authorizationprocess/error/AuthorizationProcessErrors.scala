@@ -57,4 +57,11 @@ object AuthorizationProcessErrors {
 
   final case class UserNotFound(selfcareId: UUID, userId: UUID)
       extends ComponentError("0023", s"User $userId not found for selfcare institution $selfcareId")
+
+  final case class TooManyKeysPerClient(clientId: UUID, size: Int)
+      extends ComponentError(
+        "0024",
+        s"The number of the keys ${size.toString} for the client ${clientId.toString} exceed maximun allowed"
+      )
+
 }
