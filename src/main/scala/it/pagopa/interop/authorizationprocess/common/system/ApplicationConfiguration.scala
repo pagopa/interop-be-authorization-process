@@ -9,12 +9,9 @@ object ApplicationConfiguration {
 
   val getAuthorizationManagementURL: String =
     config.getString("authorization-process.services.authorization-management")
-  val getPartyManagementURL: String         = config.getString("authorization-process.services.party-management")
-  val getUserRegistryManagementURL: String  =
-    config.getString("authorization-process.services.user-registry-management")
 
-  val userRegistryApiKey: String    = config.getString("authorization-process.api-keys.user-registry")
-  val partyManagementApiKey: String = config.getString("authorization-process.api-keys.party-management")
+  val selfcareV2URL: String    = config.getString("authorization-process.services.selfcare-v2")
+  val selfcareV2ApiKey: String = config.getString("authorization-process.api-keys.selfcare-v2")
 
   val getInteropIdIssuer: String = config.getString("authorization-process.issuer")
 
@@ -22,8 +19,6 @@ object ApplicationConfiguration {
     config.getString("authorization-process.jwt.audience").split(",").toSet.filter(_.nonEmpty)
 
   require(jwtAudience.nonEmpty, "Audience cannot be empty")
-
-  val selfcareProductId: String = config.getString("authorization-process.selfcare-product-id")
 
   val maxKeysPerClient: Int = config.getInt("authorization-process.max-keys-per-client")
 

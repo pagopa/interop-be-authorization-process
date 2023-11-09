@@ -14,19 +14,14 @@ import it.pagopa.interop.agreementmanagement.model.agreement.{
   Suspended
 }
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
-import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
 import it.pagopa.interop.authorizationprocess.api.ClientApiService
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiHandlers._
 import it.pagopa.interop.authorizationprocess.common.Adapters._
 import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
-import it.pagopa.interop.authorizationprocess.service.PartyManagementService.{
-  relationshipProductToApi,
-  relationshipRoleToApi,
-  relationshipStateToApi
-}
 import it.pagopa.interop.authorizationprocess.service._
+import it.pagopa.interop.authorizationprocess.service.SelfcareV2Service
 import it.pagopa.interop.catalogmanagement.model.{CatalogDescriptor, Published, Deprecated => DeprecatedState}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.jwt._
@@ -41,10 +36,6 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   PersistentPurposeVersionState,
   Active => ActiveState
 }
-import it.pagopa.interop.selfcare._
-import it.pagopa.interop.selfcare.partymanagement.client.model.{Problem => _, _}
-import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagementDependency}
-import it.pagopa.interop.selfcare.userregistry.client.model.UserResource
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -53,9 +44,8 @@ final case class ClientApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
   agreementManagementService: AgreementManagementService,
   catalogManagementService: CatalogManagementService,
-  partyManagementService: PartyManagementService,
+  selfcareV2Service: SelfcareV2Service,
   purposeManagementService: PurposeManagementService,
-  userRegistryManagementService: UserRegistryManagementService,
   tenantManagementService: TenantManagementService,
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext, readModel: ReadModelService)
@@ -158,64 +148,54 @@ final case class ClientApiServiceImpl(
       }
     }
 
-  override def clientOperatorRelationshipBinding(clientId: String, relationshipId: String)(implicit
+  override def addUser(clientId: String, userId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerClient: ToEntityMarshaller[Client]
   ): Route = authorize(ADMIN_ROLE) {
-    val operationLabel: String = s"Binding client $clientId with relationship $relationshipId"
+    val operationLabel: String = s"Binding client $clientId with user $userId"
     logger.info(operationLabel)
 
     val result: Future[Client] = for {
-      clientUuid       <- clientId.toFutureUUID
-      relationshipUUID <- relationshipId.toFutureUUID
-      organizationId   <- getOrganizationIdFutureUUID(contexts)
-      client           <- authorizationManagementService
+      clientUuid      <- clientId.toFutureUUID
+      userUUID        <- userId.toFutureUUID
+      requesterOrgId  <- getOrganizationIdFutureUUID(contexts)
+      requesterUserId <- getUidFutureUUID(contexts)
+      selfcareId      <- getSelfcareIdFutureUUID(contexts)
+      client          <- authorizationManagementService
         .getClient(clientUuid)
-        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
-      relationship     <- getSecurityRelationship(relationshipUUID)
-      updatedClient    <- client.relationships
-        .find(_ === relationship.id)
-        .fold(authorizationManagementService.addRelationship(clientUuid, relationship.id)(contexts))(_ =>
-          Future.failed(OperatorRelationshipAlreadyAssigned(client.id, relationship.id))
+        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == requesterOrgId)
+      _               <- assertSecurityUser(selfcareId, requesterUserId, userUUID)
+      updatedClient   <- client.users
+        .find(_ === userUUID)
+        .fold(authorizationManagementService.addUser(clientUuid, userUUID)(contexts))(_ =>
+          Future.failed(UserAlreadyAssigned(client.id, userUUID))
         )
-    } yield updatedClient.toApi(organizationId == updatedClient.consumerId)
+    } yield updatedClient.toApi(requesterOrgId == updatedClient.consumerId)
 
     onComplete(result) {
-      clientOperatorRelationshipBindingResponse[Client](operationLabel)(clientOperatorRelationshipBinding200)
+      addUserResponse[Client](operationLabel)(addUser200)
     }
   }
 
-  override def removeClientOperatorRelationship(clientId: String, relationshipId: String)(implicit
+  override def removeUser(clientId: String, userId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE) {
-    val operationLabel: String = s"Removing binding between $clientId with relationship $relationshipId"
+    val operationLabel: String = s"Removing binding between $clientId with user $userId"
     logger.info(operationLabel)
 
     val result: Future[Unit] = for {
-      userUUID               <- getUidFutureUUID(contexts)
-      clientUUID             <- clientId.toFutureUUID
-      client                 <- authorizationManagementService.getClient(clientUUID)
-      _                      <- assertIsClientConsumer(client).toFuture
-      relationshipUUID       <- relationshipId.toFutureUUID
-      requesterRelationships <- partyManagementService.getRelationshipsByPersonId(userUUID, Seq.empty)
-      _                      <- Future
-        .failed(UserNotAllowedToRemoveOwnRelationship(clientId, relationshipId))
-        .whenA(isNotRemovable(relationshipUUID)(requesterRelationships))
-      _ <- authorizationManagementService.removeClientRelationship(clientUUID, relationshipUUID)(contexts)
+      clientUUID <- clientId.toFutureUUID
+      client     <- authorizationManagementService.getClient(clientUUID)
+      _          <- assertIsClientConsumer(client).toFuture
+      userUUID   <- userId.toFutureUUID
+      _          <- authorizationManagementService.removeUser(clientUUID, userUUID)(contexts)
     } yield ()
 
     onComplete(result) {
-      removeClientOperatorRelationshipResponse[Unit](operationLabel)(_ => removeClientOperatorRelationship204)
+      removeUserResponse[Unit](operationLabel)(_ => removeUser204)
     }
-  }
-
-  private def isNotRemovable(relationshipId: UUID): Relationships => Boolean = relationships => {
-    relationships.items.exists(relationship =>
-      relationship.id == relationshipId &&
-        relationship.product.role != PartyManagementService.PRODUCT_ROLE_ADMIN
-    )
   }
 
   override def getClientKeyById(clientId: String, keyId: String)(implicit
@@ -227,11 +207,12 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Key] = for {
-      clientUuid <- clientId.toFutureUUID
-      client     <- authorizationManagementService.getClient(clientUuid)
-      _          <- assertIsClientConsumer(client).toFuture
-      key        <- authorizationManagementService.getClientKey(clientUuid, keyId)
-    } yield key.toApi
+      clientUuid    <- clientId.toFutureUUID
+      client        <- authorizationManagementService.getClient(clientUuid)
+      _             <- assertIsClientConsumer(client).toFuture
+      persistentKey <- authorizationManagementService.getClientKey(clientUuid, keyId)
+      key           <- persistentKey.toApi.toFuture
+    } yield key
 
     onComplete(result) {
       getClientKeyByIdResponse[Key](operationLabel)(getClientKeyById200)
@@ -271,16 +252,18 @@ final case class ClientApiServiceImpl(
       else Future.unit
 
     val result: Future[Keys] = for {
-      userId         <- getUidFutureUUID(contexts)
-      clientUuid     <- clientId.toFutureUUID
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      client         <- authorizationManagementService
+      clientUuid      <- clientId.toFutureUUID
+      selfcareId      <- getSelfcareIdFutureUUID(contexts)
+      requesterOrgId  <- getOrganizationIdFutureUUID(contexts)
+      requesterUserId <- getUidFutureUUID(contexts)
+      client          <- authorizationManagementService
         .getClient(clientUuid)
-        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
-      keys           <- authorizationManagementService.getClientKeys(clientUuid)
-      _              <- assertKeyIsBelowThreshold(clientUuid, keys.size + keysSeeds.size)
-      relationshipId <- securityOperatorRelationship(client.consumerId, userId).map(_.id)
-      seeds = keysSeeds.map(_.toDependency(relationshipId, dateTimeSupplier.get()))
+        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == requesterOrgId)
+      keys            <- authorizationManagementService.getClientKeys(clientUuid)
+      _               <- assertKeyIsBelowThreshold(clientUuid, keys.size + keysSeeds.size)
+      _               <- client.users.find(_ == requesterUserId).toFuture(UserNotFound(selfcareId, requesterUserId))
+      _               <- assertSecurityUser(selfcareId, requesterOrgId, requesterUserId)
+      seeds = keysSeeds.map(_.toDependency(requesterUserId, dateTimeSupplier.get()))
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
     } yield Keys(keysResponse.keys.map(_.toApi))
 
@@ -289,7 +272,7 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  override def getClientKeys(relationshipIds: String, clientId: String)(implicit
+  override def getClientKeys(userIds: String, clientId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerKeys: ToEntityMarshaller[Keys],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -298,41 +281,41 @@ final case class ClientApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Keys] = for {
-      clientUuid    <- clientId.toFutureUUID
-      relationships <- parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
-      client        <- authorizationManagementService.getClient(clientUuid)
-      _             <- assertIsClientConsumer(client).toFuture
-      clientKeys    <- authorizationManagementService.getClientKeys(clientUuid)
-      operatorKeys =
-        if (relationships.isEmpty) clientKeys
+      clientUuid <- clientId.toFutureUUID
+      users      <- parseArrayParameters(userIds).traverse(_.toFutureUUID)
+      client     <- authorizationManagementService.getClient(clientUuid)
+      _          <- assertIsClientConsumer(client).toFuture
+      clientKeys <- authorizationManagementService.getClientKeys(clientUuid)
+      userKeys =
+        if (users.isEmpty) clientKeys.map(_.toApi)
         else
-          clientKeys.filter(key => relationships.contains(key.relationshipId))
-    } yield Keys(operatorKeys.map(_.toApi))
+          clientKeys.filter(key => key.userId.exists(users.contains)).map(_.toApi)
+      keys <- userKeys.traverse(_.toFuture)
+    } yield Keys(keys = keys)
 
     onComplete(result) {
       getClientKeysResponse[Keys](operationLabel)(getClientKeys200)
     }
   }
 
-  override def getClientOperators(clientId: String)(implicit
+  override def getClientUsers(clientId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerOperatorarray: ToEntityMarshaller[Seq[Operator]],
+    toEntityMarshallerUUIDarray: ToEntityMarshaller[Seq[UUID]],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, SUPPORT_ROLE) {
-    val operationLabel: String = s"Retrieving operators of client $clientId"
+    val operationLabel: String = s"Retrieving users of client $clientId"
     logger.info(operationLabel)
 
-    val result: Future[Seq[Operator]] = for {
+    val result: Future[Seq[UUID]] = for {
       clientUuid     <- clientId.toFutureUUID
-      organizationId <- getOrganizationIdFutureUUID(contexts)
+      requesterOrgId <- getOrganizationIdFutureUUID(contexts)
       client         <- authorizationManagementService
         .getClient(clientUuid)
-        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == organizationId)
-      operators      <- operatorsFromClient(client)
-    } yield operators
+        .ensureOr(client => OrganizationNotAllowedOnClient(clientId, client.consumerId))(_.consumerId == requesterOrgId)
+    } yield client.users.toList
 
     onComplete(result) {
-      getClientOperatorsResponse[Seq[Operator]](operationLabel)(getClientOperators200)
+      getClientUsersResponse[Seq[UUID]](operationLabel)(getClientUsers200)
     }
   }
 
@@ -445,81 +428,20 @@ final case class ClientApiServiceImpl(
     }
   }
 
-  private[this] def getSecurityRelationship(
-    relationshipId: UUID
-  )(implicit contexts: Seq[(String, String)]): Future[partymanagement.client.model.Relationship] = {
-
-    def isActiveSecurityOperatorRelationship(relationship: Relationship): Future[Boolean] = {
-
-      val isValidProductRole: Boolean =
-        Set(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
-          .contains(relationship.product.role)
-
-      val isActive: Boolean = relationship.state == PartyManagementDependency.RelationshipState.ACTIVE
-
-      val condition: Boolean = isValidProductRole && isActive
-
-      if (condition) Future.successful(true)
-      else Future.failed(SecurityOperatorRelationshipNotActive(relationshipId))
-    }
-
-    for {
-      relationship <- partyManagementService.getRelationshipById(relationshipId)
-      _            <- isActiveSecurityOperatorRelationship(relationship)
-    } yield relationship
-  }
-
-  private[this] def securityOperatorRelationship(
-    requesterId: UUID,
+  private[this] def assertSecurityUser(
+    selfcareId: UUID,
+    requesterUserId: UUID,
     userId: UUID,
-    roles: Seq[String] =
-      Seq(PartyManagementService.PRODUCT_ROLE_SECURITY_OPERATOR, PartyManagementService.PRODUCT_ROLE_ADMIN)
-  )(implicit contexts: Seq[(String, String)]): Future[PartyManagementDependency.Relationship] = for {
-    selfcareId <- tenantManagementService.getTenantById(requesterId).flatMap(_.selfcareId.toFuture(MissingSelfcareId))
-    relationships <- partyManagementService
-      .getRelationships(selfcareId, userId, roles)
-    activeRelationShips = relationships.items.toList.filter(
-      _.state == PartyManagementDependency.RelationshipState.ACTIVE
-    )
-    relationShip <- activeRelationShips.headOption.toFuture(SecurityOperatorRelationshipNotFound(requesterId, userId))
-  } yield relationShip
-
-  private[this] def operatorsFromClient(client: PersistentClient)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Seq[Operator]] = Future.traverse(client.relationships.toList)(operatorFromRelationship)
-
-  private[this] def operatorFromRelationship(
-    relationshipId: UUID
-  )(implicit contexts: Seq[(String, String)]): Future[Operator] =
-    for {
-      relationship <- partyManagementService.getRelationshipById(relationshipId)
-      user         <- userRegistryManagementService.getUserById(relationship.from)
-      userInfo     <- extractUserInfo(user)
-      (name, familyName, taxCode) = userInfo
-      operatorState <- relationshipStateToApi(relationship.state).toFuture
-    } yield Operator(
-      relationshipId = relationship.id,
-      taxCode = taxCode,
-      name = name,
-      familyName = familyName,
-      role = relationshipRoleToApi(relationship.role),
-      product = relationshipProductToApi(relationship.product),
-      state = operatorState
-    )
-
-  def extractUserInfo(user: UserResource): Future[(String, String, String)] = {
-    val userInfo = for {
-      name       <- user.name
-      familyName <- user.familyName
-      fiscalCode <- user.fiscalCode
-    } yield (name.value, familyName.value, fiscalCode)
-
-    userInfo.toFuture(MissingUserInfo(user.id))
-  }
+    roles: Seq[String] = Seq(SECURITY_ROLE, ADMIN_ROLE)
+  )(implicit contexts: Seq[(String, String)]): Future[Unit] = for {
+    users <- selfcareV2Service
+      .getInstitutionProductUsers(selfcareId, requesterUserId, userId.some, roles)
+    _     <- users.headOption.toFuture(SecurityUserNotFound(requesterUserId, userId))
+  } yield ()
 
   override def getClients(
     name: Option[String],
-    relationshipIds: String,
+    userIds: String,
     consumerId: String,
     purposeId: Option[String],
     kind: Option[String],
@@ -531,48 +453,41 @@ final case class ClientApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
     val operationLabel =
-      s"Retrieving clients by name $name , relationship $relationshipIds"
+      s"Retrieving clients by name $name , userIds $userIds"
     logger.info(operationLabel)
 
     val result: Future[Clients] = for {
-      requesterUuid <- getOrganizationIdFutureUUID(contexts)
-      userUuid      <- getUidFutureUUID(contexts)
-      consumerUuid  <- consumerId.toFutureUUID
-      purposeUUid   <- purposeId.traverse(_.toFutureUUID)
-      roles         <- getUserRolesFuture(contexts)
-      relationships <- checkAuthorizationForRoles(roles, relationshipIds, requesterUuid, userUuid)(contexts)
-      clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
-      clients       <- authorizationManagementService.getClients(
+      requesterOrgId  <- getOrganizationIdFutureUUID(contexts)
+      requesterUserId <- getUidFutureUUID(contexts)
+      consumerUuid    <- consumerId.toFutureUUID
+      purposeUUid     <- purposeId.traverse(_.toFutureUUID)
+      roles           <- getUserRolesFuture(contexts)
+      users           <- checkAuthorizationForRoles(roles, userIds, requesterUserId)
+      clientKind      <- kind.traverse(ClientKind.fromValue).toFuture
+      clients         <- authorizationManagementService.getClients(
         name,
-        relationships,
+        users,
         consumerUuid,
         purposeUUid,
         clientKind.map(_.toProcess),
         offset,
         limit
       )
-      apiClients = clients.results.map(_.toApi(requesterUuid == consumerUuid))
+      apiClients = clients.results.map(_.toApi(requesterOrgId == consumerUuid))
     } yield Clients(results = apiClients, totalCount = clients.totalCount)
 
     onComplete(result) { getClientsResponse[Clients](operationLabel)(getClients200) }
 
   }
 
-  private def checkAuthorizationForRoles(roles: String, relationshipIds: String, requesterId: UUID, userId: UUID)(
-    implicit contexts: Seq[(String, String)]
-  ): Future[List[UUID]] = {
-    if (roles.contains(SECURITY_ROLE)) getRelationship(userId, requesterId, Seq(SECURITY_ROLE)).map(List[UUID](_))
-    else parseArrayParameters(relationshipIds).traverse(_.toFutureUUID)
+  private def checkAuthorizationForRoles(roles: String, userIds: String, requesterUserId: UUID): Future[List[UUID]] = {
+    if (roles.contains(SECURITY_ROLE)) Future.successful(requesterUserId :: Nil)
+    else parseArrayParameters(userIds).traverse(_.toFutureUUID)
   }
-
-  private def getRelationship(userId: UUID, requesterId: UUID, roles: Seq[String])(implicit
-    contexts: Seq[(String, String)]
-  ): Future[UUID] =
-    securityOperatorRelationship(requesterId, userId, roles).map(_.id)
 
   override def getClientsWithKeys(
     name: Option[String],
-    relationshipIds: String,
+    userIds: String,
     consumerId: String,
     purposeId: Option[String],
     kind: Option[String],
@@ -585,28 +500,29 @@ final case class ClientApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
 
     val operationLabel =
-      s"Retrieving clients with keys by name $name , relationship $relationshipIds"
+      s"Retrieving clients with keys by name $name , users $userIds"
     logger.info(operationLabel)
 
     val result: Future[ClientsWithKeys] = for {
-      requesterUuid <- getOrganizationIdFutureUUID(contexts)
-      userUuid      <- getUidFutureUUID(contexts)
-      consumerUuid  <- consumerId.toFutureUUID
-      purposeUUid   <- purposeId.traverse(_.toFutureUUID)
-      roles         <- getUserRolesFuture(contexts)
-      relationships <- checkAuthorizationForRoles(roles, relationshipIds, requesterUuid, userUuid)(contexts)
-      clientKind    <- kind.traverse(ClientKind.fromValue).toFuture
-      clientsKeys   <- authorizationManagementService.getClientsWithKeys(
+      requesterOrgId  <- getOrganizationIdFutureUUID(contexts)
+      requesterUserId <- getUidFutureUUID(contexts)
+      consumerUuid    <- consumerId.toFutureUUID
+      purposeUUid     <- purposeId.traverse(_.toFutureUUID)
+      roles           <- getUserRolesFuture(contexts)
+      users           <- checkAuthorizationForRoles(roles, userIds, requesterUserId)
+      clientKind      <- kind.traverse(ClientKind.fromValue).toFuture
+      clientsKeys     <- authorizationManagementService.getClientsWithKeys(
         name,
-        relationships,
+        users,
         consumerUuid,
         purposeUUid,
         clientKind.map(_.toProcess),
         offset,
         limit
       )
-      apiClientsKeys = clientsKeys.results.map(_.toApi(requesterUuid == consumerUuid))
-    } yield ClientsWithKeys(results = apiClientsKeys, totalCount = clientsKeys.totalCount)
+      apiClientsKeys = clientsKeys.results.map(_.toApi(requesterOrgId == consumerUuid))
+      keys <- apiClientsKeys.traverse(_.toFuture)
+    } yield ClientsWithKeys(results = keys, totalCount = clientsKeys.totalCount)
 
     onComplete(result) { getClientsWithKeysResponse[ClientsWithKeys](operationLabel)(getClientsWithKeys200) }
 

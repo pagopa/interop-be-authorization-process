@@ -29,7 +29,7 @@ final case class AuthorizationManagementServiceImpl(
 )(implicit ec: ExecutionContext)
     extends AuthorizationManagementService {
 
-  implicit val logger: LoggerTakingImplicit[ContextFieldsToLog]                                               =
+  implicit val logger: LoggerTakingImplicit[ContextFieldsToLog]                                                 =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
   override def createClient(
     consumerId: UUID,
@@ -37,7 +37,7 @@ final case class AuthorizationManagementServiceImpl(
     description: Option[String],
     kind: ClientKind,
     createdAt: OffsetDateTime,
-    members: Seq[UUID]
+    users: Seq[UUID]
   )(implicit contexts: Seq[(String, String)]): Future[Client] = withHeaders[Client] { (bearerToken, correlationId) =>
     val request: ApiRequest[Client] = clientApi.createClient(
       xCorrelationId = correlationId,
@@ -47,7 +47,7 @@ final case class AuthorizationManagementServiceImpl(
         description = description,
         kind = kind,
         createdAt = createdAt,
-        members = members
+        users = users
       )
     )(BearerToken(bearerToken))
     invoker.invoke(request, "Client creation")
@@ -56,7 +56,7 @@ final case class AuthorizationManagementServiceImpl(
     clientId: UUID
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentClient] =
     ReadModelAuthorizationQueries.getClientById(clientId).flatMap(_.toFuture(ClientNotFound(clientId)))
-  override def deleteClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit]           =
+  override def deleteClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit]             =
     withHeaders[Unit] { (bearerToken, correlationId) =>
       val request: ApiRequest[Unit] =
         clientApi.deleteClient(xCorrelationId = correlationId, clientId.toString)(BearerToken(bearerToken))
@@ -66,28 +66,22 @@ final case class AuthorizationManagementServiceImpl(
           case err: ApiError[_] if err.code == 404 => Future.failed(ClientNotFound(clientId))
         }
     }
-  override def addRelationship(clientId: UUID, relationshipId: UUID)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Client] = withHeaders[Client] { (bearerToken, correlationId) =>
-    val request: ApiRequest[Client] =
-      clientApi.addRelationship(xCorrelationId = correlationId, clientId, PartyRelationshipSeed(relationshipId))(
-        BearerToken(bearerToken)
-      )
-    invoker.invoke(request, "Operator addition to client")
-  }
-  override def removeClientRelationship(clientId: UUID, relationshipId: UUID)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Unit] = withHeaders[Unit] { (bearerToken, correlationId) =>
-    val request: ApiRequest[Unit] =
-      clientApi.removeClientRelationship(xCorrelationId = correlationId, clientId, relationshipId)(
-        BearerToken(bearerToken)
-      )
-    invoker
-      .invoke(request, "Operator removal from client")
-      .recoverWith {
-        case err: ApiError[_] if err.code == 404 => Future.failed(ClientRelationshipNotFound(clientId, relationshipId))
-      }
-  }
+  override def addUser(clientId: UUID, userId: UUID)(implicit contexts: Seq[(String, String)]): Future[Client]  =
+    withHeaders[Client] { (bearerToken, correlationId) =>
+      val request: ApiRequest[Client] =
+        clientApi.addUser(xCorrelationId = correlationId, clientId, UserSeed(userId))(BearerToken(bearerToken))
+      invoker.invoke(request, "User addition to client")
+    }
+  override def removeUser(clientId: UUID, userId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] =
+    withHeaders[Unit] { (bearerToken, correlationId) =>
+      val request: ApiRequest[Unit] =
+        clientApi.removeClientUser(xCorrelationId = correlationId, clientId, userId)(BearerToken(bearerToken))
+      invoker
+        .invoke(request, "User removal from client")
+        .recoverWith {
+          case err: ApiError[_] if err.code == 404 => Future.failed(ClientUserNotFound(clientId, userId))
+        }
+    }
   override def getClientKey(clientId: UUID, kid: String)(implicit
     ec: ExecutionContext,
     readModel: ReadModelService
@@ -97,7 +91,7 @@ final case class AuthorizationManagementServiceImpl(
       .flatMap(_.map(_.keys).toFuture(ClientKeyNotFound(clientId, kid)))
     key  <- keys.find(_.kid == kid).toFuture(ClientKeyNotFound(clientId, kid))
   } yield key
-  override def deleteKey(clientId: UUID, kid: String)(implicit contexts: Seq[(String, String)]): Future[Unit] =
+  override def deleteKey(clientId: UUID, kid: String)(implicit contexts: Seq[(String, String)]): Future[Unit]   =
     withHeaders[Unit] { (bearerToken, correlationId) =>
       val request: ApiRequest[Unit] =
         keyApi.deleteClientKeyById(xCorrelationId = correlationId, clientId, kid)(BearerToken(bearerToken))
@@ -154,23 +148,23 @@ final case class AuthorizationManagementServiceImpl(
 
   override def getClientsWithKeys(
     name: Option[String],
-    relationshipIds: List[UUID],
+    userIds: List[UUID],
     consumerId: UUID,
     purposeId: Option[UUID],
     kind: Option[PersistentClientKind],
     offset: Int,
     limit: Int
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[ReadModelClientWithKeys]] =
-    ReadModelAuthorizationQueries.getClientsWithKeys(name, relationshipIds, consumerId, purposeId, kind, offset, limit)
+    ReadModelAuthorizationQueries.getClientsWithKeys(name, userIds, consumerId, purposeId, kind, offset, limit)
 
   override def getClients(
     name: Option[String],
-    relationshipIds: List[UUID],
+    userIds: List[UUID],
     consumerId: UUID,
     purposeId: Option[UUID],
     kind: Option[PersistentClientKind],
     offset: Int,
     limit: Int
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[PersistentClient]] =
-    ReadModelAuthorizationQueries.getClients(name, relationshipIds, consumerId, purposeId, kind, offset, limit)
+    ReadModelAuthorizationQueries.getClients(name, userIds, consumerId, purposeId, kind, offset, limit)
 }

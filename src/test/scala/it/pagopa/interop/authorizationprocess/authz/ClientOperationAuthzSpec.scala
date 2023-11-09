@@ -21,9 +21,8 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
   val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeCatalogManagementService: CatalogManagementService             = new FakeCatalogManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
-  val fakePartyManagementService: PartyManagementService                 = new FakePartyManagementService()
+  val fakeSelfcareV2Service: SelfcareV2Service                           = new FakeSelfcareV2Service()
   val fakePurposeManagementService: PurposeManagementService             = new FakePurposeManagementService()
-  val fakeUserRegistryManagementService: UserRegistryManagementService   = new FakeUserRegistryManagementService()
   val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
   val fakeDateTimeSupplier: OffsetDateTimeSupplier                       = () => OffsetDateTime.now(ZoneOffset.UTC)
   implicit val fakeReadModel: ReadModelService                           = new MongoDbReadModelService(
@@ -37,9 +36,8 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
     fakeAuthorizationManagementService,
     fakeAgreementManagementService,
     fakeCatalogManagementService,
-    fakePartyManagementService,
+    fakeSelfcareV2Service,
     fakePurposeManagementService,
-    fakeUserRegistryManagementService,
     fakeTenantManagementService,
     fakeDateTimeSupplier
   )(ExecutionContext.global, fakeReadModel)
@@ -70,7 +68,7 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
       validateAuthorization(
         endpoint,
         { implicit c: Seq[(String, String)] =>
-          service.getClients(Some("name"), "relationshipIds", "consumerId", Some("purposeId"), None, 0, 0)
+          service.getClients(Some("name"), "userIds", "consumerId", Some("purposeId"), None, 0, 0)
         }
       )
     }
@@ -80,24 +78,18 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
       validateAuthorization(
         endpoint,
         { implicit c: Seq[(String, String)] =>
-          service.getClientsWithKeys(Some("name"), "relationshipIds", "consumerId", Some("purposeId"), None, 0, 0)
+          service.getClientsWithKeys(Some("name"), "userIds", "consumerId", Some("purposeId"), None, 0, 0)
         }
       )
     }
 
-    "accept authorized roles for clientOperatorRelationshipBinding" in {
-      val endpoint = AuthorizedRoutes.endpoints("clientOperatorRelationshipBinding")
-      validateAuthorization(
-        endpoint,
-        { implicit c: Seq[(String, String)] => service.clientOperatorRelationshipBinding("yada", "yada") }
-      )
+    "accept authorized roles for addUser" in {
+      val endpoint = AuthorizedRoutes.endpoints("addUser")
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.addUser("yada", "yada") })
     }
-    "accept authorized roles for removeClientOperatorRelationship" in {
-      val endpoint = AuthorizedRoutes.endpoints("removeClientOperatorRelationship")
-      validateAuthorization(
-        endpoint,
-        { implicit c: Seq[(String, String)] => service.removeClientOperatorRelationship("yada", "yada") }
-      )
+    "accept authorized roles for removeUser" in {
+      val endpoint = AuthorizedRoutes.endpoints("removeUser")
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.removeUser("yada", "yada") })
     }
     "accept authorized roles for getClientKeyById" in {
       val endpoint = AuthorizedRoutes.endpoints("getClientKeyById")
@@ -119,9 +111,9 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
       val endpoint = AuthorizedRoutes.endpoints("getClientKeys")
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClientKeys("yada", "yada") })
     }
-    "accept authorized roles for getClientOperators" in {
-      val endpoint = AuthorizedRoutes.endpoints("getClientOperators")
-      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClientOperators("yada") })
+    "accept authorized roles for getClientUsers" in {
+      val endpoint = AuthorizedRoutes.endpoints("getClientUsers")
+      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getClientUsers("yada") })
     }
     "accept authorized roles for addClientPurpose" in {
       val endpoint = AuthorizedRoutes.endpoints("addClientPurpose")

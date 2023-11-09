@@ -1,7 +1,7 @@
 package it.pagopa.interop.authorizationprocess.authz
 
-import it.pagopa.interop.authorizationprocess.api.impl.OperatorApiMarshallerImpl._
-import it.pagopa.interop.authorizationprocess.api.impl.OperatorApiServiceImpl
+import it.pagopa.interop.authorizationprocess.api.impl.UserApiMarshallerImpl._
+import it.pagopa.interop.authorizationprocess.api.impl.UserApiServiceImpl
 import it.pagopa.interop.authorizationprocess.service._
 import it.pagopa.interop.authorizationprocess.util.FakeDependencies._
 import it.pagopa.interop.authorizationprocess.util.{AuthorizedRoutes, AuthzScalatestRouteTest}
@@ -12,14 +12,13 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.ExecutionContext
 
-class OperatorApiAuthzSpec extends AnyWordSpecLike with MockFactory with AuthzScalatestRouteTest {
+class UserApiAuthzSpec extends AnyWordSpecLike with MockFactory with AuthzScalatestRouteTest {
 
   val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeCatalogManagementService: CatalogManagementService             = new FakeCatalogManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
-  val fakePartyManagementService: PartyManagementService                 = new FakePartyManagementService()
+  val fakeSelfcareV2Service: SelfcareV2Service                           = new FakeSelfcareV2Service()
   val fakePurposeManagementService: PurposeManagementService             = new FakePurposeManagementService()
-  val fakeUserRegistryManagementService: UserRegistryManagementService   = new FakeUserRegistryManagementService()
   implicit val fakeReadModel: ReadModelService                           = new MongoDbReadModelService(
     ReadModelConfig(
       "mongodb://localhost/?socketTimeoutMS=1&serverSelectionTimeoutMS=1&connectTimeoutMS=1&&autoReconnect=false&keepAlive=false",
@@ -27,18 +26,18 @@ class OperatorApiAuthzSpec extends AnyWordSpecLike with MockFactory with AuthzSc
     )
   )
 
-  val service: OperatorApiServiceImpl =
-    OperatorApiServiceImpl(fakeAuthorizationManagementService, fakePartyManagementService)(
+  val service: UserApiServiceImpl =
+    UserApiServiceImpl(fakeAuthorizationManagementService, fakeSelfcareV2Service)(
       ExecutionContext.global,
       fakeReadModel
     )
 
-  "Operator api authorization spec" should {
-    "accept authorized roles for getClientOperatorKeys" in {
-      val endpoint = AuthorizedRoutes.endpoints("getClientOperatorKeys")
+  "User api authorization spec" should {
+    "accept authorized roles for getClientUserKeys" in {
+      val endpoint = AuthorizedRoutes.endpoints("getClientUserKeys")
       validateAuthorization(
         endpoint,
-        { implicit c: Seq[(String, String)] => service.getClientOperatorKeys("test", "test") }
+        { implicit c: Seq[(String, String)] => service.getClientUserKeys("test", "test") }
       )
     }
   }

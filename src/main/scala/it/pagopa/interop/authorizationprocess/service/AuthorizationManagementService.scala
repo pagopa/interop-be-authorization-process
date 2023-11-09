@@ -19,20 +19,16 @@ trait AuthorizationManagementService {
     description: Option[String],
     kind: ClientKind,
     createdAt: OffsetDateTime,
-    members: Seq[UUID]
+    users: Seq[UUID]
   )(implicit contexts: Seq[(String, String)]): Future[ManagementClient]
 
   def getClient(clientId: UUID)(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentClient]
 
   def deleteClient(clientId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit]
 
-  def addRelationship(clientId: UUID, relationshipId: UUID)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[ManagementClient]
+  def addUser(clientId: UUID, userId: UUID)(implicit contexts: Seq[(String, String)]): Future[ManagementClient]
 
-  def removeClientRelationship(clientId: UUID, relationshipId: UUID)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Unit]
+  def removeUser(clientId: UUID, userId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit]
 
   def getClientKey(clientId: UUID, kid: String)(implicit
     ec: ExecutionContext,
@@ -59,7 +55,7 @@ trait AuthorizationManagementService {
 
   def getClientsWithKeys(
     name: Option[String],
-    relationshipIds: List[UUID],
+    userIds: List[UUID],
     consumerId: UUID,
     purposeId: Option[UUID],
     kind: Option[PersistentClientKind],
@@ -69,7 +65,7 @@ trait AuthorizationManagementService {
 
   def getClients(
     name: Option[String],
-    relationshipIds: List[UUID],
+    userIds: List[UUID],
     consumerId: UUID,
     purposeId: Option[UUID],
     kind: Option[PersistentClientKind],

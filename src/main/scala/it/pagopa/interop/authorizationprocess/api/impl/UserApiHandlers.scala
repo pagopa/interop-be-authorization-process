@@ -9,9 +9,9 @@ import it.pagopa.interop.commons.utils.errors.AkkaResponses
 import scala.util.{Failure, Success, Try}
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.OrganizationNotAllowedOnClient
 
-object OperatorApiHandlers extends AkkaResponses {
+object UserApiHandlers extends AkkaResponses {
 
-  def getClientOperatorKeysResponse[T](logMessage: String)(
+  def getClientUserKeysResponse[T](logMessage: String)(
     success: T => Route
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
     result match {

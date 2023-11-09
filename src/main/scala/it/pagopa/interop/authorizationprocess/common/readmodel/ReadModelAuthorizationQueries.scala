@@ -45,7 +45,7 @@ object ReadModelAuthorizationQueries extends ReadModelQuery {
 
   def getClients(
     name: Option[String],
-    relationshipIds: List[UUID],
+    userIds: List[UUID],
     consumerId: UUID,
     purposeId: Option[UUID],
     kind: Option[PersistentClientKind],
@@ -54,7 +54,7 @@ object ReadModelAuthorizationQueries extends ReadModelQuery {
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[PersistentClient]] =
     listGenericClients[PersistentClient](
       name = name,
-      relationshipIds = relationshipIds,
+      userIds = userIds,
       consumerId = consumerId,
       purposeId = purposeId,
       kind = kind,
@@ -64,7 +64,7 @@ object ReadModelAuthorizationQueries extends ReadModelQuery {
 
   def getClientsWithKeys(
     name: Option[String],
-    relationshipIds: List[UUID],
+    userIds: List[UUID],
     consumerId: UUID,
     purposeId: Option[UUID],
     kind: Option[PersistentClientKind],
@@ -73,7 +73,7 @@ object ReadModelAuthorizationQueries extends ReadModelQuery {
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[ReadModelClientWithKeys]] =
     listGenericClients[ReadModelClientWithKeys](
       name = name,
-      relationshipIds = relationshipIds,
+      userIds = userIds,
       consumerId = consumerId,
       purposeId = purposeId,
       kind = kind,
@@ -83,7 +83,7 @@ object ReadModelAuthorizationQueries extends ReadModelQuery {
 
   private def listGenericClients[A: JsonReader](
     name: Option[String],
-    relationshipIds: List[UUID],
+    userIds: List[UUID],
     consumerId: UUID,
     purposeId: Option[UUID],
     kind: Option[PersistentClientKind],
@@ -92,7 +92,7 @@ object ReadModelAuthorizationQueries extends ReadModelQuery {
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[A]] = {
 
     val query: Bson =
-      listClientsFilters(name, relationshipIds.map(_.toString), consumerId.toString, purposeId.map(_.toString), kind)
+      listClientsFilters(name, userIds.map(_.toString), consumerId.toString, purposeId.map(_.toString), kind)
 
     val filterPipeline: Seq[Bson] = Seq(`match`(query))
 
@@ -118,20 +118,20 @@ object ReadModelAuthorizationQueries extends ReadModelQuery {
 
   private def listClientsFilters(
     name: Option[String],
-    relationshipIds: List[String],
+    userIds: List[String],
     consumerId: String,
     purposeId: Option[String],
     kind: Option[PersistentClientKind]
   ): Bson = {
-    val relationshipIdsFilter = mapToVarArgs(relationshipIds.map(Filters.eq("data.relationships", _)))(Filters.or)
-    val nameFilter            = name.map(Filters.regex("data.name", _, "i"))
-    val kindFilter            = kind.map(k => Filters.eq("data.kind", k.toString))
+    val userIdsFilter = mapToVarArgs(userIds.map(Filters.eq("data.users", _)))(Filters.or)
+    val nameFilter    = name.map(Filters.regex("data.name", _, "i"))
+    val kindFilter    = kind.map(k => Filters.eq("data.kind", k.toString))
 
     val consumerFilter = Filters.eq("data.consumerId", consumerId)
     val purposeFilter  = purposeId.map(Filters.eq("data.purposes.purpose.purposeId", _))
 
     mapToVarArgs(
-      relationshipIdsFilter.toList ++ nameFilter.toList ++ kindFilter.toList ++ purposeFilter.toList :+ consumerFilter
+      userIdsFilter.toList ++ nameFilter.toList ++ kindFilter.toList ++ purposeFilter.toList :+ consumerFilter
     )(Filters.and).getOrElse(Filters.empty())
   }
 

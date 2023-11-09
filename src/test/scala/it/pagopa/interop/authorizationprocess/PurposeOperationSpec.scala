@@ -24,9 +24,8 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
     mockAuthorizationManagementService,
     mockAgreementManagementService,
     mockCatalogManagementService,
-    mockPartyManagementService,
+    mockSelfcareV2Service,
     mockPurposeManagementService,
-    mockUserRegistryManagementService,
     mockTenantManagementService,
     mockDateTimeSupplier
   )(ExecutionContext.global, mockReadModel)
@@ -107,6 +106,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
       Get() ~> service.addClientPurpose(persistentClient.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
         status shouldEqual StatusCodes.Forbidden
+        responseAs[Problem].errors.head.code shouldEqual "007-0008"
       }
     }
 
@@ -131,6 +131,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
       Get() ~> service.addClientPurpose(persistentClient.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
         status shouldEqual StatusCodes.Forbidden
+        responseAs[Problem].errors.head.code shouldEqual "007-0016"
       }
     }
 
@@ -186,6 +187,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
       Get() ~> service.addClientPurpose(persistentClient.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
         status shouldEqual StatusCodes.NotFound
+        responseAs[Problem].errors.head.code shouldEqual "007-0014"
       }
     }
 
@@ -264,6 +266,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
       Post() ~> service.addClientPurpose(persistentClient.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
         status shouldEqual StatusCodes.BadRequest
+        responseAs[Problem].errors.head.code shouldEqual "007-0015"
       }
     }
   }

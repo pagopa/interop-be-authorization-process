@@ -3,15 +3,12 @@ package it.pagopa.interop.authorizationprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement
-import it.pagopa.interop.authorizationmanagement.client.api.{ClientApi, KeyApi, PurposeApi}
 import it.pagopa.interop.authorizationmanagement.model.client.{Api, PersistentClient, PersistentClientKind}
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.ClientNotFound
 import it.pagopa.interop.authorizationprocess.model._
-import it.pagopa.interop.authorizationprocess.service.AuthorizationManagementInvoker
-import it.pagopa.interop.authorizationprocess.service.impl.AuthorizationManagementServiceImpl
 import it.pagopa.interop.authorizationprocess.util.SpecUtilsWithImplicit
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.utils.USER_ROLES
@@ -31,9 +28,8 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     mockAuthorizationManagementService,
     mockAgreementManagementService,
     mockCatalogManagementService,
-    mockPartyManagementService,
+    mockSelfcareV2Service,
     mockPurposeManagementService,
-    mockUserRegistryManagementService,
     mockTenantManagementService,
     mockDateTimeSupplier
   )(ExecutionContext.global, mockReadModel)
@@ -69,7 +65,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         consumerId = consumerId,
         name = client.name,
         purposes = Seq(clientPurposeProcess),
-        relationshipsIds = Set.empty,
+        users = Set.empty,
         description = client.description,
         kind = ClientKind.CONSUMER,
         createdAt = timestamp
@@ -83,23 +79,9 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
     "fail if missing authorization header" in {
       implicit val contexts: Seq[(String, String)] = Seq.empty[(String, String)]
-      val service: ClientApiServiceImpl            = ClientApiServiceImpl(
-        AuthorizationManagementServiceImpl(
-          AuthorizationManagementInvoker(ExecutionContext.global),
-          ClientApi(),
-          KeyApi(),
-          PurposeApi()
-        ),
-        mockAgreementManagementService,
-        mockCatalogManagementService,
-        mockPartyManagementService,
-        mockPurposeManagementService,
-        mockUserRegistryManagementService,
-        mockTenantManagementService,
-        mockDateTimeSupplier
-      )(ExecutionContext.global, mockReadModel)
       Get() ~> service.createConsumerClient(clientSeed) ~> check {
         status shouldEqual StatusCodes.Forbidden
+        responseAs[Problem].errors.head.code shouldEqual "007-9989"
       }
     }
   }
@@ -119,7 +101,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           name = persistentClient.name,
           purposes = Seq(clientPurposeProcess),
           description = persistentClient.description,
-          relationshipsIds = Set.empty,
+          users = Set.empty,
           kind = ClientKind.CONSUMER,
           createdAt = timestamp
         )
@@ -132,12 +114,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
     "succeed in case of requester is not the producer" in {
       implicit val contexts: Seq[(String, String)] =
-        Seq(
-          "bearer"         -> bearerToken,
-          "uid"            -> personId.toString,
-          USER_ROLES       -> "admin",
-          "organizationId" -> UUID.randomUUID().toString
-        )
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", "organizationId" -> UUID.randomUUID().toString)
       val anotherConsumerId                        = UUID.randomUUID()
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -152,7 +129,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           name = persistentClient.name,
           purposes = Seq(clientPurposeProcess),
           description = persistentClient.description,
-          relationshipsIds = Set.empty,
+          users = Set.empty,
           kind = ClientKind.CONSUMER,
           createdAt = timestamp
         )
@@ -172,20 +149,22 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       Get() ~> service.getClient(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
+        responseAs[Problem].errors.head.code shouldEqual "007-0010"
       }
     }
   }
 
   "Client list" should {
     "succeed with ADMIN role" in {
-      val consumerId = UUID.randomUUID()
-      val client     = PersistentClient(
+
+      val client = PersistentClient(
         id = UUID.randomUUID(),
         consumerId = consumerId,
         name = "name",
         purposes = Seq.empty,
         description = None,
         relationships = Set.empty,
+        users = Set.empty,
         kind = Api,
         createdAt = timestamp
       )
@@ -223,14 +202,15 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     }
     "succeed with SECURITY role" in {
 
-      val consumerId = UUID.randomUUID()
+      val securityRole = "security"
 
       implicit val contexts: Seq[(String, String)] =
         Seq(
           "bearer"         -> bearerToken,
+          USER_ROLES       -> securityRole,
+          "organizationId" -> consumerId.toString,
           "uid"            -> personId.toString,
-          USER_ROLES       -> "security",
-          "organizationId" -> consumerId.toString
+          "selfcareId"     -> selfcareId.toString
         )
 
       val client = PersistentClient(
@@ -240,6 +220,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         purposes = Seq.empty,
         description = None,
         relationships = Set.empty,
+        users = Set.empty,
         kind = Api,
         createdAt = timestamp
       )
@@ -248,18 +229,6 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       val offset: Int = 0
       val limit: Int  = 50
-
-      (mockTenantManagementService
-        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(consumer))
-
-      (mockPartyManagementService
-        .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
-        .expects(consumer.selfcareId.get, *, *, *, *)
-        .once()
-        .returns(Future.successful(relationships))
 
       (mockAuthorizationManagementService
         .getClients(
@@ -287,12 +256,37 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         status shouldEqual StatusCodes.OK
       }
     }
+    "fail with SECURITY role and Institution Not Found" in {
+      val securityRole = "security"
+
+      implicit val contexts: Seq[(String, String)] =
+        Seq(
+          "bearer"         -> bearerToken,
+          USER_ROLES       -> securityRole,
+          "organizationId" -> consumerId.toString,
+          "uid"            -> personId.toString,
+          "selfcareId"     -> selfcareId.toString
+        )
+
+      val offset: Int = 0
+      val limit: Int  = 50
+
+      Get() ~> service.getClients(
+        Option("name"),
+        UUID.randomUUID().toString,
+        consumerId.toString,
+        Some(UUID.randomUUID().toString),
+        None,
+        offset,
+        limit
+      ) ~> check {
+        status shouldEqual StatusCodes.InternalServerError
+        responseAs[Problem].errors.head.code shouldEqual "007-9991"
+      }
+    }
   }
   "Client Keys list" should {
     "succeed with ADMIN role" in {
-      val consumerId     = UUID.randomUUID()
-      val clientId       = UUID.randomUUID()
-      val relationshipId = UUID.randomUUID()
 
       val offset: Int = 0
       val limit: Int  = 50
@@ -305,7 +299,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           name = "name",
           purposes = Seq.empty,
           description = None,
-          relationships = Set(relationshipId),
+          users = Set(userId),
           kind = Api,
           keys = Seq.empty
         )
@@ -326,7 +320,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       Get() ~> service.getClientsWithKeys(
         Option("name"),
-        relationshipId.toString,
+        userId.toString,
         consumerId.toString,
         None,
         None,
@@ -337,18 +331,16 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
       }
     }
     "succeed with SECURITY role" in {
-      val consumerId = UUID.randomUUID()
+      val securityRole = "security"
 
       implicit val contexts: Seq[(String, String)] =
         Seq(
           "bearer"         -> bearerToken,
+          USER_ROLES       -> securityRole,
+          "organizationId" -> consumerId.toString,
           "uid"            -> personId.toString,
-          USER_ROLES       -> "security",
-          "organizationId" -> consumerId.toString
+          "selfcareId"     -> selfcareId.toString
         )
-
-      val clientId       = UUID.randomUUID()
-      val relationshipId = UUID.randomUUID()
 
       val offset: Int                        = 0
       val limit: Int                         = 50
@@ -360,23 +352,11 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
           name = "name",
           purposes = Seq.empty,
           description = None,
-          relationships = Set(relationshipId),
+          users = Set(userId),
           kind = Api,
           keys = Seq.empty
         )
       )
-
-      (mockTenantManagementService
-        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(*, *, *)
-        .once()
-        .returns(Future.successful(consumer))
-
-      (mockPartyManagementService
-        .getRelationships(_: String, _: UUID, _: Seq[String])(_: Seq[(String, String)], _: ExecutionContext))
-        .expects(consumer.selfcareId.get, *, *, *, *)
-        .once()
-        .returns(Future.successful(relationships))
 
       (mockAuthorizationManagementService
         .getClientsWithKeys(
@@ -394,7 +374,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       Get() ~> service.getClientsWithKeys(
         Option("name"),
-        relationshipId.toString,
+        userId.toString,
         consumerId.toString,
         None,
         None,
@@ -402,6 +382,34 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
         limit
       ) ~> check {
         status shouldEqual StatusCodes.OK
+      }
+    }
+    "fail with SECURITY role" in {
+      val securityRole = "security"
+
+      implicit val contexts: Seq[(String, String)] =
+        Seq(
+          "bearer"         -> bearerToken,
+          USER_ROLES       -> securityRole,
+          "organizationId" -> consumerId.toString,
+          "uid"            -> personId.toString,
+          "selfcareId"     -> selfcareId.toString
+        )
+
+      val offset: Int = 0
+      val limit: Int  = 50
+
+      Get() ~> service.getClientsWithKeys(
+        Option("name"),
+        userId.toString,
+        consumerId.toString,
+        None,
+        None,
+        offset,
+        limit
+      ) ~> check {
+        status shouldEqual StatusCodes.InternalServerError
+        responseAs[Problem].errors.head.code shouldEqual "007-9991"
       }
     }
   }
@@ -439,6 +447,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
 
       Get() ~> service.deleteClient(persistentClient.id.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
+        responseAs[Problem].errors.head.code shouldEqual "007-0010"
       }
     }
   }
