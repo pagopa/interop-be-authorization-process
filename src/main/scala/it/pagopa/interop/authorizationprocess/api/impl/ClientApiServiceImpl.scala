@@ -21,7 +21,7 @@ import it.pagopa.interop.authorizationprocess.common.AuthorizationUtils._
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors._
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
-import it.pagopa.interop.authorizationprocess.service.SelfcareV2ClientService
+import it.pagopa.interop.authorizationprocess.service.SelfcareV2Service
 import it.pagopa.interop.catalogmanagement.model.{CatalogDescriptor, Published, Deprecated => DeprecatedState}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.jwt._
@@ -44,7 +44,7 @@ final case class ClientApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
   agreementManagementService: AgreementManagementService,
   catalogManagementService: CatalogManagementService,
-  selfcareV2ClientService: SelfcareV2ClientService,
+  selfcareV2Service: SelfcareV2Service,
   purposeManagementService: PurposeManagementService,
   tenantManagementService: TenantManagementService,
   dateTimeSupplier: OffsetDateTimeSupplier
@@ -434,7 +434,7 @@ final case class ClientApiServiceImpl(
     userId: UUID,
     roles: Seq[String] = Seq(SECURITY_ROLE, ADMIN_ROLE)
   )(implicit contexts: Seq[(String, String)]): Future[Unit] = for {
-    users <- selfcareV2ClientService
+    users <- selfcareV2Service
       .getInstitutionProductUsers(selfcareId, requesterUserId, userId.some, roles)
     _     <- users.headOption.toFuture(SecurityUserNotFound(requesterUserId, userId))
   } yield ()

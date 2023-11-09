@@ -21,7 +21,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 final case class UserApiServiceImpl(
   authorizationManagementService: AuthorizationManagementService,
-  selfcareV2ClientService: SelfcareV2ClientService
+  selfcareV2Service: SelfcareV2Service
 )(implicit ec: ExecutionContext, readModel: ReadModelService)
     extends UserApiService {
 

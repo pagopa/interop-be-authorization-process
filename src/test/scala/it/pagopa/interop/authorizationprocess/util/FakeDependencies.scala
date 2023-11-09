@@ -193,7 +193,7 @@ object FakeDependencies {
     )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[ReadModelClientWithKeys]] =
       Future.successful(PaginatedResult(results = Seq.empty, totalCount = 0))
   }
-  class FakeSelfcareV2ClientService        extends SelfcareV2ClientService        {
+  class FakeSelfcareV2Service              extends SelfcareV2Service              {
     override def getInstitutionProductUsers(
       selfcareId: UUID,
       requesterId: UUID,

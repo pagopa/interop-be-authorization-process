@@ -22,7 +22,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsWithImplicit with ScalatestRouteTest {
 
   val serviceUser: UserApiServiceImpl =
-    UserApiServiceImpl(mockAuthorizationManagementService, mockSelfcareV2ClientService)(
+    UserApiServiceImpl(mockAuthorizationManagementService, mockSelfcareV2Service)(
       ExecutionContext.global,
       mockReadModel
     )
@@ -31,7 +31,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
     mockAuthorizationManagementService,
     mockAgreementManagementService,
     mockCatalogManagementService,
-    mockSelfcareV2ClientService,
+    mockSelfcareV2Service,
     mockPurposeManagementService,
     mockTenantManagementService,
     mockDateTimeSupplier
@@ -56,7 +56,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
 
       val results: Seq[UserResource] = Seq(userResource)
 
-      (mockSelfcareV2ClientService
+      (mockSelfcareV2Service
         .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
@@ -119,7 +119,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
 
       val results: Seq[UserResource] = Seq(userResource)
 
-      (mockSelfcareV2ClientService
+      (mockSelfcareV2Service
         .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
@@ -142,7 +142,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
         .once()
         .returns(Future.successful(persistentClient))
 
-      (mockSelfcareV2ClientService
+      (mockSelfcareV2Service
         .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
@@ -164,7 +164,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
         .once()
         .returns(Future.successful(persistentClient))
 
-      (mockSelfcareV2ClientService
+      (mockSelfcareV2Service
         .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
@@ -188,7 +188,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
         .once()
         .returns(Future.successful(persistentClient))
 
-      (mockSelfcareV2ClientService
+      (mockSelfcareV2Service
         .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext

@@ -28,7 +28,7 @@ class ClientOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtil
     mockAuthorizationManagementService,
     mockAgreementManagementService,
     mockCatalogManagementService,
-    mockSelfcareV2ClientService,
+    mockSelfcareV2Service,
     mockPurposeManagementService,
     mockTenantManagementService,
     mockDateTimeSupplier

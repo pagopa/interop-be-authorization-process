@@ -1,11 +1,7 @@
 package it.pagopa.interop.authorizationprocess.service.impl
 
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
-import it.pagopa.interop.authorizationprocess.service.{
-  SelfcareV2ClientInvoker,
-  SelfcareV2ClientApiKeyValue,
-  SelfcareV2ClientService
-}
+import it.pagopa.interop.authorizationprocess.service.{SelfcareV2Invoker, SelfcareV2ApiKeyValue, SelfcareV2Service}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.selfcare.v2.client.api.{InstitutionsApi, UsersApi}
 import it.pagopa.interop.selfcare.v2.client.model.UserResource
@@ -15,12 +11,12 @@ import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.I
 import java.util.UUID
 import scala.concurrent.{Future, ExecutionContext}
 
-final case class SelfcareV2ClientServiceImpl(
-  invoker: SelfcareV2ClientInvoker,
+final case class SelfcareV2ServiceImpl(
+  invoker: SelfcareV2Invoker,
   institutionsApi: InstitutionsApi,
   usersApi: UsersApi
-)(implicit val selfcareV2ClientApiKeyValue: SelfcareV2ClientApiKeyValue)
-    extends SelfcareV2ClientService {
+)(implicit val selfcareV2ClientApiKeyValue: SelfcareV2ApiKeyValue)
+    extends SelfcareV2Service {
 
   implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)

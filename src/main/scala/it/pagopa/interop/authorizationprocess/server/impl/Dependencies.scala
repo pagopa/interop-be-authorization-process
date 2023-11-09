@@ -50,12 +50,12 @@ trait Dependencies {
   )
   val dateTimeSupplier: OffsetDateTimeSupplier    = OffsetDateTimeSupplier
 
-  def selfcareV2ClientService()(implicit actorSystem: ActorSystem[_]): SelfcareV2ClientService =
-    SelfcareV2ClientServiceImpl(
-      SelfcareV2ClientInvoker()(actorSystem.classicSystem),
-      InstitutionsApi(ApplicationConfiguration.selfcareV2ClientURL),
-      UsersApi(ApplicationConfiguration.selfcareV2ClientURL)
-    )(SelfcareV2ClientApiKeyValue())
+  def selfcareV2Service()(implicit actorSystem: ActorSystem[_]): SelfcareV2Service =
+    SelfcareV2ServiceImpl(
+      SelfcareV2Invoker()(actorSystem.classicSystem),
+      InstitutionsApi(ApplicationConfiguration.selfcareV2URL),
+      UsersApi(ApplicationConfiguration.selfcareV2URL)
+    )(SelfcareV2ApiKeyValue())
 
   val authorizationManagementClientApi: AuthorizationClientApi = AuthorizationClientApi(
     ApplicationConfiguration.getAuthorizationManagementURL
@@ -88,7 +88,7 @@ trait Dependencies {
       authorizationManagementService(blockingEc),
       AgreementManagementServiceImpl,
       CatalogManagementServiceImpl,
-      selfcareV2ClientService(),
+      selfcareV2Service(),
       PurposeManagementServiceImpl,
       TenantManagementServiceImpl,
       dateTimeSupplier
@@ -101,7 +101,7 @@ trait Dependencies {
     actorSystem: ActorSystem[_],
     ec: ExecutionContext
   ): UserApi = new UserApi(
-    UserApiServiceImpl(authorizationManagementService(blockingEc), selfcareV2ClientService()),
+    UserApiServiceImpl(authorizationManagementService(blockingEc), selfcareV2Service()),
     UserApiMarshallerImpl,
     jwtReader.OAuth2JWTValidatorAsContexts(Logger.takingImplicit[ContextFieldsToLog]("OAuth2JWTValidatorAsContexts"))
   )

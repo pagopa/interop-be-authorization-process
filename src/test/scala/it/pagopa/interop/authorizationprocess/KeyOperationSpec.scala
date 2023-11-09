@@ -31,7 +31,7 @@ class KeyOperationSpec
     mockAuthorizationManagementService,
     mockAgreementManagementService,
     mockCatalogManagementService,
-    mockSelfcareV2ClientService,
+    mockSelfcareV2Service,
     mockPurposeManagementService,
     mockTenantManagementService,
     mockDateTimeSupplier
@@ -172,7 +172,7 @@ class KeyOperationSpec
 
       val results: Seq[UserResource] = Seq(userResource)
 
-      (mockSelfcareV2ClientService
+      (mockSelfcareV2Service
         .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext

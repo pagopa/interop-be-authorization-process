@@ -24,7 +24,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
     mockAuthorizationManagementService,
     mockAgreementManagementService,
     mockCatalogManagementService,
-    mockSelfcareV2ClientService,
+    mockSelfcareV2Service,
     mockPurposeManagementService,
     mockTenantManagementService,
     mockDateTimeSupplier

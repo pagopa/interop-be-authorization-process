@@ -21,7 +21,7 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
   val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeCatalogManagementService: CatalogManagementService             = new FakeCatalogManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
-  val fakeSelfcareV2ClientService: SelfcareV2ClientService               = new FakeSelfcareV2ClientService()
+  val fakeSelfcareV2Service: SelfcareV2Service                           = new FakeSelfcareV2Service()
   val fakePurposeManagementService: PurposeManagementService             = new FakePurposeManagementService()
   val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
   val fakeDateTimeSupplier: OffsetDateTimeSupplier                       = () => OffsetDateTime.now(ZoneOffset.UTC)
@@ -36,7 +36,7 @@ class ClientOperationAuthzSpec extends AnyWordSpecLike with MockFactory with Aut
     fakeAuthorizationManagementService,
     fakeAgreementManagementService,
     fakeCatalogManagementService,
-    fakeSelfcareV2ClientService,
+    fakeSelfcareV2Service,
     fakePurposeManagementService,
     fakeTenantManagementService,
     fakeDateTimeSupplier

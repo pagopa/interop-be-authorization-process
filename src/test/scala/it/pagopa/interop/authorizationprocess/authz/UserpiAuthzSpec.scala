@@ -17,7 +17,7 @@ class UserApiAuthzSpec extends AnyWordSpecLike with MockFactory with AuthzScalat
   val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeCatalogManagementService: CatalogManagementService             = new FakeCatalogManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
-  val fakeSelfcareV2ClientService: SelfcareV2ClientService               = new FakeSelfcareV2ClientService()
+  val fakeSelfcareV2Service: SelfcareV2Service                           = new FakeSelfcareV2Service()
   val fakePurposeManagementService: PurposeManagementService             = new FakePurposeManagementService()
   implicit val fakeReadModel: ReadModelService                           = new MongoDbReadModelService(
     ReadModelConfig(
@@ -27,7 +27,7 @@ class UserApiAuthzSpec extends AnyWordSpecLike with MockFactory with AuthzScalat
   )
 
   val service: UserApiServiceImpl =
-    UserApiServiceImpl(fakeAuthorizationManagementService, fakeSelfcareV2ClientService)(
+    UserApiServiceImpl(fakeAuthorizationManagementService, fakeSelfcareV2Service)(
       ExecutionContext.global,
       fakeReadModel
     )

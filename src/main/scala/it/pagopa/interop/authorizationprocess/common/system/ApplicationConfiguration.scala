@@ -10,8 +10,8 @@ object ApplicationConfiguration {
   val getAuthorizationManagementURL: String =
     config.getString("authorization-process.services.authorization-management")
 
-  val selfcareV2ClientURL: String    = config.getString("authorization-process.services.selfcare-v2-client")
-  val selfcareV2ClientApiKey: String = config.getString("authorization-process.api-keys.selfcare-v2-client")
+  val selfcareV2URL: String    = config.getString("authorization-process.services.selfcare-v2")
+  val selfcareV2ApiKey: String = config.getString("authorization-process.api-keys.selfcare-v2")
 
   val getInteropIdIssuer: String = config.getString("authorization-process.issuer")
 

@@ -10,17 +10,17 @@ import scala.concurrent.ExecutionContextExecutor
 
 package object service {
   type AuthorizationManagementInvoker = authorizationmanagement.client.invoker.ApiInvoker
-  type SelfcareV2ClientInvoker        = v2.client.invoker.ApiInvoker
-  type SelfcareV2ClientApiKeyValue    = v2.client.invoker.ApiKeyValue
+  type SelfcareV2Invoker              = v2.client.invoker.ApiInvoker
+  type SelfcareV2ApiKeyValue          = v2.client.invoker.ApiKeyValue
   type ManagementClient               = Client
 
-  object SelfcareV2ClientApiKeyValue {
-    def apply(): SelfcareV2ClientApiKeyValue =
-      v2.client.invoker.ApiKeyValue(ApplicationConfiguration.selfcareV2ClientApiKey)
+  object SelfcareV2ApiKeyValue {
+    def apply(): SelfcareV2ApiKeyValue =
+      v2.client.invoker.ApiKeyValue(ApplicationConfiguration.selfcareV2ApiKey)
   }
 
-  object SelfcareV2ClientInvoker {
-    def apply()(implicit actorSystem: ActorSystem): SelfcareV2ClientInvoker =
+  object SelfcareV2Invoker {
+    def apply()(implicit actorSystem: ActorSystem): SelfcareV2Invoker =
       v2.client.invoker.ApiInvoker(v2.client.api.EnumsSerializers.all)
   }
 

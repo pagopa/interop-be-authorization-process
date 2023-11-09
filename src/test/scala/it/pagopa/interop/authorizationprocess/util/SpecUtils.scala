@@ -61,7 +61,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val mockAgreementManagementService: AgreementManagementService         = mock[AgreementManagementService]
   val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
-  val mockSelfcareV2ClientService: SelfcareV2ClientService               = mock[SelfcareV2ClientService]
+  val mockSelfcareV2Service: SelfcareV2Service                           = mock[SelfcareV2Service]
   val mockPurposeManagementService: PurposeManagementService             = mock[PurposeManagementService]
   val mockTenantManagementService: TenantManagementService               = mock[TenantManagementService]
   val mockDateTimeSupplier: OffsetDateTimeSupplier                       = mock[OffsetDateTimeSupplier]
@@ -400,7 +400,7 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     }
 
     if (withUsers) {
-      (mockSelfcareV2ClientService
+      (mockSelfcareV2Service
         .getInstitutionProductUsers(_: UUID, _: UUID, _: Option[UUID], _: Seq[String])(
           _: Seq[(String, String)],
           _: ExecutionContext
