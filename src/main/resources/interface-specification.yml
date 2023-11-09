@@ -1023,6 +1023,7 @@ components:
           type: string
           format: date-time
       required:
+        - relationshipId
         - kid
         - name
         - encodedPem

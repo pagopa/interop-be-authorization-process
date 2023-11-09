@@ -73,7 +73,7 @@ object Adapters {
       description = p.description,
       consumerId = p.consumerId,
       purposes = p.purposes.map(_.toApi),
-      relationshipsIds = if (showRelationShips) p.users else Set.empty,
+      relationshipsIds = if (showRelationShips) p.relationships else Set.empty,
       kind = p.kind.toApi,
       createdAt = p.createdAt
     )
@@ -138,9 +138,9 @@ object Adapters {
   }
 
   implicit class KeySeedWrapper(private val keySeed: KeySeed) extends AnyVal {
-    def toDependency(userId: UUID, createdAt: OffsetDateTime): AuthorizationManagementDependency.KeySeed =
+    def toDependency(relationshipId: UUID, createdAt: OffsetDateTime): AuthorizationManagementDependency.KeySeed =
       AuthorizationManagementDependency.KeySeed(
-        userId = userId,
+        relationshipId = relationshipId,
         key = keySeed.key,
         use = keySeed.use.toDependency,
         alg = keySeed.alg,
@@ -179,7 +179,7 @@ object Adapters {
         use = key.use.toApi,
         name = key.name,
         createdAt = key.createdAt,
-        relationshipId = Some(key.userId)
+        relationshipId = key.relationshipId
       )
   }
 
