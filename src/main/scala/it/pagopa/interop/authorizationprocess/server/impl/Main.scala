@@ -4,21 +4,25 @@ import cats.syntax.all._
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import com.typesafe.scalalogging.Logger
-
-import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
+import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClientKind, PersistentClientStatesChain}
 import it.pagopa.interop.authorizationmanagement.model.persistence.JsonFormats._
 import it.pagopa.interop.authorizationmanagement.model.key.PersistentKey
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
 import it.pagopa.interop.authorizationprocess.common.readmodel.model.impl._
 import it.pagopa.interop.authorizationprocess.service.{AuthorizationManagementService, PartyManagementService}
-
+import it.pagopa.interop.commons.queue.message.Message.uuidFormat
+import it.pagopa.interop.commons.utils.SprayCommonFormats.offsetDateTimeFormat
 import org.mongodb.scala.model.Filters
-import it.pagopa.interop.commons.utils.CORRELATION_ID_HEADER
+import it.pagopa.interop.commons.utils.{BEARER, CORRELATION_ID_HEADER, UID}
+import it.pagopa.interop.selfcare.partymanagement.client.invoker.ApiError
+import it.pagopa.interop.selfcare.partymanagement.client.model.Relationship
+import spray.json.DefaultJsonProtocol.jsonFormat9
+import spray.json.RootJsonFormat
 
+import java.time.OffsetDateTime
 import scala.concurrent.duration.Duration
-import java.util.concurrent.{Executors, ExecutorService}
-import scala.concurrent.{ExecutionContext, Future, Await}
-
+import java.util.concurrent.{ExecutorService, Executors}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import java.util.UUID
 import scala.util.Failure
 
@@ -26,7 +30,11 @@ object Main extends App with Dependencies {
 
   val logger: Logger = Logger(this.getClass)
 
-  implicit val context: List[(String, String)] = (CORRELATION_ID_HEADER -> UUID.randomUUID().toString()) :: Nil
+  implicit val context: List[(String, String)] = List(
+    CORRELATION_ID_HEADER -> UUID.randomUUID().toString(),
+    UID                   -> UUID.randomUUID().toString(),
+    BEARER                -> "<bearer_token>"
+  )
 
   implicit val actorSystem: ActorSystem[Nothing]  =
     ActorSystem[Nothing](Behaviors.empty, "interop-be-authorization-process-alignment")
@@ -38,6 +46,20 @@ object Main extends App with Dependencies {
     blockingEc
   )
   implicit val partyManagementService: PartyManagementService                 = partyManagementService()
+
+  final case class PersistentClientLocal(
+    id: UUID,
+    consumerId: UUID,
+    name: String,
+    purposes: Seq[PersistentClientStatesChain],
+    description: Option[String],
+    relationships: Set[UUID],
+    users: Option[Set[UUID]],
+    kind: PersistentClientKind,
+    createdAt: OffsetDateTime
+  )
+
+  implicit val pcFormat: RootJsonFormat[PersistentClientLocal] = jsonFormat9(PersistentClientLocal.apply)
 
   logger.info("Starting update")
   logger.info(s"Retrieving clients")
@@ -70,29 +92,46 @@ object Main extends App with Dependencies {
     _ = logger.info(s"End update keys")
   } yield ()
 
-  def updateClient(client: PersistentClient): Future[Unit] = {
+  def getRelationship(clientId: UUID, relationshipId: UUID): Future[Option[Relationship]] =
+    partyManagementService
+      .getRelationshipById(relationshipId)
+      .map(Some(_))
+      .recover {
+        case e: ApiError[_] if e.code == 404 =>
+          logger.warn(s"Relationship $relationshipId not found on selfcare (client $clientId")
+          None
+      }
+
+  def updateClient(client: PersistentClientLocal): Future[Unit] = {
     logger.info(s"Update client ${client.id}")
     for {
 
-      relationship <- client.relationships.toList.traverse(partyManagementService.getRelationshipById)
-      _            <- relationship.traverse(rel => {
-        if (client.users.exists(_ == rel.from)) Future.unit
+      relationship <- client.relationships.toList.traverse(getRelationship(client.id, _))
+      _            <- relationship.flatten.traverse(rel => {
+        if (client.users.exists(users => users.contains(rel.from))) Future.unit
         else authorizationManagementService.addUser(client.id, rel.from)
       })
     } yield ()
   }
 
-  def getClients(): Future[Seq[PersistentClient]] =
-    getAll(50)(readModelService.find[PersistentClient]("clients", Filters.empty(), _, _))
+  def getClients(): Future[Seq[PersistentClientLocal]] =
+    getAll(50)(readModelService.find[PersistentClientLocal]("clients", Filters.empty(), _, _))
 
-  def getClientKeys(client: PersistentClient): Future[Option[ReadModelClientWithKeys]] =
+  def getClientKeys(client: PersistentClientLocal): Future[Option[ReadModelClientWithKeys]] =
     readModelService.findOne[ReadModelClientWithKeys]("clients", Filters.eq("data.id", client.id.toString))
 
   def updateKeys(key: Parameter): Future[Unit] = {
     logger.info(s"Update keys for client ${key.clientId}")
     for {
-      relationship <- partyManagementService.getRelationshipById(key.relationShipId)
-      _ <- authorizationManagementService.migrateKeyRelationshipToUser(key.clientId, key.kid, relationship.from)
+      relationship <- getRelationship(key.clientId, key.relationShipId)
+      _            <- relationship match {
+        case Some(r) => authorizationManagementService.migrateKeyRelationshipToUser(key.clientId, key.kid, r.from)
+        case None    =>
+          logger.warn(
+            s"Relationship ${key.relationShipId} not found for key ${key.kid} in client ${key.clientId}. Deleting key"
+          )
+          authorizationManagementService.deleteKey(key.clientId, key.kid)
+      }
     } yield ()
   }
 
