@@ -96,8 +96,13 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     email = Some("email"),
     roles = Some(Seq("admin"))
   )
-  val userResponse: UserResponse      =
-    UserResponse(id = Some(userId.toString), surname = Some("surname"), name = Some("name"), email = Some("email"))
+  val userResponse: UserResponse      = UserResponse(
+    id = Some(userId.toString),
+    taxCode = Some(taxCode),
+    surname = Some("surname"),
+    name = Some("name"),
+    email = Some("email")
+  )
 
   val activeDescriptor: CatalogDescriptor = CatalogDescriptor(
     id = UUID.randomUUID(),
