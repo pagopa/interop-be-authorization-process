@@ -88,10 +88,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   val institutionId: String           = "some-external-id1"
   val clientSeed: ClientSeed          = ClientSeed("client name", Some("client description"), Seq.empty)
   val emptyUserResource: UserResource =
-    UserResource(id = None, fiscalCode = None, surname = None, name = None, email = None, roles = None)
+    UserResource(id = None, surname = None, name = None, email = None, roles = None)
   val userResource: UserResource      = UserResource(
     id = Some(userId),
-    fiscalCode = Some(taxCode),
     surname = Some("Surname"),
     name = Some("name"),
     email = Some("email"),
