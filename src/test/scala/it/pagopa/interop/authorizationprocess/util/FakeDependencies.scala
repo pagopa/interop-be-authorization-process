@@ -239,7 +239,9 @@ object FakeDependencies {
           updatedAt = None,
           mails = Nil,
           name = "test_name",
-          kind = Some(PersistentTenantKind.PA)
+          kind = Some(PersistentTenantKind.PA),
+          onboardedAt = None,
+          subUnitType = None
         )
       )
   }

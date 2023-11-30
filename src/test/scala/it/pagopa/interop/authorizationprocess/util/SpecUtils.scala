@@ -291,7 +291,9 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     updatedAt = None,
     mails = Nil,
     name = "test_name",
-    kind = PersistentTenantKind.PA.some
+    kind = PersistentTenantKind.PA.some,
+    onboardedAt = None,
+    subUnitType = None
   )
 
   val purpose: PersistentPurpose = PersistentPurpose(
