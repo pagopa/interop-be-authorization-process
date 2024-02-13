@@ -124,7 +124,7 @@ object ReadModelAuthorizationQueries extends ReadModelQuery {
     kind: Option[PersistentClientKind]
   ): Bson = {
     val userIdsFilter = mapToVarArgs(userIds.map(Filters.eq("data.users", _)))(Filters.or)
-    val nameFilter    = name.map(Filters.regex("data.name", _, "i"))
+    val nameFilter    = name.map(safeRegex("data.name", _, "i"))
     val kindFilter    = kind.map(k => Filters.eq("data.kind", k.toString))
 
     val consumerFilter = Filters.eq("data.consumerId", consumerId)
