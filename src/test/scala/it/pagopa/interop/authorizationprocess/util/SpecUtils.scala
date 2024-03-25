@@ -170,7 +170,8 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
     expectedApprovalDate = None,
     dailyCalls = 10,
     riskAnalysis = None,
-    suspendedAt = None
+    suspendedAt = None,
+    rejectionReason = None
   )
 
   val clientStateId = UUID.randomUUID()
