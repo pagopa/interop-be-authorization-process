@@ -149,6 +149,7 @@ object ClientApiHandlers extends AkkaResponses {
       case Failure(ex: OrganizationNotAllowedOnPurpose) => forbidden(ex, logMessage)
       case Failure(ex: AgreementNotFound)               => badRequest(ex, logMessage)
       case Failure(ex: PurposeNoVersionFound)           => badRequest(ex, logMessage)
+      case Failure(ex: PurposeVersionStateNotAllowed)   => badRequest(ex, logMessage)
       case Failure(ex: PurposeNotFound)                 => notFound(ex, logMessage)
       case Failure(ex: ClientNotFound)                  => notFound(ex, logMessage)
       case Failure(ex)                                  => internalServerError(ex, logMessage)

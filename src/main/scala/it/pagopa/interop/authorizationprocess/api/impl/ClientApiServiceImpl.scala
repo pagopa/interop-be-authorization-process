@@ -32,9 +32,12 @@ import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, St
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.purposemanagement.model.purpose.{
   Archived,
+  PersistentPurpose,
   PersistentPurposeVersion,
   PersistentPurposeVersionState,
-  Active => ActiveState
+  Active => ActiveState,
+  Suspended => SuspendedState,
+  WaitingForApproval => WaitingForApprovalState
 }
 
 import java.util.UUID
@@ -359,6 +362,47 @@ final case class ClientApiServiceImpl(
         case _           => AuthorizationManagementDependency.ClientComponentState.INACTIVE
       }
 
+    def validateVersion(purpose: PersistentPurpose): Either[Throwable, PersistentPurposeVersion] = {
+      val versions = purpose.versions.filterNot(v => invalidPurposeStates(v.state))
+
+      def validateVersionsExistence(purpose: PersistentPurpose): Either[Throwable, PersistentPurposeVersion] =
+        versions
+          .maxByOption(_.createdAt)
+          .fold(PurposeNoVersionFound(purpose.id).asLeft[PersistentPurposeVersion])(_.asRight)
+
+      def validateVersionState(
+        purposeId: UUID,
+        version: PersistentPurposeVersion
+      ): Either[Throwable, PersistentPurposeVersion] = for {
+        version <- Either.cond(
+          Seq(ActiveState, SuspendedState, WaitingForApprovalState).contains(version.state),
+          version,
+          PurposeVersionStateNotAllowed(purposeId, version.id)
+        )
+        _       <- validateWaitingForApproval(version)
+      } yield version
+
+      def validateWaitingForApproval(version: PersistentPurposeVersion): Either[Throwable, PersistentPurposeVersion] = {
+        if (WaitingForApprovalState == version.state) {
+          versions
+            .filterNot(_.id == version.id)
+            .maxByOption(_.createdAt)
+            .fold(PurposeVersionStateNotAllowed(purpose.id, version.id).asLeft[PersistentPurposeVersion])(
+              previousVersion =>
+                previousVersion.state match {
+                  case ActiveState | SuspendedState => version.asRight
+                  case _ => PurposeVersionStateNotAllowed(purpose.id, version.id).asLeft[PersistentPurposeVersion]
+                }
+            )
+        } else version.asRight
+      }
+
+      for {
+        version <- validateVersionsExistence(purpose)
+        _       <- validateVersionState(purpose.id, version)
+      } yield version
+    }
+
     val result: Future[Unit] = for {
       clientUuid <- clientId.toFutureUUID
       client     <- authorizationManagementService.getClient(clientUuid)
@@ -374,10 +418,7 @@ final case class ClientApiServiceImpl(
       descriptor <- eService.descriptors
         .find(_.id == agreement.descriptorId)
         .toFuture(DescriptorNotFound(purpose.eserviceId, agreement.descriptorId))
-      version    <- purpose.versions
-        .filterNot(v => invalidPurposeStates(v.state))
-        .maxByOption(_.createdAt)
-        .toFuture(PurposeNoVersionFound(purpose.id))
+      version    <- validateVersion(purpose).toFuture
       states = AuthorizationManagementDependency.ClientStatesChainSeed(
         eservice = AuthorizationManagementDependency.ClientEServiceDetailsSeed(
           eserviceId = eService.id,
