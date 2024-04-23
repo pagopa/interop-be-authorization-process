@@ -36,7 +36,8 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   Draft,
   PersistentPurposeVersion,
   PersistentPurposeVersionState,
-  Active => ActiveState
+  Active => ActiveState,
+  WaitingForApproval
 }
 
 import java.util.UUID
@@ -332,7 +333,7 @@ final case class ClientApiServiceImpl(
       Set[PersistentAgreementState](Active, Suspended)
 
     val invalidPurposeStates: Set[PersistentPurposeVersionState] =
-      Set(Archived, Rejected, Draft)
+      Set(Archived, Rejected, Draft, WaitingForApproval)
 
     def descriptorToComponentState(
       descriptor: CatalogDescriptor
