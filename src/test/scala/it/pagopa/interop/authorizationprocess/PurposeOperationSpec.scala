@@ -359,7 +359,7 @@ class PurposeOperationSpec extends AnyWordSpecLike with MockFactory with SpecUti
 
     Post() ~> service.addClientPurpose(persistentClient.id.toString, PurposeAdditionDetails(purpose.id)) ~> check {
       status shouldEqual StatusCodes.BadRequest
-      responseAs[Problem].errors.head.code shouldEqual "007-0025"
+      responseAs[Problem].errors.head.code shouldEqual "007-0015"
     }
   }
 }
