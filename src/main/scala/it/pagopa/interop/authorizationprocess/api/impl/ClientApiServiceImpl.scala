@@ -32,9 +32,12 @@ import it.pagopa.interop.commons.utils.TypeConversions.{EitherOps, OptionOps, St
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.purposemanagement.model.purpose.{
   Archived,
+  Rejected,
+  Draft,
   PersistentPurposeVersion,
   PersistentPurposeVersionState,
-  Active => ActiveState
+  Active => ActiveState,
+  WaitingForApproval
 }
 
 import java.util.UUID
@@ -330,7 +333,7 @@ final case class ClientApiServiceImpl(
       Set[PersistentAgreementState](Active, Suspended)
 
     val invalidPurposeStates: Set[PersistentPurposeVersionState] =
-      Set(Archived)
+      Set(Archived, Rejected, Draft, WaitingForApproval)
 
     def descriptorToComponentState(
       descriptor: CatalogDescriptor

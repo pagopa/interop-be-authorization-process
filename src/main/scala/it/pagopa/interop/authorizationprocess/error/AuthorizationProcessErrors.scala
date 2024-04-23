@@ -63,5 +63,4 @@ object AuthorizationProcessErrors {
         "0024",
         s"The number of the keys ${size.toString} for the client ${clientId.toString} exceed maximun allowed"
       )
-
 }
