@@ -3,7 +3,7 @@ package it.pagopa.interop.authorizationprocess
 import cats.syntax.all._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiServiceImpl, UserApiServiceImpl}
+import it.pagopa.interop.authorizationprocess.api.impl.ClientApiServiceImpl
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiMarshallerImpl._
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{InstitutionNotFound, ClientNotFound}
 import it.pagopa.interop.authorizationprocess.model._
@@ -20,12 +20,6 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsWithImplicit with ScalatestRouteTest {
-
-  val serviceUser: UserApiServiceImpl =
-    UserApiServiceImpl(mockAuthorizationManagementService, mockSelfcareV2Service)(
-      ExecutionContext.global,
-      mockReadModel
-    )
 
   val service: ClientApiServiceImpl = ClientApiServiceImpl(
     mockAuthorizationManagementService,
@@ -272,54 +266,5 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
         responseAs[Problem].errors.head.code shouldEqual "007-0010"
       }
     }
-  }
-
-  "User retrieve keys" should {
-    "succeed" in {
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(persistentClient.id, *, *)
-        .once()
-        .returns(Future.successful(persistentClient.copy(users = Set(userId))))
-
-      (mockAuthorizationManagementService
-        .getClientKeys(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(persistentClient.id, *, *)
-        .once()
-        .returns(Future.successful(Seq(persistentKey)))
-
-      Get() ~> serviceUser.getClientUserKeys(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.OK
-      }
-    }
-
-    "fail if the caller is not the client consumer" in {
-
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(persistentClient.id, *, *)
-        .once()
-        .returns(Future.successful(persistentClient.copy(consumerId = UUID.randomUUID())))
-
-      Get() ~> serviceUser.getClientUserKeys(persistentClient.id.toString, UUID.randomUUID().toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        responseAs[Problem].errors.head.code shouldEqual "007-0008"
-      }
-    }
-
-    "fail if client does not exist" in {
-      (mockAuthorizationManagementService
-        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(persistentClient.id, *, *)
-        .once()
-        .returns(Future.failed(ClientNotFound(persistentClient.id)))
-
-      Get() ~> serviceUser.getClientUserKeys(persistentClient.id.toString, userId.toString) ~> check {
-        status shouldEqual StatusCodes.NotFound
-        responseAs[Problem].errors.head.code shouldEqual "007-0010"
-      }
-    }
-
   }
 }

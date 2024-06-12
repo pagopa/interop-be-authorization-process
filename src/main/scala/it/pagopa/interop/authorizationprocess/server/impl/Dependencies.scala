@@ -19,9 +19,7 @@ import it.pagopa.interop.authorizationprocess.api.impl.{
   HealthApiMarshallerImpl,
   HealthServiceApiImpl
 }
-import it.pagopa.interop.authorizationprocess.api.impl.UserApiServiceImpl
-import it.pagopa.interop.authorizationprocess.api.impl.UserApiMarshallerImpl
-import it.pagopa.interop.authorizationprocess.api.{ClientApi, HealthApi, UserApi}
+import it.pagopa.interop.authorizationprocess.api.{ClientApi, HealthApi}
 import it.pagopa.interop.selfcare.v2.client.api.{InstitutionsApi, UsersApi}
 import it.pagopa.interop.authorizationprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.authorizationprocess.api.impl.serviceCode
@@ -95,15 +93,6 @@ trait Dependencies {
     ),
     ClientApiMarshallerImpl,
     jwtReader.OAuth2JWTValidatorAsContexts
-  )
-
-  def userApi(jwtReader: JWTReader, blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_],
-    ec: ExecutionContext
-  ): UserApi = new UserApi(
-    UserApiServiceImpl(authorizationManagementService(blockingEc), selfcareV2Service()),
-    UserApiMarshallerImpl,
-    jwtReader.OAuth2JWTValidatorAsContexts(Logger.takingImplicit[ContextFieldsToLog]("OAuth2JWTValidatorAsContexts"))
   )
 
   def getJwtValidator(): Future[JWTReader] = JWTConfiguration.jwtReader

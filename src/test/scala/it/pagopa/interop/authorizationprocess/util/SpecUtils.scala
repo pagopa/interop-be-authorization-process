@@ -416,8 +416,6 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
 
   val clientApiMarshaller: ClientApiMarshallerImpl.type = ClientApiMarshallerImpl
 
-  val userApiMarshaller: UserApiMarshallerImpl.type = UserApiMarshallerImpl
-
   implicit def fromResponseUnmarshallerClientRequest: FromEntityUnmarshaller[Client] =
     sprayJsonUnmarshaller[Client]
 
