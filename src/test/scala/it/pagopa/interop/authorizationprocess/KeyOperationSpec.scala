@@ -278,7 +278,15 @@ class KeyOperationSpec
 
   "Delete key" should {
     "succeed" in {
-      val kid = "some-kid"
+      implicit val contexts: Seq[(String, String)] =
+        Seq(
+          "bearer"         -> bearerToken,
+          USER_ROLES       -> ADMIN_ROLE,
+          "organizationId" -> consumerId.toString,
+          "uid"            -> userId.toString,
+          "selfcareId"     -> selfcareId.toString
+        )
+      val kid                                      = "some-kid"
 
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -294,6 +302,55 @@ class KeyOperationSpec
 
       Get() ~> service.deleteClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.NoContent
+      }
+    }
+
+    "succeed if role is Security" in {
+      implicit val contexts: Seq[(String, String)] =
+        Seq(
+          "bearer"         -> bearerToken,
+          USER_ROLES       -> SECURITY_ROLE,
+          "organizationId" -> consumerId.toString,
+          "uid"            -> userId.toString,
+          "selfcareId"     -> selfcareId.toString
+        )
+      val kid                                      = "some-kid"
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
+        .once()
+        .returns(Future.successful(persistentClient.copy(users = Set(userId))))
+
+      (mockAuthorizationManagementService
+        .deleteKey(_: UUID, _: String)(_: Seq[(String, String)]))
+        .expects(client.id, kid, *)
+        .once()
+        .returns(Future.successful(()))
+
+      Get() ~> service.deleteClientKeyById(client.id.toString, kid) ~> check {
+        status shouldEqual StatusCodes.NoContent
+      }
+    }
+    "fail if role is Security and UID is not a member" in {
+      implicit val contexts: Seq[(String, String)] =
+        Seq(
+          "bearer"         -> bearerToken,
+          USER_ROLES       -> SECURITY_ROLE,
+          "organizationId" -> consumerId.toString,
+          "uid"            -> userId.toString,
+          "selfcareId"     -> selfcareId.toString
+        )
+      val kid                                      = "some-kid"
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
+        .once()
+        .returns(Future.successful(persistentClient))
+
+      Get() ~> service.deleteClientKeyById(client.id.toString, kid) ~> check {
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 

@@ -14,6 +14,7 @@ import it.pagopa.interop.agreementmanagement.model.agreement.{
   Suspended
 }
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
 import it.pagopa.interop.authorizationprocess.api.ClientApiService
 import it.pagopa.interop.authorizationprocess.api.impl.ClientApiHandlers._
 import it.pagopa.interop.authorizationprocess.common.Adapters._
@@ -229,9 +230,19 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Deleting Key $keyId of Client $clientId"
     logger.info(operationLabel)
 
+    def checkRole(client: PersistentClient): Future[Unit] = for {
+      roles           <- getUserRolesFuture(contexts)
+      requesterUserId <- getUidFutureUUID(contexts)
+      _               <-
+        if (roles.contains(SECURITY_ROLE) && client.users.filter(_ == requesterUserId).isEmpty)
+          Future.failed(KeyOperationNotAllowedOnClient(client.id))
+        else Future.unit
+    } yield ()
+
     val result: Future[Unit] = for {
       clientUuid <- clientId.toFutureUUID
       client     <- authorizationManagementService.getClient(clientUuid)
+      _          <- checkRole(client)
       _          <- assertIsClientConsumer(client).toFuture
       _          <- authorizationManagementService.deleteKey(clientUuid, keyId)(contexts)
     } yield ()
