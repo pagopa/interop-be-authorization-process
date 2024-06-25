@@ -125,7 +125,7 @@ object ClientApiHandlers extends AkkaResponses {
     result match {
       case Success(s)                                  => success(s)
       case Failure(ex: OrganizationNotAllowedOnClient) => forbidden(ex, logMessage)
-      case Failure(ex: KeyOperationNotAllowedOnClient) => forbidden(ex, logMessage)
+      case Failure(ex: UserIsNotMemberOfClient)        => forbidden(ex, logMessage)
       case Failure(ex: ClientKeyNotFound)              => notFound(ex, logMessage)
       case Failure(ex)                                 => internalServerError(ex, logMessage)
     }

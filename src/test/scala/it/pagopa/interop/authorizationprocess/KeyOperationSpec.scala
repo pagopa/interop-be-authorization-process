@@ -9,7 +9,7 @@ import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiServiceImpl, ke
 import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.{ClientKeyNotFound, ClientNotFound}
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.selfcare.v2.client.model.UserResource
-import it.pagopa.interop.commons.utils.USER_ROLES
+import it.pagopa.interop.commons.utils.{UID, USER_ROLES}
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, SECURITY_ROLE}
 import it.pagopa.interop.authorizationprocess.util.{CustomMatchers, SpecUtilsWithImplicit}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
@@ -277,13 +277,13 @@ class KeyOperationSpec
   }
 
   "Delete key" should {
-    "succeed" in {
+    "succeed if role is Admin" in {
       implicit val contexts: Seq[(String, String)] =
         Seq(
           "bearer"         -> bearerToken,
           USER_ROLES       -> ADMIN_ROLE,
           "organizationId" -> consumerId.toString,
-          "uid"            -> userId.toString,
+          UID              -> userId.toString,
           "selfcareId"     -> selfcareId.toString
         )
       val kid                                      = "some-kid"
@@ -292,7 +292,7 @@ class KeyOperationSpec
         .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(*, *, *)
         .once()
-        .returns(Future.successful(persistentClient))
+        .returns(Future.successful(persistentClient.copy(id = client.id, users = Set(userId))))
 
       (mockAuthorizationManagementService
         .deleteKey(_: UUID, _: String)(_: Seq[(String, String)]))
@@ -311,7 +311,7 @@ class KeyOperationSpec
           "bearer"         -> bearerToken,
           USER_ROLES       -> SECURITY_ROLE,
           "organizationId" -> consumerId.toString,
-          "uid"            -> userId.toString,
+          UID              -> userId.toString,
           "selfcareId"     -> selfcareId.toString
         )
       val kid                                      = "some-kid"
@@ -320,7 +320,7 @@ class KeyOperationSpec
         .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(*, *, *)
         .once()
-        .returns(Future.successful(persistentClient.copy(users = Set(userId))))
+        .returns(Future.successful(persistentClient.copy(id = client.id, users = Set(userId))))
 
       (mockAuthorizationManagementService
         .deleteKey(_: UUID, _: String)(_: Seq[(String, String)]))
@@ -338,7 +338,7 @@ class KeyOperationSpec
           "bearer"         -> bearerToken,
           USER_ROLES       -> SECURITY_ROLE,
           "organizationId" -> consumerId.toString,
-          "uid"            -> userId.toString,
+          UID              -> userId.toString,
           "selfcareId"     -> selfcareId.toString
         )
       val kid                                      = "some-kid"
@@ -347,7 +347,28 @@ class KeyOperationSpec
         .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(*, *, *)
         .once()
-        .returns(Future.successful(persistentClient))
+        .returns(Future.successful(persistentClient.copy(id = client.id)))
+
+      Get() ~> service.deleteClientKeyById(client.id.toString, kid) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+      }
+    }
+    "fail if role is Admin and UID is not a member" in {
+      implicit val contexts: Seq[(String, String)] =
+        Seq(
+          "bearer"         -> bearerToken,
+          USER_ROLES       -> ADMIN_ROLE,
+          "organizationId" -> consumerId.toString,
+          UID              -> userId.toString,
+          "selfcareId"     -> selfcareId.toString
+        )
+      val kid                                      = "some-kid"
+
+      (mockAuthorizationManagementService
+        .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(*, *, *)
+        .once()
+        .returns(Future.successful(persistentClient.copy(id = client.id)))
 
       Get() ~> service.deleteClientKeyById(client.id.toString, kid) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -355,12 +376,19 @@ class KeyOperationSpec
     }
 
     "fail if client or key do not exist" in {
-      val kid = "some-kid"
+      implicit val contexts: Seq[(String, String)] = Seq(
+        "bearer"         -> bearerToken,
+        USER_ROLES       -> SECURITY_ROLE,
+        "organizationId" -> consumerId.toString,
+        UID              -> userId.toString,
+        "selfcareId"     -> selfcareId.toString
+      )
+      val kid                                      = "some-kid"
       (mockAuthorizationManagementService
         .getClient(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(*, *, *)
         .once()
-        .returns(Future.successful(persistentClient))
+        .returns(Future.successful(persistentClient.copy(id = client.id, users = Set(userId))))
 
       (mockAuthorizationManagementService
         .deleteKey(_: UUID, _: String)(_: Seq[(String, String)]))

@@ -64,9 +64,6 @@ object AuthorizationProcessErrors {
         s"The number of the keys ${size.toString} for the client ${clientId.toString} exceed maximun allowed"
       )
 
-  final case class KeyOperationNotAllowedOnClient(clientId: UUID)
-      extends ComponentError(
-        "0025",
-        s"Role is not allowed to perform operation on the key for the client ${clientId.toString}"
-      )
+  final case class UserIsNotMemberOfClient(clientId: UUID, userId: UUID)
+      extends ComponentError("0025", s"User $userId is not a member of client ${clientId.toString}")
 }

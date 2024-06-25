@@ -230,19 +230,18 @@ final case class ClientApiServiceImpl(
     val operationLabel: String = s"Deleting Key $keyId of Client $clientId"
     logger.info(operationLabel)
 
-    def checkRole(client: PersistentClient): Future[Unit] = for {
-      roles           <- getUserRolesFuture(contexts)
+    def assertUserIsMemberOfClient(client: PersistentClient): Future[Unit] = for {
       requesterUserId <- getUidFutureUUID(contexts)
       _               <-
-        if (roles.contains(SECURITY_ROLE) && client.users.filter(_ == requesterUserId).isEmpty)
-          Future.failed(KeyOperationNotAllowedOnClient(client.id))
+        if (!client.users.contains(requesterUserId))
+          Future.failed(UserIsNotMemberOfClient(client.id, requesterUserId))
         else Future.unit
     } yield ()
 
     val result: Future[Unit] = for {
       clientUuid <- clientId.toFutureUUID
       client     <- authorizationManagementService.getClient(clientUuid)
-      _          <- checkRole(client)
+      _          <- assertUserIsMemberOfClient(client)
       _          <- assertIsClientConsumer(client).toFuture
       _          <- authorizationManagementService.deleteKey(clientUuid, keyId)(contexts)
     } yield ()
