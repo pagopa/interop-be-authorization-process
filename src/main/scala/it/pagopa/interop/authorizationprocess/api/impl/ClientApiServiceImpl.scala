@@ -241,8 +241,8 @@ final case class ClientApiServiceImpl(
     val result: Future[Unit] = for {
       clientUuid <- clientId.toFutureUUID
       client     <- authorizationManagementService.getClient(clientUuid)
-      _          <- assertUserIsMemberOfClient(client)
       _          <- assertIsClientConsumer(client).toFuture
+      _          <- assertUserIsMemberOfClient(client)
       _          <- authorizationManagementService.deleteKey(clientUuid, keyId)(contexts)
     } yield ()
 
