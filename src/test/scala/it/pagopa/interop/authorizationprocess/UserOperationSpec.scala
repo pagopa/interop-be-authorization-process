@@ -69,7 +69,7 @@ class UserOperationSpec extends AnyWordSpecLike with MockFactory with SpecUtilsW
         id = persistentClient.id,
         consumerId = consumerId,
         name = client.name,
-        purposes = Seq(clientPurposeProcess),
+        purposes = Set(clientPurpose.states.id),
         description = client.description,
         users = Set(userId),
         kind = ClientKind.CONSUMER,
