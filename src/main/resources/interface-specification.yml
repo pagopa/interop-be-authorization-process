@@ -836,8 +836,9 @@ components:
         purposes:
           type: array
           items:
-            $ref: '#/components/schemas/ClientPurpose'
-          default: []
+            type: string
+            format: uuid
+          uniqueItems: true
         description:
           type: string
         users:
@@ -856,14 +857,6 @@ components:
         - users
         - kind
         - createdAt
-    ClientPurpose:
-      type: object
-      description: Models Client purposes
-      properties:
-        states: 
-          $ref: '#/components/schemas/ClientStatesChain'
-      required:
-        - states   
     ClientKind:
       type: string
       description: kind of client
@@ -1016,8 +1009,6 @@ components:
           format: uuid
         title:
           type: string
-        states:
-          $ref: '#/components/schemas/ClientStatesChain'
         agreement:
           $ref: '#/components/schemas/Agreement'
       required:
@@ -1033,87 +1024,6 @@ components:
           format: uuid
       required:
         - purposeId
-    ClientStatesChain:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        eservice:
-          $ref: '#/components/schemas/ClientEServiceDetails'
-        agreement:
-          $ref: '#/components/schemas/ClientAgreementDetails'
-        purpose:
-          $ref: '#/components/schemas/ClientPurposeDetails'
-      required:
-        - id
-        - eservice
-        - agreement
-        - purpose
-    ClientEServiceDetails:
-      type: object
-      properties:
-        eserviceId:
-          type: string
-          format: uuid
-        descriptorId:
-          type: string
-          format: uuid
-        state:
-          $ref: '#/components/schemas/ClientComponentState'
-        audience:
-          type: array
-          items:
-            type: string
-        voucherLifespan:
-          type: integer
-          format: int32
-      required:
-        - eserviceId
-        - descriptorId
-        - state
-        - audience
-        - voucherLifespan
-    ClientAgreementDetails:
-      type: object
-      properties:
-        eserviceId:
-          type: string
-          format: uuid
-        consumerId:
-          type: string
-          format: uuid
-        agreementId:
-          type: string
-          format: uuid
-        state:
-          $ref: '#/components/schemas/ClientComponentState'
-      required:
-        - eserviceId
-        - consumerId
-        - agreementId
-        - state
-    ClientPurposeDetails:
-      type: object
-      properties:
-        purposeId:
-          type: string
-          format: uuid
-        versionId:
-          type: string
-          format: uuid  
-        state:
-          $ref: '#/components/schemas/ClientComponentState'
-      required:
-        - purposeId
-        - versionId
-        - state
-    ClientComponentState:
-      type: string
-      description: Represents the State of an object related to the purpose
-      enum:
-        - ACTIVE
-        - INACTIVE
     Agreement:
       type: object
       properties:

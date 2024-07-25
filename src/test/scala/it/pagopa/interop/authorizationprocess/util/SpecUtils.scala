@@ -1,41 +1,34 @@
 package it.pagopa.interop.authorizationprocess.util
 
-import cats.syntax.all._
-import it.pagopa.interop.commons.utils.SprayCommonFormats.uuidFormat
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
+import cats.syntax.all._
 import com.nimbusds.jwt.JWTClaimsSet
-import it.pagopa.interop.authorizationprocess.{model => AuthorizationProcessModel}
+import it.pagopa.interop.agreementmanagement.model.agreement.{Active, PersistentAgreement, PersistentStamps}
 import it.pagopa.interop.authorizationmanagement
+import it.pagopa.interop.authorizationmanagement.client.model.KeyUse.SIG
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
-import it.pagopa.interop.authorizationmanagement.model.{client => AuthorizationPersistentModel}
-import it.pagopa.interop.authorizationmanagement.model.{key => AuthorizationPersistentKeyModel}
+import it.pagopa.interop.authorizationmanagement.model.{
+  client => AuthorizationPersistentModel,
+  key => AuthorizationPersistentKeyModel
+}
 import it.pagopa.interop.authorizationprocess.api.impl.{ClientApiMarshallerImpl, _}
+import it.pagopa.interop.authorizationprocess.common.Adapters.PersistentKeyUseWrapper
 import it.pagopa.interop.authorizationprocess.model._
 import it.pagopa.interop.authorizationprocess.service._
-import it.pagopa.interop.commons.utils.USER_ROLES
+import it.pagopa.interop.catalogmanagement.model._
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.commons.utils.SprayCommonFormats.uuidFormat
+import it.pagopa.interop.commons.utils.USER_ROLES
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
-import it.pagopa.interop.catalogmanagement.model.{
-  Automatic,
-  CatalogAttributes,
-  CatalogDescriptor,
-  CatalogItem,
-  Published,
-  Rest,
-  Deliver
-}
-import it.pagopa.interop.agreementmanagement.model.agreement.{Active, PersistentAgreement, PersistentStamps}
-import it.pagopa.interop.authorizationmanagement.client.model.KeyUse.SIG
-import it.pagopa.interop.authorizationprocess.common.Adapters.PersistentKeyUseWrapper
 import it.pagopa.interop.purposemanagement.model.purpose.{
   Archived,
   PersistentPurpose,
   PersistentPurposeVersion,
   Active => PurposeActive
 }
+import it.pagopa.interop.selfcare.v2.client.model.{UserResource, UserResponse}
 import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentExternalId, PersistentTenant, PersistentTenantKind}
-import it.pagopa.interop.selfcare.v2.client.model.{UserResponse, UserResource}
 import org.scalamock.scalatest.MockFactory
 
 import java.time.{Duration, OffsetDateTime}
@@ -175,30 +168,6 @@ trait SpecUtils extends SprayJsonSupport { self: MockFactory =>
   )
 
   val clientStateId = UUID.randomUUID()
-
-  val clientPurposeProcess: AuthorizationProcessModel.ClientPurpose = AuthorizationProcessModel.ClientPurpose(states =
-    AuthorizationProcessModel.ClientStatesChain(
-      id = clientStateId,
-      eservice = AuthorizationProcessModel.ClientEServiceDetails(
-        eserviceId = eServiceId,
-        descriptorId = descriptorId,
-        state = AuthorizationProcessModel.ClientComponentState.ACTIVE,
-        audience = Seq("audience"),
-        voucherLifespan = 10
-      ),
-      agreement = AuthorizationProcessModel.ClientAgreementDetails(
-        eserviceId = eServiceId,
-        agreementId = agreementId,
-        consumerId = consumerId,
-        state = AuthorizationProcessModel.ClientComponentState.ACTIVE
-      ),
-      purpose = AuthorizationProcessModel.ClientPurposeDetails(
-        purposeId = purposeId,
-        versionId = versionId,
-        state = AuthorizationProcessModel.ClientComponentState.ACTIVE
-      )
-    )
-  )
 
   val clientPurpose: AuthorizationManagementDependency.Purpose = AuthorizationManagementDependency.Purpose(states =
     AuthorizationManagementDependency.ClientStatesChain(

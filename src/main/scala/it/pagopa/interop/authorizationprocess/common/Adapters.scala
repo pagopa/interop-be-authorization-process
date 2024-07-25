@@ -1,22 +1,17 @@
 package it.pagopa.interop.authorizationprocess.common
 
-import it.pagopa.interop.authorizationmanagement.client.model.KeyUse
-import it.pagopa.interop.authorizationprocess.model._
-import it.pagopa.interop.authorizationprocess.model.{KeyUse => ProcessKeyUse}
-import it.pagopa.interop.authorizationmanagement.model.client._
-import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientComponentState.Active
-import it.pagopa.interop.authorizationmanagement.model.client.PersistentClientComponentState.Inactive
-import it.pagopa.interop.authorizationmanagement.model.client.{Api, Consumer}
-import it.pagopa.interop.authorizationmanagement.model.key.{Enc, Sig}
-import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
-import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
-import it.pagopa.interop.authorizationmanagement.model.key.{PersistentKey, PersistentKeyUse}
-import it.pagopa.interop.authorizationmanagement.jwk.model.Models._
-import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.MissingUserId
 import cats.syntax.all._
+import it.pagopa.interop.authorizationmanagement.client.model.KeyUse
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.interop.authorizationmanagement.jwk.model.Models._
+import it.pagopa.interop.authorizationmanagement.model.client._
+import it.pagopa.interop.authorizationmanagement.model.key.{Enc, PersistentKey, PersistentKeyUse, Sig}
+import it.pagopa.interop.authorizationprocess.common.readmodel.model.ReadModelClientWithKeys
+import it.pagopa.interop.authorizationprocess.error.AuthorizationProcessErrors.MissingUserId
+import it.pagopa.interop.authorizationprocess.model.{KeyUse => ProcessKeyUse, _}
 
-import java.util.UUID
 import java.time.OffsetDateTime
+import java.util.UUID
 
 object Adapters {
 
@@ -26,7 +21,7 @@ object Adapters {
       name = p.name,
       description = p.description,
       consumerId = p.consumerId,
-      purposes = p.purposes.map(p => ClientPurpose(states = p.toApi)),
+      purposes = p.purposes.map(_.id).toSet,
       users = if (showUsers) p.users else Set.empty,
       kind = p.kind.toApi,
       createdAt = p.createdAt
@@ -44,7 +39,7 @@ object Adapters {
               name = rmck.name,
               description = rmck.description,
               consumerId = rmck.consumerId,
-              purposes = rmck.purposes.map(p => ClientPurpose(states = p.toApi)),
+              purposes = rmck.purposes.map(_.id).toSet,
               users = if (showUsers) rmck.users else Set.empty,
               kind = rmck.kind.toApi,
               createdAt = rmck.createdAt
@@ -71,18 +66,13 @@ object Adapters {
         )
   }
 
-  implicit class ManagementClientPurposeWrapper(private val cp: AuthorizationManagementDependency.Purpose)
-      extends AnyVal {
-    def toApi: ClientPurpose = ClientPurpose(states = cp.states.toApi)
-  }
-
   implicit class ManagementClientWrapper(private val p: AuthorizationManagementDependency.Client) extends AnyVal {
     def toApi(showUsers: Boolean): Client = Client(
       id = p.id,
       name = p.name,
       description = p.description,
       consumerId = p.consumerId,
-      purposes = p.purposes.map(_.toApi),
+      purposes = p.purposes.map(_.states.id).toSet,
       users = if (showUsers) p.users else Set.empty,
       kind = p.kind.toApi,
       createdAt = p.createdAt
@@ -109,42 +99,6 @@ object Adapters {
       case ClientKind.API      => Api
       case ClientKind.CONSUMER => Consumer
     }
-  }
-
-  implicit class ClientComponentStateWrapper(private val ck: PersistentClientComponentState) extends AnyVal {
-    def toApi: ClientComponentState = ck match {
-      case Active   => ClientComponentState.ACTIVE
-      case Inactive => ClientComponentState.INACTIVE
-    }
-  }
-
-  implicit class ClientStatesChainWrapper(private val csc: PersistentClientStatesChain) extends AnyVal {
-    def toApi: ClientStatesChain = ClientStatesChain(
-      id = csc.id,
-      eservice = csc.eService.toApi,
-      agreement = csc.agreement.toApi,
-      purpose = csc.purpose.toApi
-    )
-  }
-
-  implicit class ClientEServiceDetailsWrapper(private val pced: PersistentClientEServiceDetails) extends AnyVal {
-    def toApi: ClientEServiceDetails = ClientEServiceDetails(
-      descriptorId = pced.descriptorId,
-      eserviceId = pced.eServiceId,
-      audience = pced.audience,
-      voucherLifespan = pced.voucherLifespan,
-      state = pced.state.toApi
-    )
-  }
-
-  implicit class ClientAgreementDetailsWrapper(private val pcad: PersistentClientAgreementDetails) extends AnyVal {
-    def toApi: ClientAgreementDetails =
-      ClientAgreementDetails(
-        eserviceId = pcad.eServiceId,
-        consumerId = pcad.consumerId,
-        agreementId = pcad.agreementId,
-        state = pcad.state.toApi
-      )
   }
 
   implicit class KeySeedWrapper(private val keySeed: KeySeed) extends AnyVal {
@@ -196,62 +150,6 @@ object Adapters {
   implicit class OtherPrimeInfoWrapper(private val info: AuthorizationManagementDependency.OtherPrimeInfo)
       extends AnyVal {
     def toApi: OtherPrimeInfo = OtherPrimeInfo(r = info.r, d = info.d, t = info.t)
-  }
-
-  implicit class ClientPurposeDetailsWrapper(private val pcpd: PersistentClientPurposeDetails) extends AnyVal {
-    def toApi: ClientPurposeDetails =
-      ClientPurposeDetails(purposeId = pcpd.purposeId, versionId = pcpd.versionId, state = pcpd.state.toApi)
-  }
-
-  implicit class ManagementPurposeDetailsWrapper(
-    private val cpd: AuthorizationManagementDependency.ClientPurposeDetails
-  ) extends AnyVal {
-    def toApi: ClientPurposeDetails =
-      ClientPurposeDetails(purposeId = cpd.purposeId, versionId = cpd.versionId, state = cpd.state.toApi)
-  }
-
-  implicit class ManagementClientStatesChainWrapper(
-    private val csc: AuthorizationManagementDependency.ClientStatesChain
-  ) extends AnyVal {
-    def toApi: ClientStatesChain = ClientStatesChain(
-      id = csc.id,
-      eservice = csc.eservice.toApi,
-      agreement = csc.agreement.toApi,
-      purpose = csc.purpose.toApi
-    )
-  }
-
-  implicit class ManagementClientEServiceDetailsWrapper(
-    private val ced: AuthorizationManagementDependency.ClientEServiceDetails
-  ) extends AnyVal {
-    def toApi: ClientEServiceDetails = ClientEServiceDetails(
-      eserviceId = ced.eserviceId,
-      descriptorId = ced.descriptorId,
-      audience = ced.audience,
-      voucherLifespan = ced.voucherLifespan,
-      state = ced.state.toApi
-    )
-  }
-
-  implicit class ManagementClientAgreementDetailsWrapper(
-    private val cad: AuthorizationManagementDependency.ClientAgreementDetails
-  ) extends AnyVal {
-    def toApi: ClientAgreementDetails =
-      ClientAgreementDetails(
-        eserviceId = cad.eserviceId,
-        consumerId = cad.consumerId,
-        agreementId = cad.agreementId,
-        state = cad.state.toApi
-      )
-  }
-
-  implicit class ManagementClientComponentStateWrapper(
-    private val ck: AuthorizationManagementDependency.ClientComponentState
-  ) extends AnyVal {
-    def toApi: ClientComponentState = ck match {
-      case AuthorizationManagementDependency.ClientComponentState.ACTIVE   => ClientComponentState.ACTIVE
-      case AuthorizationManagementDependency.ClientComponentState.INACTIVE => ClientComponentState.INACTIVE
-    }
   }
 
   implicit class JwkOtherPrimeInfoWrapper(private val o: JwkOtherPrimeInfo) extends AnyVal {
