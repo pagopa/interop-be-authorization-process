@@ -21,7 +21,7 @@ object Adapters {
       name = p.name,
       description = p.description,
       consumerId = p.consumerId,
-      purposes = p.purposes.map(_.id).toSet,
+      purposes = p.purposes.map(_.purpose.purposeId).toSet,
       users = if (showUsers) p.users else Set.empty,
       kind = p.kind.toApi,
       createdAt = p.createdAt
@@ -39,7 +39,7 @@ object Adapters {
               name = rmck.name,
               description = rmck.description,
               consumerId = rmck.consumerId,
-              purposes = rmck.purposes.map(_.id).toSet,
+              purposes = rmck.purposes.map(_.purpose.purposeId).toSet,
               users = if (showUsers) rmck.users else Set.empty,
               kind = rmck.kind.toApi,
               createdAt = rmck.createdAt
@@ -72,7 +72,7 @@ object Adapters {
       name = p.name,
       description = p.description,
       consumerId = p.consumerId,
-      purposes = p.purposes.map(_.states.id).toSet,
+      purposes = p.purposes.map(_.states.purpose.purposeId).toSet,
       users = if (showUsers) p.users else Set.empty,
       kind = p.kind.toApi,
       createdAt = p.createdAt
