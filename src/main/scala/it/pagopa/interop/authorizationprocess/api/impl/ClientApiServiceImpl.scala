@@ -265,7 +265,7 @@ final case class ClientApiServiceImpl(
       keys            <- authorizationManagementService.getClientKeys(clientUuid)
       _               <- assertKeyIsBelowThreshold(clientUuid, keys.size + keysSeeds.size)
       _               <- client.users.find(_ == requesterUserId).toFuture(UserNotFound(selfcareId, requesterUserId))
-      _               <- assertSecurityUser(selfcareId, requesterOrgId, requesterUserId)
+      _               <- assertSecurityUser(selfcareId, requesterUserId, requesterUserId)
       seeds = keysSeeds.map(_.toDependency(requesterUserId, dateTimeSupplier.get()))
       keysResponse <- authorizationManagementService.createKeys(clientUuid, seeds)(contexts)
     } yield Keys(keysResponse.keys.map(_.toApi))
