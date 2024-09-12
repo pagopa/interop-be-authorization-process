@@ -177,7 +177,7 @@ class KeyOperationSpec
           _: Seq[(String, String)],
           _: ExecutionContext
         ))
-        .expects(selfcareId, consumerId, userId.some, Seq(SECURITY_ROLE, ADMIN_ROLE), *, *)
+        .expects(selfcareId, userId, userId.some, Seq(SECURITY_ROLE, ADMIN_ROLE), *, *)
         .once()
         .returns(Future.successful(results))
 
